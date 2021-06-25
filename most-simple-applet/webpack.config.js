@@ -2,16 +2,10 @@ const path = require('path')
 
 module.exports = {
     mode: 'development',
-    // devtool: 'none',
-    entry: './src/applet.js',
+    entry: './src/index.js',
     output: {
-        filename: 'applet.js',
         path: path.resolve(__dirname, 'files/most-simple-applet/'),
-    },
-    resolve: {
-        modules: [
-            path.resolve('./src'),
-            'node_modules'
-        ]
+        filename: 'webpack-numbers.js',
+        library: "webpackNumbers", // TODO: library needed?
     }
 }
