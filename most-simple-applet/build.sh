@@ -6,9 +6,12 @@ APPLET_NAME=$(basename $CURRENT_DIR)
 LOCAL_TESTING_DIR=$HOME/.local/share/cinnamon/applets/${APPLET_NAME}/${CINNAMON_VERSION}
 BUILD_DIR=${CURRENT_DIR}/files/${APPLET_NAME}/${CINNAMON_VERSION}
 
-# --parent = no error if existing, make parent directories as needed
-rm -r ${LOCAL_TESTING_DIR}
+npx webpack
+# when webpack succeeded. Must be directly behind the command
+if [ $? -eq 0 ]; then 
+    rm -r ${LOCAL_TESTING_DIR}
+    cp -r ${BUILD_DIR} ${LOCAL_TESTING_DIR}
 
-cp -r ${BUILD_DIR} ${LOCAL_TESTING_DIR}
-
-xdotool key ctrl+alt+0xff1b
+    # Restart cinnamon to adopt the changes
+    xdotool key ctrl+alt+0xff1b
+fi

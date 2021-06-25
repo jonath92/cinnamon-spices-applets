@@ -10,7 +10,7 @@ export class MyApplet extends Applet.IconApplet {
     }
 
     on_applet_clicked = function () {
-        global.log(wordToNum('Two'))
+        global.log(wordToNum('Three'))
 
     }
 }
