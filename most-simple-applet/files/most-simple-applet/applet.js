@@ -6,6 +6,10 @@ class MyApplet extends Applet.IconApplet {
         super(orientation, panel_height, instance_id)
         this.set_applet_icon_name("computer");
     }
+
+    on_applet_clicked() {
+        global.log(eval(2 + 2))
+    }
 }
 
 function main(metadata, orientation, panel_height, instance_id) {
