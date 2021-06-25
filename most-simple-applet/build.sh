@@ -10,3 +10,5 @@ BUILD_DIR=${CURRENT_DIR}/files/${APPLET_NAME}/${CINNAMON_VERSION}
 rm -r ${LOCAL_TESTING_DIR}
 
 cp -r ${BUILD_DIR} ${LOCAL_TESTING_DIR}
+
+xdotool key ctrl+alt+0xff1b

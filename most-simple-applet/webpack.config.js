@@ -2,10 +2,16 @@ const path = require('path')
 
 module.exports = {
     mode: 'development',
-    devtool: 'none',
+    // devtool: 'none',
     entry: './src/applet.js',
     output: {
-        filename: 'hello.js',
-        path: path.resolve(__dirname, 'files')
+        filename: 'applet.js',
+        path: path.resolve(__dirname, 'files/most-simple-applet/'),
+    },
+    resolve: {
+        modules: [
+            path.resolve('./src'),
+            'node_modules'
+        ]
     }
 }
