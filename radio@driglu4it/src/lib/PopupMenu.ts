@@ -40,8 +40,8 @@ export function createPopupMenu(args: Arguments) {
     const bin = new Bin({
         style_class: 'menu',
         child: box,
+        visible: false
     })
-
 
     uiGroup.add_child(bin)
 
@@ -52,12 +52,7 @@ export function createPopupMenu(args: Arguments) {
     launcher.connect('queue-relayout', () => {
         if (!box.visible) return
 
-        setTimeout(() => {
-            setLayout()
-        }, 0);
-    })
 
-    bin.connect('queue-relayout', () => {
         setTimeout(() => {
             setLayout()
         }, 0);
@@ -138,8 +133,6 @@ export function createPopupMenu(args: Arguments) {
         return [xLeft, yTop];
     }
 
-
-
     function toggle() {
         box.visible ? close() : open()
     }
@@ -148,7 +141,7 @@ export function createPopupMenu(args: Arguments) {
     function open() {
 
         setLayout()
-
+        bin.show()
         box.show()
 
         launcher.add_style_pseudo_class('checked')
@@ -164,6 +157,7 @@ export function createPopupMenu(args: Arguments) {
 
         if (!box.visible) return
 
+        bin.hide()
         box.hide()
         launcher.remove_style_pseudo_class('checked')
         popModal(box)
