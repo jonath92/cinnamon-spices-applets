@@ -16,7 +16,7 @@ module.exports = {
     },
     output: {
         path: path.resolve(__dirname, 'files/most-simple-applet/'),
-        filename: 'webpack-numbers.js',
-        library: "webpackNumbers",
+        filename: 'radio-applet.js',
+        library: "radioApplet",
     },
 };
