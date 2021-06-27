@@ -1,7 +1,12 @@
 import * as _ from 'lodash';
 import { runInContext } from 'lodash';
+import { createAppletIcon } from './ui/Applet/AppletIcon';
 import { createApplet } from './ui/Applet/Applet';
+
+
 const { Icon, Label, IconType } = imports.gi.St
+const { getAppletDefinition } = imports.ui.appletManager;
+const { panelManager } = imports.ui.main
 
 
 const Applet = imports.ui.applet;
@@ -19,6 +24,22 @@ export function main(args: Arguments) {
         instanceId
     } = args
 
+    const appletDefinition = getAppletDefinition({
+        applet_id: instanceId,
+    })
+
+    const panel = panelManager.panels.find(panel =>
+        panel?.panelId === appletDefinition.panelId
+    )
+
+    const appletIcon = createAppletIcon({
+        locationLabel: appletDefinition.location_label,
+        panel
+    })
+
+    panel.connect('icon-size-changed', () => appletIcon.updateIconSize())
+
+
     const icon = new Icon({
         icon_name: 'computer',
         icon_type: IconType.FULLCOLOR
@@ -29,11 +50,12 @@ export function main(args: Arguments) {
     })
 
     const applet = createApplet({
-        icon,
+        icon: appletIcon.actor,
         instanceId,
         label,
-        onAppletRemovedFromPanel: () => { },
-        onClick: () => global.log('hi'),
+        onAppletMoved: () => { },
+        onAppletRemoved: () => { },
+        onClick: () => global.log(_.join(['Hello', 'webpack'], ' ')),
         onMiddleClick: () => { },
         onRightClick: () => { },
         onScroll: () => { },
@@ -41,23 +63,8 @@ export function main(args: Arguments) {
         panelHeight
     })
 
-    // const applet = new MyApplet(orientation, panelHeight, instanceId)
-
     return applet
 
-}
-
-
-export class MyApplet extends Applet.IconApplet {
-    constructor(orientation: any, panel_height: any, instance_id: any) {
-        super(orientation, panel_height, instance_id)
-        this.set_applet_icon_name("computer");
-    }
-
-    on_applet_clicked = function () {
-        global.log(_.join(['Hello', 'webpack new'], ' '));
-
-    }
 }
 
 
