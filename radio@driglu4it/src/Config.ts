@@ -1,4 +1,4 @@
-import { Channel, IconType } from "types";
+import { Channel, IconType } from "./types";
 
 const { AppletSettings } = imports.ui.settings;
 

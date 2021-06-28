@@ -1,4 +1,4 @@
-import { createActivWidget } from "lib/ActivWidget";
+import { createActivWidget } from "./ActivWidget";
 
 const { BoxLayout, Label, Icon, ScrollView } = imports.gi.St
 const { ActorAlign, Point } = imports.gi.Clutter

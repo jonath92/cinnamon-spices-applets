@@ -1,38 +1,36 @@
-import * as _ from 'lodash';
-import { createAppletIcon } from './ui/Applet/AppletIcon';
-import { createApplet } from './ui/Applet/Applet';
-import { createMpvHandler } from './mpv/MpvHandler';
+// import * as _ from 'lodash'; now possible
 import { createConfig } from './Config';
-import { createAppletLabel } from './ui/Applet/AppletLabel';
-import { createAppletTooltip } from './ui/Applet/AppletTooltip';
 import { ChannelStore } from './ChannelStore';
 import { createChannelList } from './ui/ChannelList/ChannelList';
+import { AdvancedPlaybackStatus, Channel, IconType } from './types';
+import { createMpvHandler } from './mpv/MpvHandler';
 import { createVolumeSlider } from './ui/VolumeSlider';
 import { createPopupMenu } from './lib/PopupMenu';
-import { createInfoSection } from './ui/InfoSection';
-import { createPlayPauseButton } from './ui/Toolbar/PlayPauseButton';
-import { createCopyButton } from './ui/Toolbar/CopyButton';
-import { createDownloadButton } from './ui/Toolbar/DonwloadButton';
-import { createMediaControlToolbar } from './ui/Toolbar/MediaControlToolbar';
-import { createStopBtn } from './ui/Toolbar/StopButton';
-import { copyText } from './functions/copyText';
-import { createSeeker } from './ui/Seeker';
 import { createSeparatorMenuItem } from './lib/PopupSeperator';
-import { installMpvWithMpris } from './mpv/CheckInstallation';
-import { notify } from './ui/Notifications/GenericNotification';
-import { VOLUME_DELTA } from './consts';
-import { AdvancedPlaybackStatus, Channel, IconType } from './types';
+import { createMediaControlToolbar } from './ui/Toolbar/MediaControlToolbar';
+import { createPlayPauseButton } from './ui/Toolbar/PlayPauseButton';
+import { createStopBtn } from './ui/Toolbar/StopButton';
+import { createInfoSection } from './ui/InfoSection';
+import { createDownloadButton } from './ui/Toolbar/DownloadButton';
+import { createCopyButton } from './ui/Toolbar/CopyButton';
 import { downloadSongFromYoutube } from './functions/downloadFromYoutube';
-import { notifyYoutubeDownloadFailed } from './ui/Notifications/YoutubeDownloadFailedNotification';
+import { installMpvWithMpris } from './mpv/CheckInstallation';
+import { copyText } from './functions/copyText';
+import { createApplet } from './ui/Applet/Applet';
+import { createAppletIcon } from './ui/Applet/AppletIcon';
+import { createAppletLabel } from './ui/Applet/AppletLabel';
+import { createAppletTooltip } from './ui/Applet/AppletTooltip';
 import { notifyYoutubeDownloadFinished } from './ui/Notifications/YoutubeDownloadFinishedNotification';
 import { notifyYoutubeDownloadStarted } from './ui/Notifications/YoutubeDownloadStartedNotification';
-
+import { notifyYoutubeDownloadFailed } from './ui/Notifications/YoutubeDownloadFailedNotification';
+import { notify } from './ui/Notifications/GenericNotification';
+import { createSeeker } from './ui/Seeker';
+import { VOLUME_DELTA } from './consts';
 
 const { ScrollDirection } = imports.gi.Clutter;
 const { getAppletDefinition } = imports.ui.appletManager;
 const { panelManager } = imports.ui.main
-const { BoxLayout } = imports.gi.St
-
+const { IconType, BoxLayout } = imports.gi.St
 
 interface Arguments {
     orientation: imports.gi.St.Side,
