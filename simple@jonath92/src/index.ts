@@ -1,5 +1,4 @@
 import * as _ from 'lodash';
-import { runInContext } from 'lodash';
 import { createAppletIcon } from './ui/Applet/AppletIcon';
 import { createApplet } from './ui/Applet/Applet';
 import { createMpvHandler } from './mpv/MpvHandler';
@@ -24,6 +23,9 @@ export function main(args: Arguments) {
         panelHeight,
         instanceId
     } = args
+
+    
+
 
     let mpvHandler: ReturnType<typeof createMpvHandler>
 

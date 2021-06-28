@@ -2,9 +2,7 @@ const path = require('path');
 
 // TODO: use env variable to share between bash script and the config. Or bash script even necessary?
 const cinnamonVersion = '4.6'
-
 const appletName = __dirname.split('/').slice(-1)[0]
-
 
 module.exports = {
     entry: './src/index.ts',
