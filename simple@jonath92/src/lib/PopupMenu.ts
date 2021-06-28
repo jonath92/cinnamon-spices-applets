@@ -4,8 +4,6 @@ const { KEY_Escape } = imports.gi.Clutter
 const { util_get_transformed_allocation } = imports.gi.Cinnamon
 const { PanelLoc } = imports.ui.popupMenu
 
-// @ts-ignore
-import { stage } from 'cjs'
 
 
 interface Arguments {
@@ -153,8 +151,8 @@ export function createPopupMenu(args: Arguments) {
         pushModal(box)
 
         // For some reason, it is emmited the button-press event when clicking e.g on the desktop but the button-release-event when clicking on another applet
-        stage.connect('button-press-event', handleClick)
-        stage.connect('button-release-event', handleClick)
+        global.stage.connect('button-press-event', handleClick)
+        global.stage.connect('button-release-event', handleClick)
     }
 
     function close() {

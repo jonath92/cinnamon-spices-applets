@@ -1,5 +1,6 @@
 
 const path = require('path');
+const webpack = require('webpack');
 
 // TODO: use env variable to share between bash script and the config. Or bash script even necessary?
 const cinnamonVersion = '4.6'
@@ -10,6 +11,7 @@ module.exports = {
     mode: 'production',
     entry: './src/index.ts',
     devtool: "eval-source-map",
+    target: 'node', // without webpack renames 'global'
     module: {
         rules: [
             {
@@ -26,7 +28,4 @@ module.exports = {
         filename: 'radio-applet.js',
         library: "radioApplet",
     },
-    externals: {
-        'cjs': 'global'
-    }
 };
