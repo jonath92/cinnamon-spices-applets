@@ -2,6 +2,7 @@ import * as _ from 'lodash';
 import { createAppletIcon } from './ui/Applet/AppletIcon';
 import { createApplet } from './ui/Applet/Applet';
 import { createMpvHandler } from './mpv/MpvHandler';
+import { createConfig } from './Config';
 
 
 const { Icon, Label, IconType } = imports.gi.St
@@ -46,6 +47,22 @@ export function main(args: Arguments) {
     const appletIcon = createAppletIcon({
         locationLabel: appletDefinition.location_label,
         panel
+    })
+
+    const configs = createConfig({
+        uuid: __meta.uuid,
+        instanceId,
+
+        onIconChanged: () => { },
+        onIconColorPlayingChanged: (color) => {
+            appletIcon.setColorWhenPlaying(color)
+        },
+        onIconColorPausedChanged: (color) => {
+            appletIcon.setColorWhenPaused(color)
+        },
+        onChannelOnPanelChanged: (channelOnPanel) => {
+        },
+        onMyStationsChanged: () => { },
     })
 
     panel.connect('icon-size-changed', () => appletIcon.updateIconSize())
