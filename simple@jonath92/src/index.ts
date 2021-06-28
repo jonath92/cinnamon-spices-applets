@@ -8,6 +8,7 @@ const { Icon, Label, IconType } = imports.gi.St
 const { getAppletDefinition } = imports.ui.appletManager;
 const { panelManager } = imports.ui.main
 
+const { AppletSettings } = imports.ui.settings;
 
 const Applet = imports.ui.applet;
 
@@ -17,6 +18,8 @@ interface Arguments {
     instanceId: number
 }
 
+
+
 export function main(args: Arguments) {
     const {
         orientation,
@@ -24,7 +27,10 @@ export function main(args: Arguments) {
         instanceId
     } = args
 
-    
+
+    const settingsObject = {}
+
+    const appletSettings = new AppletSettings(settingsObject, __meta.uuid, instanceId)
 
 
     let mpvHandler: ReturnType<typeof createMpvHandler>
