@@ -3,6 +3,9 @@ import { createAppletIcon } from './ui/Applet/AppletIcon';
 import { createApplet } from './ui/Applet/Applet';
 import { createMpvHandler } from './mpv/MpvHandler';
 import { createConfig } from './Config';
+import { createAppletLabel } from './ui/Applet/AppletLabel';
+import { createAppletTooltip } from './ui/Applet/AppletTooltip';
+import { ChannelStore } from './ChannelStore';
 
 
 const { Icon, Label, IconType } = imports.gi.St
@@ -21,20 +24,18 @@ interface Arguments {
 
 
 
-export function main(args: Arguments) {
+export function main(args: Arguments): imports.ui.applet.Applet {
     const {
         orientation,
         panelHeight,
         instanceId
     } = args
 
-
-    const settingsObject = {}
-
-    const appletSettings = new AppletSettings(settingsObject, __meta.uuid, instanceId)
-
-
+    // this is a workaround for now. Optimally the lastVolume should be saved persistently each time the volume is changed but this lead to significant performance issue on scrolling at the moment. However this shouldn't be the case as it is no problem to log the volume each time the volume changes (so it is a problem in the config implementation). As a workaround the volume is only saved persistently when the radio stops but the volume obviously can't be received anymore from dbus when the player has been already stopped ... 
+    let lastVolume: number
     let mpvHandler: ReturnType<typeof createMpvHandler>
+
+    let installationInProgress = false
 
     const appletDefinition = getAppletDefinition({
         applet_id: instanceId,
@@ -44,9 +45,32 @@ export function main(args: Arguments) {
         panel?.panelId === appletDefinition.panelId
     )
 
+    panel.connect('icon-size-changed', () => appletIcon.updateIconSize())
+
     const appletIcon = createAppletIcon({
         locationLabel: appletDefinition.location_label,
         panel
+    })
+
+    const appletLabel = createAppletLabel()
+
+    const applet = createApplet({
+        icon: appletIcon.actor,
+        label: appletLabel.actor,
+        instanceId,
+        orientation,
+        panelHeight,
+        onClick: () => global.log(_.join(['Hello', 'webpack'], ' ')),
+        onScroll: () => { },
+        onMiddleClick: () => { },
+        onAppletMoved: () => { },
+        onAppletRemoved: () => { },
+        onRightClick: () => { },
+    })
+
+    const appletTooltip = createAppletTooltip({
+        applet,
+        orientation
     })
 
     const configs = createConfig({
@@ -65,25 +89,12 @@ export function main(args: Arguments) {
         onMyStationsChanged: () => { },
     })
 
-    panel.connect('icon-size-changed', () => appletIcon.updateIconSize())
+    const channelStore = new ChannelStore(configs.userStations)
 
     const label = new Label({
         text: 'hi'
     })
 
-    const applet = createApplet({
-        icon: appletIcon.actor,
-        instanceId,
-        label,
-        onAppletMoved: () => { },
-        onAppletRemoved: () => { },
-        onClick: () => global.log(_.join(['Hello', 'webpack'], ' ')),
-        onMiddleClick: () => { },
-        onRightClick: () => { },
-        onScroll: () => { },
-        orientation,
-        panelHeight
-    })
 
     mpvHandler = createMpvHandler({
         getInitialVolume: () => { return 50 },
@@ -101,5 +112,6 @@ export function main(args: Arguments) {
     return applet
 
 }
+
 
 
