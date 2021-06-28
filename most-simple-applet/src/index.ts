@@ -2,6 +2,7 @@ import * as _ from 'lodash';
 import { runInContext } from 'lodash';
 import { createAppletIcon } from './ui/Applet/AppletIcon';
 import { createApplet } from './ui/Applet/Applet';
+import { createMpvHandler } from './mpv/MpvHandler';
 
 
 const { Icon, Label, IconType } = imports.gi.St
@@ -24,6 +25,8 @@ export function main(args: Arguments) {
         instanceId
     } = args
 
+    let mpvHandler: ReturnType<typeof createMpvHandler>
+
     const appletDefinition = getAppletDefinition({
         applet_id: instanceId,
     })
@@ -39,11 +42,6 @@ export function main(args: Arguments) {
 
     panel.connect('icon-size-changed', () => appletIcon.updateIconSize())
 
-
-    const icon = new Icon({
-        icon_name: 'computer',
-        icon_type: IconType.FULLCOLOR
-    })
 
     const label = new Label({
         text: 'hi'
@@ -62,6 +60,19 @@ export function main(args: Arguments) {
         orientation,
         panelHeight
     })
+
+    mpvHandler = createMpvHandler({
+        getInitialVolume: () => { return 50 },
+        onVolumeChanged: () => { global.log('on volume changed called') },
+        onLengthChanged: () => { },
+        onPositionChanged: () => { },
+        checkUrlValid: (url) => { return true },
+        onTitleChanged: () => { },
+        onPlaybackstatusChanged: () => { },
+        lastUrl: null,
+        onUrlChanged: () => { },
+    })
+
 
     return applet
 
