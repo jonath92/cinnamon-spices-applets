@@ -6,6 +6,7 @@ import { createConfig } from './Config';
 import { createAppletLabel } from './ui/Applet/AppletLabel';
 import { createAppletTooltip } from './ui/Applet/AppletTooltip';
 import { ChannelStore } from './ChannelStore';
+import { createChannelList } from './ui/ChannelList/ChannelList';
 
 
 const { Icon, Label, IconType } = imports.gi.St
@@ -91,9 +92,10 @@ export function main(args: Arguments): imports.ui.applet.Applet {
 
     const channelStore = new ChannelStore(configs.userStations)
 
-    const label = new Label({
-        text: 'hi'
-    })
+	const channelList = createChannelList({
+		stationNames: channelStore.activatedChannelNames,
+		onChannelClicked: () => {}
+	})
 
 
     mpvHandler = createMpvHandler({

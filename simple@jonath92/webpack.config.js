@@ -5,6 +5,7 @@ const cinnamonVersion = '4.6'
 const appletName = __dirname.split('/').slice(-1)[0]
 
 module.exports = {
+    mode: 'production',
     entry: './src/index.ts',
     module: {
         rules: [
