@@ -1,0 +1,13 @@
+{
+    "compilerOptions": {
+        "noImplicitAny": true,
+        "module": "es6", // TODO: needed
+        "target": "es2017",
+        "moduleResolution": "node", // TODO: needed?
+        "types": [] // ignore global types from node_modules https://stackoverflow.com/a/54277766/11603006 (important for not showing node globals such as console in intelisense)
+    },
+    "include": [
+        "./src/**/*",
+        "../.typescript-declarations/**/*"
+    ]
+}

@@ -42,7 +42,6 @@ export function main(args: Arguments) {
 
     panel.connect('icon-size-changed', () => appletIcon.updateIconSize())
 
-
     const label = new Label({
         text: 'hi'
     })

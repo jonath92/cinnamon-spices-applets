@@ -1,6 +1,0 @@
-{
-    "uuid": "most-simple-applet",
-    "name": "Most simple applet",
-    "description": "The most simple working applet. It is only an icon in the panel....",
-    "max-instances": "-1"
-}
