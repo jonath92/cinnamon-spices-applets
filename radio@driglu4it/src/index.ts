@@ -26,6 +26,7 @@ import { notifyYoutubeDownloadFailed } from './ui/Notifications/YoutubeDownloadF
 import { notify } from './ui/Notifications/GenericNotification';
 import { createSeeker } from './ui/Seeker';
 import { VOLUME_DELTA } from './consts';
+import { createConfig2 } from './Config2';
 
 const { ScrollDirection } = imports.gi.Clutter;
 const { getAppletDefinition } = imports.ui.appletManager;
@@ -105,6 +106,8 @@ export function main(args: Arguments): imports.ui.applet.Applet {
         },
         onMyStationsChanged: handleStationsUpdated,
     })
+
+    const settingsMonitor = createConfig2()
 
     const channelStore = new ChannelStore(configs.userStations)
 
@@ -299,6 +302,10 @@ export function main(args: Arguments): imports.ui.applet.Applet {
             onCancelClicked: () => downloadProcess.cancel()
         })
     }
+
+    // Without returning the montior, the connect-callbacks stops executing after a couple of secs!
+    // @ts-ignore
+    applet.settingsMonitor = settingsMonitor
 
     return applet
 
