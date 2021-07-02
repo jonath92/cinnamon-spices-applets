@@ -4,53 +4,88 @@ import { CONFIG_FILE_PATH } from "./consts"
 const { File, FileMonitorFlags, FileCreateFlags } = imports.gi.Gio
 const { get_file_contents_utf8_sync } = imports.gi.Cinnamon
 
+interface WatchedWidgets {
+    'tree': any,
+    'icon-type': any,
+    'color-on': any,
+    'color-paused': any,
+    'channel-on-panel': any,
+}
+
+interface Widgets extends WatchedWidgets {
+    'radio-search-widget': any
+}
+
+interface Section {
+    type: 'section',
+    title: string,
+    keys: (keyof Widgets)[]
+}
+
+interface Sections {
+    'find-station-section': Section,
+    'station-list-section': Section,
+    'appearance-section': Section
+}
 
 export function createConfig2() {
 
-
-    const callbacks = new Map()
+    const callbacks = new Map<keyof WatchedWidgets, () => void>()
 
     callbacks.set('tree', () => { global.log('channelList Changed') })
     callbacks.set('icon-type', () => global.log('icon type changed'))
+    callbacks.set('color-on', () => global.log('color-on changed'))
+    callbacks.set('color-paused', () => global.log('color paused changed'))
+    callbacks.set('channel-on-panel', () => global.log('channel on panel changed'))
 
     const settingsFile = File.new_for_path(CONFIG_FILE_PATH)
     const monitor = settingsFile.monitor_file(FileMonitorFlags.NONE, null)
 
-    let settings = createDefaultSettings()
+    let [watchedWidgets, fullsettings] = createDefaultSettings()
 
     if (settingsFile.query_exists(null)) {
         const userSettings = loadSettingsFile()
 
-        settings = {
-            ...settings, ...userSettings
+        fullsettings = {
+            ...fullsettings, ...userSettings
         }
+
+        Object.keys(watchedWidgets).forEach((key: keyof WatchedWidgets) => {
+            if (userSettings[key]) {
+                watchedWidgets[key] = userSettings[key]
+            }
+        })
+
     } else {
         saveSettingsToFile()
     }
 
-    // TODO if not exist
-
+    // TODO add type for monitor.connect
     let monitorId = monitor.connect('changed', handleSettingsFileChanged)
+
 
     function handleSettingsFileChanged() {
         const newSettings = loadSettingsFile()
 
-        Object.entries(newSettings).forEach(([key, value]) => {
+        if (!newSettings) return
 
-            if (!isEqual(settings[key], value)) {
+        Object.keys(watchedWidgets).forEach((key: keyof WatchedWidgets) => {
+
+            if (!isEqual(watchedWidgets[key], newSettings[key])) {
                 callbacks.get(key)?.()
+                watchedWidgets[key] = newSettings[key]
             }
         })
 
-        settings = newSettings
-        saveSettingsToFile()
+        fullsettings = newSettings
+        //saveSettingsToFile()
     }
 
     function saveSettingsToFile() {
         if (monitorId) monitor.disconnect(monitorId) // prevent endless loop
 
         const [sucess, tag] = settingsFile.replace_contents(
-            JSON.stringify(settings),
+            JSON.stringify(fullsettings),
             null,
             false,
             FileCreateFlags.REPLACE_DESTINATION,
@@ -70,12 +105,7 @@ function createDefaultSettings() {
         return Object.keys(obj).find(key => obj[key] === property)
     }
 
-    const keys = {
-        'radio-search-widget': {
-            type: 'custom',
-            file: 'RadioSearchWidget.py',
-            widget: 'RadioSearchWidget'
-        },
+    const watchedSettings: WatchedWidgets = {
         'tree': {
             type: 'list',
             height: 400,
@@ -144,26 +174,34 @@ function createDefaultSettings() {
         }
     }
 
-    const sections = {
+    const searchWidget = {
+        'radio-search-widget': {
+            type: 'custom',
+            file: 'RadioSearchWidget.py',
+            widget: 'RadioSearchWidget'
+        }
+    }
+
+    const sections: Sections = {
         "find-station-section": {
             type: "section",
             title: "Search Radio station",
             keys: [
-                propToString(keys, keys["radio-search-widget"])
+                "radio-search-widget"
             ]
         },
         "station-list-section": {
             type: "section",
             title: "List of stations",
             keys: [
-                propToString(keys, keys.tree)
+                "tree"
             ]
         },
         "appearance-section": {
             type: "section",
             title: "Appearance",
             keys: [
-                [keys["icon-type"], keys["color-on"], keys["color-paused"], keys["channel-on-panel"]].map(key => propToString(keys, key))
+                "icon-type", "color-on", "color-paused", "channel-on-panel"
             ]
         }
     }
@@ -178,7 +216,7 @@ function createDefaultSettings() {
         }
     }
 
-    const defaultSettings = {
+    const fullSettings = {
         "layout": {
             type: 'layout',
             height: 600,
@@ -188,13 +226,20 @@ function createDefaultSettings() {
             ],
             ...pages
         },
-        ...keys
+        ...watchedSettings,
+        ...searchWidget
     }
 
-    return defaultSettings
+    return [watchedSettings, fullSettings]
 }
 
 function loadSettingsFile() {
-    return JSON.parse(get_file_contents_utf8_sync(CONFIG_FILE_PATH))
+
+    try {
+        return JSON.parse(get_file_contents_utf8_sync(CONFIG_FILE_PATH))
+    } catch (error) {
+        return null
+    }
 }
+
 
