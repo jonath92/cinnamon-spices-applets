@@ -4,12 +4,36 @@ import { CONFIG_FILE_PATH } from "./consts"
 const { File, FileMonitorFlags, FileCreateFlags } = imports.gi.Gio
 const { get_file_contents_utf8_sync } = imports.gi.Cinnamon
 
+interface Widget {
+    type: 'checkbox' | 'colorchooser' | 'combobox' | 'list',
+    description: string,
+    dependency?: string
+}
+
+interface Combobox extends Widget {
+    type: 'combobox',
+    options: any,
+    value: string
+}
+
+interface ColorChooser {
+    type: 'colorchooser',
+    value: string
+}
+
+interface Checkbox {
+    type: 'checkbox',
+    value: boolean
+}
+
+
 interface WatchedWidgets {
     'tree': any,
-    'icon-type': any,
-    'color-on': any,
-    'color-paused': any,
-    'channel-on-panel': any,
+    'icon-type': Combobox,
+    'color-on': ColorChooser,
+    'color-paused': ColorChooser,
+    'channel-on-panel': Checkbox,
+    'keep-volume-between-sessions': Checkbox
 }
 
 interface Widgets extends WatchedWidgets {
@@ -25,8 +49,23 @@ interface Section {
 interface Sections {
     'find-station-section': Section,
     'station-list-section': Section,
-    'appearance-section': Section
+    'appearance-section': Section,
+    'volume-section': Section
 }
+
+interface Page {
+    type: 'page',
+    title: string,
+    sections: (keyof Sections)[]
+}
+
+interface Pages {
+    'search-page': Page,
+    'my-stations-page': Page,
+    'preferences-page': Page
+}
+
+
 
 export function createConfig2() {
 
@@ -101,11 +140,7 @@ export function createConfig2() {
 
 function createDefaultSettings() {
 
-    function propToString(obj: Record<string, any>, property: any) {
-        return Object.keys(obj).find(key => obj[key] === property)
-    }
-
-    const watchedSettings: WatchedWidgets = {
+    const watchedWidgets: WatchedWidgets = {
         'tree': {
             type: 'list',
             height: 400,
@@ -171,6 +206,10 @@ function createDefaultSettings() {
             type: 'checkbox',
             description: "Show current radio station on the panel",
             value: false
+        },
+        'keep-volume-between-sessions': {
+            type: 'checkbox',
+
         }
     }
 
@@ -203,15 +242,36 @@ function createDefaultSettings() {
             keys: [
                 "icon-type", "color-on", "color-paused", "channel-on-panel"
             ]
+        },
+        "volume-section": {
+            type: "section",
+            title: 'Volume',
+            keys: [
+
+            ]
         }
     }
 
-    const pages = {
+    const pages: Pages = {
         'search-page': {
             type: 'page',
             title: 'Find Station',
             sections: [
-                propToString(sections, sections["find-station-section"])
+                'find-station-section'
+            ]
+        },
+        'my-stations-page': {
+            type: 'page',
+            title: 'My Stations',
+            sections: [
+                "station-list-section"
+            ]
+        },
+        'preferences-page': {
+            type: 'page',
+            title: 'Preferences',
+            sections: [
+                "appearance-section"
             ]
         }
     }
@@ -224,13 +284,14 @@ function createDefaultSettings() {
             pages: [
                 Object.keys(pages)
             ],
-            ...pages
+            ...pages,
+            ...sections
         },
-        ...watchedSettings,
+        ...watchedWidgets,
         ...searchWidget
     }
 
-    return [watchedSettings, fullSettings]
+    return [watchedWidgets, fullSettings]
 }
 
 function loadSettingsFile() {
