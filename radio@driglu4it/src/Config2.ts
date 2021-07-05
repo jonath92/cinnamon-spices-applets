@@ -5,9 +5,17 @@ const { File, FileMonitorFlags, FileCreateFlags } = imports.gi.Gio
 const { get_file_contents_utf8_sync } = imports.gi.Cinnamon
 
 interface Widget {
-    type: 'checkbox' | 'colorchooser' | 'combobox' | 'list',
-    description: string,
-    dependency?: string
+    type: 'checkbox' | 'colorchooser' | 'combobox' | 'list' | 'spinbutton' | 'generic' | 'filechooser' | 'custom',
+    description?: string,
+    value?: any,
+    dependency?: string,
+    tooltip?: string
+}
+
+interface FileChooser extends Widget {
+    type: 'filechooser',
+    /** whether to show a drop-down list for file select. By default set to false and a button is shown which imo looks ugly */
+    "select-dir": boolean
 }
 
 interface Combobox extends Widget {
@@ -16,16 +24,28 @@ interface Combobox extends Widget {
     value: string
 }
 
-interface ColorChooser {
+interface ColorChooser extends Widget {
     type: 'colorchooser',
     value: string
 }
 
-interface Checkbox {
+interface Checkbox extends Widget {
     type: 'checkbox',
     value: boolean
 }
+interface Spinnbutton extends Widget {
+    type: 'spinbutton',
+    value: number,
+    min: number,
+    max: number,
+    step: number,
+}
 
+interface CustomWidget extends Widget {
+    type: 'custom',
+    file: string,
+    widget: string
+}
 
 interface WatchedWidgets {
     'tree': any,
@@ -33,11 +53,15 @@ interface WatchedWidgets {
     'color-on': ColorChooser,
     'color-paused': ColorChooser,
     'channel-on-panel': Checkbox,
-    'keep-volume-between-sessions': Checkbox
+    'keep-volume-between-sessions': Checkbox,
+    'initial-volume': Spinnbutton,
+    'music-download-dir-select': FileChooser
 }
 
 interface Widgets extends WatchedWidgets {
-    'radio-search-widget': any
+    'last-volume': Widget,
+    'last-url': Widget,
+    'radio-search-widget': CustomWidget
 }
 
 interface Section {
@@ -50,7 +74,8 @@ interface Sections {
     'find-station-section': Section,
     'station-list-section': Section,
     'appearance-section': Section,
-    'volume-section': Section
+    'volume-section': Section,
+    'youtube-section': Section
 }
 
 interface Page {
@@ -65,7 +90,16 @@ interface Pages {
     'preferences-page': Page
 }
 
+interface Layout extends Pages, Sections {
+    type: "layout",
+    height: number,
+    width: number,
+    pages: (keyof Pages)[]
+}
 
+interface Settings extends Widgets {
+    "layout1": Layout
+}
 
 export function createConfig2() {
 
@@ -103,7 +137,10 @@ export function createConfig2() {
     let monitorId = monitor.connect('changed', handleSettingsFileChanged)
 
 
-    function handleSettingsFileChanged() {
+    function handleSettingsFileChanged(montior: imports.gi.Gio.FileMonitor, file: imports.gi.Gio.File, otherFile: imports.gi.Gio.File, eventType: imports.gi.Gio.FileMonitorEvent) {
+
+        global.log(`eventType: ${eventType}`)
+
         const newSettings = loadSettingsFile()
 
         if (!newSettings) return
@@ -134,13 +171,23 @@ export function createConfig2() {
         monitorId = monitor.connect('changed', handleSettingsFileChanged)
     }
 
-    return monitor
+    function setLastUrl(lastUrl: string) {
+        fullsettings["last-url"].value = lastUrl
+        saveSettingsToFile()
+    }
+
+    function getLastUrl() {
+        return fullsettings["last-url"].value
+    }
+
+
+    return { monitor, setLastUrl, getLastUrl }
 
 }
 
-function createDefaultSettings() {
+function createDefaultSettings(): [WatchedWidgets, Settings] {
 
-    const watchedWidgets: WatchedWidgets = {
+    const widgets: Widgets = {
         'tree': {
             type: 'list',
             height: 400,
@@ -183,24 +230,24 @@ function createDefaultSettings() {
         'icon-type': {
             type: "combobox",
             description: "Icon type",
+            value: 'Symbolic',
             options: {
                 "Symbolic": "SYMBOLIC",
                 "Full Color": "FULLCOLOR",
                 "Bicolor": "BICOLOR"
             },
-            value: 'Symbolic'
         },
         'color-on': {
             type: "colorchooser",
+            value: "#27ae60",
             dependency: "icon-type=SYMBOLIC",
             description: "Color of symbolic icon when playing a radio station",
-            value: "#27ae60"
         },
         'color-paused': {
             type: "colorchooser",
+            value: "#9fe1e7",
             dependency: `icon - type=SYMBOLIC`,
             description: "Color of symbolic icon while a radio station is paused",
-            value: "#9fe1e7"
         },
         'channel-on-panel': {
             type: 'checkbox',
@@ -209,31 +256,55 @@ function createDefaultSettings() {
         },
         'keep-volume-between-sessions': {
             type: 'checkbox',
-
-        }
-    }
-
-    const searchWidget = {
-        'radio-search-widget': {
+            description: "Remember volume after stopping the radio",
+            value: true
+        },
+        "initial-volume": {
+            type: 'spinbutton',
+            value: 50,
+            min: 5,
+            max: 100,
+            step: 5,
+            description: 'Initial volume',
+            tooltip: '"The initial volume is applied when clicking on a radio stream and no other radio stream is already running',
+            dependency: 'keep-volume-between-sessions!=true'
+        },
+        "last-volume": {
+            type: "generic",
+            value: 80
+        },
+        "last-url": {
+            type: "generic",
+            value: null
+        },
+        "music-download-dir-select": {
+            type: 'filechooser',
+            description: 'Download directory',
+            tooltip: "Songs downloaded from Youtube will be saved to this directory.",
+            value: '~/Music/Radio',
+            "select-dir": true
+        },
+        "radio-search-widget": {
             type: 'custom',
             file: 'RadioSearchWidget.py',
             widget: 'RadioSearchWidget'
         }
     }
 
+
     const sections: Sections = {
-        "find-station-section": {
-            type: "section",
-            title: "Search Radio station",
-            keys: [
-                "radio-search-widget"
-            ]
-        },
         "station-list-section": {
             type: "section",
             title: "List of stations",
             keys: [
                 "tree"
+            ]
+        },
+        "find-station-section": {
+            type: "section",
+            title: "Search Radio station",
+            keys: [
+                "radio-search-widget"
             ]
         },
         "appearance-section": {
@@ -247,7 +318,14 @@ function createDefaultSettings() {
             type: "section",
             title: 'Volume',
             keys: [
-
+                "keep-volume-between-sessions", "initial-volume"
+            ]
+        },
+        "youtube-section": {
+            type: "section",
+            title: 'Youtube Download',
+            keys: [
+                "music-download-dir-select"
             ]
         }
     }
@@ -276,25 +354,22 @@ function createDefaultSettings() {
         }
     }
 
-    const fullSettings = {
-        "layout": {
+    const fullSettings: Settings = {
+        "layout1": {
             type: 'layout',
             height: 600,
             width: 800,
-            pages: [
-                Object.keys(pages)
-            ],
+            pages: Object.keys(pages) as (keyof Pages)[],
             ...pages,
             ...sections
         },
-        ...watchedWidgets,
-        ...searchWidget
+        ...widgets,
     }
 
-    return [watchedWidgets, fullSettings]
+    return [widgets, fullSettings]
 }
 
-function loadSettingsFile() {
+function loadSettingsFile(): Settings {
 
     try {
         return JSON.parse(get_file_contents_utf8_sync(CONFIG_FILE_PATH))

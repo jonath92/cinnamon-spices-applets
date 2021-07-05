@@ -805,6 +805,8 @@ declare namespace imports.gi.Gio {
         emit_event(child: File, other_file: File, event_type: FileMonitorEvent): void;
         is_cancelled(): boolean;
         set_rate_limit(limit_msecs: number): void;
+        connect(signal: 'changed', callback: (actor: this, file: File, other_file: File, eventType: FileMonitorEvent) => void): number
+
     }
 
     var FileMonitor: {

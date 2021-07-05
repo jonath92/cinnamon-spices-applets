@@ -107,7 +107,7 @@ export function main(args: Arguments): imports.ui.applet.Applet {
         onMyStationsChanged: handleStationsUpdated,
     })
 
-    const settingsMonitor = createConfig2()
+    const configs2 = createConfig2()
 
     const channelStore = new ChannelStore(configs.userStations)
 
@@ -247,7 +247,7 @@ export function main(args: Arguments): imports.ui.applet.Applet {
         if (playbackstatus === 'Stopped') {
             radioActiveSection.hide()
             configs.lastVolume = lastVolume
-            configs.lastUrl = null
+            configs2.setLastUrl(null)
             appletLabel.setText(null)
             handleVolumeChanged(null)
             popupMenu.close()
@@ -262,7 +262,6 @@ export function main(args: Arguments): imports.ui.applet.Applet {
         if (playbackstatus === 'Playing' || playbackstatus === 'Paused') {
             playPauseBtn.setPlaybackStatus(playbackstatus)
         }
-
     }
 
     function handleUrlChanged(url: string) {
@@ -273,7 +272,7 @@ export function main(args: Arguments): imports.ui.applet.Applet {
 
         channelList.setCurrentChannel(channelName)
         infoSection.setChannel(channelName)
-        configs.lastUrl = url
+        configs2.setLastUrl(url)
     }
 
     function hanldeLengthChanged(length: number) {
@@ -305,7 +304,7 @@ export function main(args: Arguments): imports.ui.applet.Applet {
 
     // Without returning the montior, the connect-callbacks stops executing after a couple of secs!
     // @ts-ignore
-    applet.settingsMonitor = settingsMonitor
+    applet.settingsMonitor = configs2.monitor
 
     return applet
 

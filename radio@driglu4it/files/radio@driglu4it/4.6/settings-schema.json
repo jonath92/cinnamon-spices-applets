@@ -160,7 +160,7 @@
 	"last-url": {
 		"type": "generic",
 		"value": null,
-		"dfault": null
+		"default": null
 	},
 	"music-download-dir-select": {
 		"type": "filechooser",
@@ -172,7 +172,6 @@
 	"radio-search-widget": {
 		"type": "custom",
 		"file": "RadioSearchWidget.py",
-		"widget": "RadioSearchWidget",
-		"description": "Try out this custom widget!"
+		"widget": "RadioSearchWidget"
 	}
 }
