@@ -1,5 +1,6 @@
-import { isEqual, merge } from "lodash"
+import { isEqual } from "lodash"
 import { CONFIG_FILE_PATH } from "./consts"
+import { Channel, IconType } from "./types"
 
 const { File, FileMonitorFlags, FileCreateFlags } = imports.gi.Gio
 const { get_file_contents_utf8_sync } = imports.gi.Cinnamon
@@ -21,7 +22,7 @@ interface FileChooser extends Widget {
 interface Combobox extends Widget {
     type: 'combobox',
     options: any,
-    value: string
+    value: IconType
 }
 
 interface ColorChooser extends Widget {
@@ -33,6 +34,7 @@ interface Checkbox extends Widget {
     type: 'checkbox',
     value: boolean
 }
+
 interface Spinnbutton extends Widget {
     type: 'spinbutton',
     value: number,
@@ -47,8 +49,22 @@ interface CustomWidget extends Widget {
     widget: string
 }
 
+interface ListColumn {
+    id: string,
+    title: string,
+    type: 'boolean' | 'string',
+    default?: boolean
+}
+
+interface ListWidget extends Widget {
+    type: 'list',
+    height: number,
+    columns: ListColumn[],
+    value: Channel[]
+}
+
 interface WatchedWidgets {
-    'tree': any,
+    'tree': ListWidget,
     'icon-type': Combobox,
     'color-on': ColorChooser,
     'color-paused': ColorChooser,
@@ -101,15 +117,33 @@ interface Settings extends Widgets {
     "layout1": Layout
 }
 
-export function createConfig2() {
+interface Aruments {
+    onIconChanged: (iconType: IconType) => void,
+    onIconColorPlayingChanged: (color: string) => void,
+    onIconColorPausedChanged: (color: string) => void,
+    onChannelOnPanelChanged: (channelOnPanel: boolean) => void,
+    onMyStationsChanged: (stations: Channel[]) => void,
+}
+
+
+export function createConfig2(args: Aruments) {
+
+    const {
+        onChannelOnPanelChanged,
+        onIconChanged,
+        onIconColorPausedChanged,
+        onIconColorPlayingChanged,
+        onMyStationsChanged
+    } = args
+
 
     const callbacks = new Map<keyof WatchedWidgets, () => void>()
 
-    callbacks.set('tree', () => { global.log('channelList Changed') })
-    callbacks.set('icon-type', () => global.log('icon type changed'))
-    callbacks.set('color-on', () => global.log('color-on changed'))
-    callbacks.set('color-paused', () => global.log('color paused changed'))
-    callbacks.set('channel-on-panel', () => global.log('channel on panel changed'))
+    callbacks.set('tree', () => onMyStationsChanged(getUserStations()))
+    callbacks.set('icon-type', () => onIconChanged(getIconType()))
+    callbacks.set('color-on', () => onIconColorPlayingChanged(getColorPlaying()))
+    callbacks.set('color-paused', () => onIconColorPausedChanged(getColorPaused()))
+    callbacks.set('channel-on-panel', () => onChannelOnPanelChanged(getChannelOnPanel()))
 
     const settingsFile = File.new_for_path(CONFIG_FILE_PATH)
     const monitor = settingsFile.monitor_file(FileMonitorFlags.NONE, null)
@@ -125,6 +159,8 @@ export function createConfig2() {
 
         Object.keys(watchedWidgets).forEach((key: keyof WatchedWidgets) => {
             if (userSettings[key]) {
+                // no idea why ts is complaining here ..
+                // @ts-ignore
                 watchedWidgets[key] = userSettings[key]
             }
         })
@@ -149,12 +185,12 @@ export function createConfig2() {
 
             if (!isEqual(watchedWidgets[key], newSettings[key])) {
                 callbacks.get(key)?.()
+                //@ts-ignore
                 watchedWidgets[key] = newSettings[key]
             }
         })
 
         fullsettings = newSettings
-        //saveSettingsToFile()
     }
 
     function saveSettingsToFile() {
@@ -176,12 +212,68 @@ export function createConfig2() {
         saveSettingsToFile()
     }
 
+    function setLastVolume(lastVolume: number) {
+        fullsettings["last-volume"].value = lastVolume
+        saveSettingsToFile()
+    }
+
+    function getIconType() {
+        return fullsettings["icon-type"].value
+    }
+
     function getLastUrl() {
         return fullsettings["last-url"].value
     }
 
+    function getUserStations() {
+        return fullsettings['tree'].value
+    }
 
-    return { monitor, setLastUrl, getLastUrl }
+    function getInitialVolume() {
+        const keepVolume = fullsettings['keep-volume-between-sessions'].value
+        const lastVolume = fullsettings['last-volume'].value
+        const customInitVolume = fullsettings['initial-volume'].value
+
+        let initialVolume = keepVolume ? lastVolume : customInitVolume
+
+        if (initialVolume == null) {
+            global.logWarning('initial Volume was null or undefined. Applying 50 as a fallback solution to prevent radio stop working')
+            initialVolume = 50
+        }
+
+        return initialVolume
+    }
+
+    function getMusicDownloadDir() {
+        return fullsettings['music-download-dir-select'].value
+    }
+
+    function getColorPlaying() {
+        return fullsettings['color-on'].value
+    }
+
+    function getColorPaused() {
+        return fullsettings['color-paused'].value
+    }
+
+    function getChannelOnPanel() {
+        return fullsettings['channel-on-panel'].value
+    }
+
+    onIconChanged(getIconType())
+    onIconColorPlayingChanged(getColorPlaying())
+    onIconColorPausedChanged(getColorPaused())
+    onChannelOnPanelChanged(getChannelOnPanel())
+
+    return {
+        monitor,
+        setLastUrl,
+        setLastVolume,
+        getLastUrl,
+        getUserStations,
+        getInitialVolume,
+        getMusicDownloadDir
+    }
 
 }
 
@@ -230,7 +322,7 @@ function createDefaultSettings(): [WatchedWidgets, Settings] {
         'icon-type': {
             type: "combobox",
             description: "Icon type",
-            value: 'Symbolic',
+            value: 'SYMBOLIC',
             options: {
                 "Symbolic": "SYMBOLIC",
                 "Full Color": "FULLCOLOR",

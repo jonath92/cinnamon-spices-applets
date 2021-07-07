@@ -90,10 +90,8 @@ export function main(args: Arguments): imports.ui.applet.Applet {
         orientation
     })
 
-    const configs = createConfig({
-        uuid: __meta.uuid,
-        instanceId,
 
+    const configs2 = createConfig2({
         onIconChanged: handleIconTypeChanged,
         onIconColorPlayingChanged: (color) => {
             appletIcon.setColorWhenPlaying(color)
@@ -107,9 +105,7 @@ export function main(args: Arguments): imports.ui.applet.Applet {
         onMyStationsChanged: handleStationsUpdated,
     })
 
-    const configs2 = createConfig2()
-
-    const channelStore = new ChannelStore(configs.userStations)
+    const channelStore = new ChannelStore(configs2.getUserStations())
 
     const channelList = createChannelList({
         stationNames: channelStore.activatedChannelNames,
@@ -167,14 +163,14 @@ export function main(args: Arguments): imports.ui.applet.Applet {
     popupMenu.add_child(radioActiveSection)
 
     mpvHandler = createMpvHandler({
-        getInitialVolume: () => { return configs.initialVolume },
+        getInitialVolume: () => { return configs2.getInitialVolume() },
         onVolumeChanged: handleVolumeChanged,
         onLengthChanged: hanldeLengthChanged,
         onPositionChanged: handlePositionChanged,
         checkUrlValid: (url) => channelStore.checkUrlValid(url),
         onTitleChanged: handleTitleChanged,
         onPlaybackstatusChanged: handlePlaybackstatusChanged,
-        lastUrl: configs.lastUrl,
+        lastUrl: configs2.getLastUrl(),
         onUrlChanged: handleUrlChanged
     })
 
@@ -202,7 +198,6 @@ export function main(args: Arguments): imports.ui.applet.Applet {
         mpvHandler?.stop()
     }
 
-
     function handleScroll(scrollDirection: imports.gi.Clutter.ScrollDirection) {
         const volumeChange =
             scrollDirection === ScrollDirection.UP ? VOLUME_DELTA : -VOLUME_DELTA
@@ -222,6 +217,8 @@ export function main(args: Arguments): imports.ui.applet.Applet {
         volumeSlider.setVolume(volume)
         appletTooltip.setVolume(volume)
 
+        configs2.setLastVolume(volume)
+
         lastVolume = volume
     }
 
@@ -238,7 +235,7 @@ export function main(args: Arguments): imports.ui.applet.Applet {
         channelStore.channelList = stations
         channelList.setStationNames(channelStore.activatedChannelNames)
 
-        const lastUrlValid = channelStore.checkUrlValid(configs.lastUrl)
+        const lastUrlValid = channelStore.checkUrlValid(configs2.getLastUrl())
         if (!lastUrlValid) mpvHandler.stop()
     }
 
@@ -246,7 +243,7 @@ export function main(args: Arguments): imports.ui.applet.Applet {
 
         if (playbackstatus === 'Stopped') {
             radioActiveSection.hide()
-            configs.lastVolume = lastVolume
+            configs2.setLastVolume(lastVolume)
             configs2.setLastUrl(null)
             appletLabel.setText(null)
             handleVolumeChanged(null)
@@ -288,7 +285,7 @@ export function main(args: Arguments): imports.ui.applet.Applet {
         const title = mpvHandler.getCurrentTitle()
 
         const downloadProcess = downloadSongFromYoutube({
-            downloadDir: configs.musicDownloadDir,
+            downloadDir: configs2.getMusicDownloadDir(),
             title,
             onDownloadFinished: (path) => notifyYoutubeDownloadFinished({
                 downloadPath: path
