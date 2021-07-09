@@ -43,6 +43,11 @@ const mockedDownloadtime = 1 // in ms
 function mockCommandLineAsyncIo(command: string, cb: (stdout: string, stderr: string, exitCode: number) =>
     void) {
 
+    // const words = command.match(/(?:[^\s"]+|"[^"]*")+/g)
+
+    const words = command.split('--')
+    console.log(words)
+
     const timer = setTimeout(() => {
         youtubeInstalled ? cb(workingExample.stdOut, null, 0) : cb(null, 'line 1: youtube-dl: command not found', 127)
     }, mockedDownloadtime);
@@ -109,4 +114,16 @@ describe('canceling download is working', () => {
 
         }, mockedDownloadtime);
     })
+})
+
+it('double quotes are correctly escaped', () => {
+    youtubeInstalled = true
+
+    downloadSongFromYoutube({
+        title: `"Good 4 U" von Olivia Rodrigo"`,
+        downloadDir: workingExample.downloadDir,
+        onDownloadFinished,
+        onDownloadFailed
+    })
+
 })

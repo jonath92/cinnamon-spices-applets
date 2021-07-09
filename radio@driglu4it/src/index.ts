@@ -39,6 +39,12 @@ interface Arguments {
     instanceId: number
 }
 
+declare global {
+    interface String {
+        replaceAll(substr: string, replacement: string): string
+    }
+}
+
 
 
 export function main(args: Arguments): imports.ui.applet.Applet {
@@ -47,6 +53,7 @@ export function main(args: Arguments): imports.ui.applet.Applet {
         panelHeight,
         instanceId
     } = args
+
 
     // this is a workaround for now. Optimally the lastVolume should be saved persistently each time the volume is changed but this lead to significant performance issue on scrolling at the moment. However this shouldn't be the case as it is no problem to log the volume each time the volume changes (so it is a problem in the config implementation). As a workaround the volume is only saved persistently when the radio stops but the volume obviously can't be received anymore from dbus when the player has been already stopped ... 
     let lastVolume: number

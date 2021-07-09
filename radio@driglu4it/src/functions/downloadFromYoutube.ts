@@ -11,11 +11,18 @@ interface Arguments {
 export function downloadSongFromYoutube(args: Arguments) {
 
     const {
-        title,
+        // title,
         downloadDir,
         onDownloadFinished,
         onDownloadFailed
     } = args
+
+    const title = `"Good 4 U" von Olivia Rodrigo`
+
+    const titleEscaped = title.replaceAll('"', '\\\"')
+
+    global.log(titleEscaped)
+
 
     let hasBeenCancelled = false
 
@@ -24,8 +31,7 @@ export function downloadSongFromYoutube(args: Arguments) {
     const music_dir_absolut =
         downloadDir.replace('~', get_home_dir()).replace('file://', '')
 
-    const downloadCommand = `
-        youtube-dl --output "${music_dir_absolut}/%(title)s.%(ext)s" --extract-audio --audio-format mp3 ytsearch1:"${title.replace('"', '\"')}" --add-metadata --embed-thumbnail`
+    const downloadCommand = `youtube-dl --output "${music_dir_absolut}/%(title)s.%(ext)s" --extract-audio --audio-format mp3 ytsearch1:"${titleEscaped}" --add-metadata --embed-thumbnail`
 
     const process = spawnCommandLineAsyncIO(downloadCommand, (stdout, stderr) => {
 
@@ -52,7 +58,7 @@ export function downloadSongFromYoutube(args: Arguments) {
 
     function cancel() {
         hasBeenCancelled = true
-        // it seems to be no problem to call this after the process has already finished
+        // it seems to be no problem to even call this after the process has already finished
         process.force_exit()
     }
 

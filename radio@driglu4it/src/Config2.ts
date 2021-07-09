@@ -1,5 +1,5 @@
 import { isEqual } from "lodash"
-import { CONFIG_FILE_PATH } from "./consts"
+import { CONFIG_DIR_PATH, CONFIG_FILE_PATH } from "./consts"
 import { Channel, IconType } from "./types"
 
 const { File, FileMonitorFlags, FileCreateFlags } = imports.gi.Gio
@@ -145,8 +145,17 @@ export function createConfig2(args: Aruments) {
     callbacks.set('color-paused', () => onIconColorPausedChanged(getColorPaused()))
     callbacks.set('channel-on-panel', () => onChannelOnPanelChanged(getChannelOnPanel()))
 
+    const configsDir = File.new_for_path(CONFIG_DIR_PATH)
+
+    if (!configsDir.query_exists(null)) configsDir.make_directory_with_parents(null)
+
+
     const settingsFile = File.new_for_path(CONFIG_FILE_PATH)
     const monitor = settingsFile.monitor_file(FileMonitorFlags.NONE, null)
+
+    // TODO add type for monitor.connect
+    let monitorId = monitor.connect('changed', handleSettingsFileChanged)
+
 
     let [watchedWidgets, fullsettings] = createDefaultSettings()
 
@@ -166,11 +175,10 @@ export function createConfig2(args: Aruments) {
         })
 
     } else {
+        // settingsFile.create(FileCreateFlags.NONE, null)
         saveSettingsToFile()
     }
 
-    // TODO add type for monitor.connect
-    let monitorId = monitor.connect('changed', handleSettingsFileChanged)
 
 
     function handleSettingsFileChanged(montior: imports.gi.Gio.FileMonitor, file: imports.gi.Gio.File, otherFile: imports.gi.Gio.File, eventType: imports.gi.Gio.FileMonitorEvent) {
@@ -194,7 +202,11 @@ export function createConfig2(args: Aruments) {
     }
 
     function saveSettingsToFile() {
+        global.log('save Settings to file called')
         if (monitorId) monitor.disconnect(monitorId) // prevent endless loop
+
+
+        // TODO try catch. What happens when the file is not readable from the user?
 
         const [sucess, tag] = settingsFile.replace_contents(
             JSON.stringify(fullsettings),
