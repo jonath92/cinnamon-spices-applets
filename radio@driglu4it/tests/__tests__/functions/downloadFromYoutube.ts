@@ -1,8 +1,17 @@
 
+interface YoutbeDlOption {
+    command: string,
+    value?: string
+}
+
 // @ts-ignore
 imports.misc.util.spawnCommandLineAsyncIO = mockCommandLineAsyncIo
 
+import { initPolyfills } from 'polyfill';
 import { downloadSongFromYoutube } from "functions/downloadFromYoutube";
+
+// replaceAll not working in node 14.17.3
+initPolyfills()
 
 const workingExample = {
     title: 'Lady Gaga - Stupid Love',
@@ -37,16 +46,40 @@ function downloadWithValidValues() {
 }
 
 let youtubeInstalled: boolean = false
+let youtubeDlOptions: YoutbeDlOption[] = []
+
 
 const mockedDownloadtime = 1 // in ms
 
 function mockCommandLineAsyncIo(command: string, cb: (stdout: string, stderr: string, exitCode: number) =>
     void) {
 
-    // const words = command.match(/(?:[^\s"]+|"[^"]*")+/g)
+    global.log(command)
 
-    const words = command.split('--')
-    console.log(words)
+    // the pased command splitet by spaces which are not surrounded by single or double quotes
+    // https://stackoverflow.com/questions/16261635/javascript-split-string-by-space-but-ignore-space-in-quotes-notice-not-to-spli
+    const subStrings = command.match(/(?:[^\s"]+|"[^"]*")+/g)
+
+    subStrings.forEach((subString, index) => {
+
+        const isCommandOption = subString.startsWith('--') || !subStrings[index - 1]?.startsWith('--')
+
+        if (isCommandOption) {
+
+            let option: YoutbeDlOption = { command: subString }
+
+            let potentialCommandValue = subStrings[index + 1]
+            const commandHasValue = !potentialCommandValue?.startsWith('--') && potentialCommandValue
+
+            if (commandHasValue)
+                option.value = potentialCommandValue
+
+            youtubeDlOptions.push(option)
+        }
+    })
+
+    if (youtubeDlOptions[0].command !== 'youtube-dl')
+        throw new RangeError('spawnCommandLineAsyncIo not called with youtube-dl')
 
     const timer = setTimeout(() => {
         youtubeInstalled ? cb(workingExample.stdOut, null, 0) : cb(null, 'line 1: youtube-dl: command not found', 127)
@@ -63,6 +96,7 @@ function mockCommandLineAsyncIo(command: string, cb: (stdout: string, stderr: st
 afterEach(() => {
     jest.clearAllMocks()
     youtubeInstalled = false
+    youtubeDlOptions = []
 })
 
 it('sucessful download handled correctly', done => {
@@ -73,6 +107,25 @@ it('sucessful download handled correctly', done => {
 
     setTimeout(() => {
         expect(onDownloadFinished).toHaveBeenCalledWith(workingExample.filePath)
+        done()
+    }, mockedDownloadtime);
+
+})
+
+// skipping output as already handled in previous test
+it('youtubeDl called with correct arguments', done => {
+    youtubeInstalled = true
+
+    downloadWithValidValues()
+
+    setTimeout(() => {
+
+        ['--extract-audio', '--add-metadata', '--embed-thumbnail'].forEach(command => {
+            expect(youtubeDlOptions.find(option => option.command === command)).toBeTruthy()
+        })
+
+        const audioFormat = youtubeDlOptions.find(option => option.command === '--audio-format').value
+        expect(audioFormat).toBe('mp3')
         done()
     }, mockedDownloadtime);
 
@@ -125,5 +178,7 @@ it('double quotes are correctly escaped', () => {
         onDownloadFinished,
         onDownloadFailed
     })
+
+    global.log(youtubeDlOptions)
 
 })
