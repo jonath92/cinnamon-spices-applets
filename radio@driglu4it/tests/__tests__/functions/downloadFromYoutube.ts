@@ -54,10 +54,7 @@ const mockedDownloadtime = 1 // in ms
 function mockCommandLineAsyncIo(command: string, cb: (stdout: string, stderr: string, exitCode: number) =>
     void) {
 
-    global.log(command)
-
     const subStrings = createSubstrings()
-    global.log(subStrings)
 
     subStrings.forEach((subString, index) => {
 
@@ -192,6 +189,8 @@ describe('canceling download is working', () => {
 it('double quotes are correctly escaped', () => {
     youtubeInstalled = true
 
+    const title = `"Good 4 U" von Olivia Rodrigo`
+
     downloadSongFromYoutube({
         title: `"Good 4 U" von Olivia Rodrigo`,
         downloadDir: workingExample.downloadDir,
@@ -199,6 +198,16 @@ it('double quotes are correctly escaped', () => {
         onDownloadFailed
     })
 
-    global.log(youtubeDlOptions)
+    const searchPrefix = 'ytsearch1:'
+
+    const searchTerm = youtubeDlOptions.find(
+        option => option.command.startsWith(searchPrefix)
+    ).command.split(searchPrefix)[1].substr(1).slice(0, -1)
+
+    expect(title.replaceAll('"', '\\"')).toBe(searchTerm)
+
+
+
+    global.log(searchTerm)
 
 })
