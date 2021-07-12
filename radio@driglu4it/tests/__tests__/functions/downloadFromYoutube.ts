@@ -56,9 +56,8 @@ function mockCommandLineAsyncIo(command: string, cb: (stdout: string, stderr: st
 
     global.log(command)
 
-    // the pased command splitet by spaces which are not surrounded by single or double quotes
-    // https://stackoverflow.com/questions/16261635/javascript-split-string-by-space-but-ignore-space-in-quotes-notice-not-to-spli
-    const subStrings = command.match(/(?:[^\s"]+|"[^"]*")+/g)
+    const subStrings = createSubstrings()
+    global.log(subStrings)
 
     subStrings.forEach((subString, index) => {
 
@@ -90,6 +89,27 @@ function mockCommandLineAsyncIo(command: string, cb: (stdout: string, stderr: st
             clearTimeout(timer)
             cb(null, null, 1)
         }
+    }
+
+    function createSubstrings() {
+        let spaceIndex = -1
+        let isInsideDoubleQuote = false
+        const subStrings = [];
+        const chars = [...command]
+
+        chars.forEach((char, index) => {
+
+            if (char === " " && !isInsideDoubleQuote || index + 1 === chars.length) {
+                subStrings.push(command.substring(spaceIndex + 1, index + 1).trim())
+                spaceIndex = index
+            }
+
+            if (char === "\"" && command[index - 1] !== "\\") {
+                isInsideDoubleQuote = !isInsideDoubleQuote
+            }
+        })
+
+        return subStrings
     }
 }
 
@@ -173,7 +193,7 @@ it('double quotes are correctly escaped', () => {
     youtubeInstalled = true
 
     downloadSongFromYoutube({
-        title: `"Good 4 U" von Olivia Rodrigo"`,
+        title: `"Good 4 U" von Olivia Rodrigo`,
         downloadDir: workingExample.downloadDir,
         onDownloadFinished,
         onDownloadFailed

@@ -28,6 +28,9 @@ import { createSeeker } from './ui/Seeker';
 import { VOLUME_DELTA } from './consts';
 import { createConfig2 } from './Config2';
 import { initPolyfills } from './polyfill';
+// TODO: I have copied the index.d.ts from redux to types because otherwilse error. Proper Fix: https://stackoverflow.com/questions/43003491/typescript-cannot-find-redux
+import { createStore } from 'redux'
+
 
 const { ScrollDirection } = imports.gi.Clutter;
 const { getAppletDefinition } = imports.ui.appletManager;
@@ -56,6 +59,19 @@ export function main(args: Arguments): imports.ui.applet.Applet {
     } = args
 
     initPolyfills()
+
+    const reducer = (state: any = []) => {
+        return state
+    }
+
+    const store = createStore(reducer)
+
+    store.subscribe(() => {
+        global.log(`store: ${store.getState()}`)
+    })
+
+    store.dispatch({type: 'ADD_USER'})
+
 
     // this is a workaround for now. Optimally the lastVolume should be saved persistently each time the volume is changed but this lead to significant performance issue on scrolling at the moment. However this shouldn't be the case as it is no problem to log the volume each time the volume changes (so it is a problem in the config implementation). As a workaround the volume is only saved persistently when the radio stops but the volume obviously can't be received anymore from dbus when the player has been already stopped ... 
     let lastVolume: number
