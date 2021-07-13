@@ -36,6 +36,8 @@ const { ScrollDirection } = imports.gi.Clutter;
 const { getAppletDefinition } = imports.ui.appletManager;
 const { panelManager } = imports.ui.main
 const { IconType, BoxLayout } = imports.gi.St
+const { AppletSettings } = imports.ui.settings;
+
 
 interface Arguments {
     orientation: imports.gi.St.Side,
@@ -71,6 +73,9 @@ export function main(args: Arguments): imports.ui.applet.Applet {
     })
 
     store.dispatch({ type: 'ADD_USER' })
+
+    // this is only implemented to hide 
+    new AppletSettings({}, __meta.uuid, instanceId)
 
     let mpvHandler: ReturnType<typeof createMpvHandler>
 

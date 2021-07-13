@@ -20,8 +20,8 @@ export function downloadSongFromYoutube(args: Arguments) {
 
     let hasBeenCancelled = false
 
-    // when using the default value of the settings, the dir starts with ~ what can't be understand when executing command. Else it starts with file:// what youtube-dl can't handle. Saving to network directories (e.g. ftp) doesn't work 
-    // TODO: Shouldn't this be done in configs(at least replacing ~)? 
+    // When using the default value of the settings, the dir starts with ~ what can't be understand when executing command. 
+    // After changing the value in the configs dialogue, the value starts with file:// what youtube-dl can't handle. Saving to network directories (e.g. ftp) doesn't work 
     const music_dir_absolut =
         downloadDir.replace('~', get_home_dir()).replace('file://', '')
 

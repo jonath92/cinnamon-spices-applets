@@ -5795,17 +5795,17 @@ declare namespace imports.gi.Gio {
 
 
     enum FileMonitorEvent {
-        changed = 0,
-        changes_done_hint = 1,
-        deleted = 2,
-        created = 3,
-        attribute_changed = 4,
-        pre_unmount = 5,
-        unmounted = 6,
-        moved = 7,
-        renamed = 8,
-        moved_in = 9,
-        moved_out = 10
+        CHANGED = 0,
+        CHANGES_DONE_HINT = 1,
+        DELETED = 2,
+        CREATED = 3,
+        ATTRIBUTE_CHANGED = 4,
+        PRE_UNMOUNT = 5,
+        UNMOUNTED = 6,
+        MOVED = 7,
+        RENAMED = 8,
+        MOVED_IN = 9,
+        MOVED_OUT = 10
     }
 
 

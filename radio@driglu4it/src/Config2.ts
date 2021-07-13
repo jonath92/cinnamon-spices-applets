@@ -1,8 +1,7 @@
-import { isEqual, pick } from "lodash"
 import { CONFIG_DIR_PATH, CONFIG_FILE_PATH } from "./consts"
 import { Channel, IconType } from "./types"
 
-const { File, FileMonitorFlags, FileCreateFlags } = imports.gi.Gio
+const { File, FileMonitorFlags, FileCreateFlags, FileMonitorEvent } = imports.gi.Gio
 
 interface Widget {
     type: 'checkbox' | 'colorchooser' | 'combobox' | 'list' | 'spinbutton' | 'generic' | 'filechooser' | 'custom',
@@ -135,6 +134,8 @@ export function createConfig2(args: Arguments) {
         onMyStationsChanged
     } = args
 
+    const watchedWidgets: (keyof WatchedWidgets)[] = ["tree", "icon-type", "color-on", "color-paused", "channel-on-panel", "keep-volume-between-sessions", "initial-volume", "music-download-dir-select"]
+
     const callbacks = new Map<keyof WatchedWidgets, () => void>()
 
     callbacks.set('tree', () => onMyStationsChanged(getUserStations()))
@@ -152,10 +153,7 @@ export function createConfig2(args: Arguments) {
     const monitor = settingsFile.monitor_file(FileMonitorFlags.NONE, null)
 
     let monitorId = monitor.connect('changed', handleSettingsFileChanged)
-
     let settings = createDefaultSettings()
-
-    let watchedWidgets: WatchedWidgets = pick(settings, ['tree', 'icon-type', 'color-on', 'color-paused', 'channel-on-panel', 'keep-volume-between-sessions', 'initial-volume', 'music-download-dir-select'])
 
     if (settingsFile.query_exists(null)) {
         const userSettings = loadSettingsFile()
@@ -164,47 +162,41 @@ export function createConfig2(args: Arguments) {
             ...settings, ...userSettings
         }
 
-        Object.keys(watchedWidgets).forEach((key: keyof WatchedWidgets) => {
-            if (userSettings[key]) {
-                watchedWidgets[key] = userSettings[key]
-            }
-        })
-
     } else {
         saveSettingsToFile()
     }
 
-
-    function loadSettingsFile() {
+    function loadSettingsFile(): Settings {
 
         const settingsString = settingsFile.load_contents(null)[1]
-        return JSON.parse(settingsString)
+        const newSettings: Settings = JSON.parse(settingsString)
+        return newSettings
     }
 
     function handleSettingsFileChanged(montior: imports.gi.Gio.FileMonitor, file: imports.gi.Gio.File, otherFile: imports.gi.Gio.File, eventType: imports.gi.Gio.FileMonitorEvent) {
 
-        // global.log(`eventType: ${eventType}`)
-
+        if (eventType !== FileMonitorEvent.CHANGES_DONE_HINT) return
         const newSettings = loadSettingsFile()
 
         if (!newSettings) return
 
-        Object.keys(watchedWidgets).forEach((key: keyof WatchedWidgets) => {
+        watchedWidgets.forEach(key => {
 
-            if (!isEqual(watchedWidgets[key], newSettings[key])) {
+            const newValue = newSettings[key].value
+
+            if (settings[key].value !== newValue) {
+                settings[key].value = newValue
                 callbacks.get(key)?.()
-                watchedWidgets[key] = newSettings[key]
             }
         })
 
-        settings = newSettings
     }
 
     function saveSettingsToFile() {
         if (monitorId) monitor.disconnect(monitorId) // prevent endless loop
 
         const [sucess, tag] = settingsFile.replace_contents(
-            JSON.stringify(settings),
+            JSON.stringify(settings, null, 4),
             null,
             false,
             FileCreateFlags.REPLACE_DESTINATION,
@@ -221,8 +213,6 @@ export function createConfig2(args: Arguments) {
 
     function setLastVolume(lastVolume: number) {
         settings["last-volume"].value = lastVolume
-
-        global.log(`setLastVolume called with: ${lastVolume}`)
         saveSettingsToFile()
     }
 
@@ -244,14 +234,7 @@ export function createConfig2(args: Arguments) {
         const lastVolume = settings['last-volume'].value
         const customInitVolume = settings['initial-volume'].value
 
-        global.log(`keepVolume: ${keepVolume}, lastVolume: ${lastVolume}`)
-
-        let initialVolume = keepVolume ? lastVolume : customInitVolume
-
-        if (initialVolume == null) {
-            global.logWarning('initial Volume was null or undefined. Applying 50 as a fallback solution to prevent radio stop working')
-            initialVolume = 50
-        }
+        const initialVolume = keepVolume ? lastVolume : customInitVolume
 
         return initialVolume
     }

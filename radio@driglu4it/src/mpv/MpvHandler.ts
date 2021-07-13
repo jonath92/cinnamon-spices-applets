@@ -233,8 +233,6 @@ export function createMpvHandler(args: Arguments) {
 
     function handleMprisVolumeChanged(mprisVolume: number) {
 
-        global.log(`handleMprisVolumeChanged called with: ${mprisVolume}`)
-
         if (mprisVolume * 100 > MAX_VOLUME) {
             mediaServerPlayer.Volume = MAX_VOLUME / 100
             return
@@ -277,10 +275,11 @@ export function createMpvHandler(args: Arguments) {
 
         if (getPlaybackStatus() === 'Stopped') {
 
-            const initialVolume = getInitialVolume()
+            let initialVolume = getInitialVolume()
 
             if (initialVolume == null) {
-                throw new Error('initial Volume must not be undefined or null')
+                global.logWarning('initial Volume was null or undefined. Applying 50 as a fallback solution to prevent radio stop working')
+                initialVolume = 50
             }
 
             const command = `mpv --script=${MPRIS_PLUGIN_PATH} ${url} 

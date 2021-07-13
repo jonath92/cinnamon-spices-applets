@@ -14,12 +14,15 @@ imports.gi.Gio.File = {
                 return mockedSettingsDir
             case CONFIG_FILE_PATH:
                 return mockedSettingsFile
+            default:
+                throw new Error('not yet mocked')
         }
     }
 }
 
 import { Settings, createDefaultSettings, createConfig2 } from "Config2";
 import { FileCreateFlags } from "../global/gi/Gio"
+import { Channel } from "types"
 
 const onIconChanged = jest.fn(() => { })
 const onIconColorPlayingChanged = jest.fn(() => { })
@@ -115,7 +118,7 @@ describe('getters working', () => {
 
     })
 
-    it('last url is returned', () => {
+    it('last url is correctly returned', () => {
 
         const lastUrl = "dummyUrl"
         settings["last-url"].value = lastUrl
@@ -125,7 +128,7 @@ describe('getters working', () => {
     })
 
     describe('initial volume is returned', () => {
-        it('correct value returned when keep volume between sessions is set', () => {
+        it('correct value returned when keep volume between sessions is true', () => {
 
             const lastVolume = 90
 
@@ -137,5 +140,46 @@ describe('getters working', () => {
             expect(configs.getInitialVolume()).toBe(lastVolume)
 
         })
+
+        it('correct value returned when keep volume between sessions is false', () => {
+
+            const initialVolume = 55
+
+            settings['keep-volume-between-sessions'].value = false
+            settings['initial-volume'].value = initialVolume
+
+            const configs = createConfig2({ ...callbacks })
+
+            expect(configs.getInitialVolume()).toBe(initialVolume)
+
+        })
     });
+
+    it('music download dir is correctly returned', () => {
+
+        const musicDir = "file:///home/jonathan/Music/Radio"
+        settings["music-download-dir-select"].value = musicDir
+        const configs = createConfig2({ ...callbacks })
+
+        expect(configs.getMusicDownloadDir()).toBe(musicDir)
+
+    });
+
+    it('user stations are correclty returned', () => {
+
+        const show = true
+        const url = 'dummyUrl'
+
+        const userStations: Channel[] = [
+            { inc: show, name: 'dummy1', url },
+            { inc: show, name: 'dummy2', url }
+        ]
+
+        settings.tree.value = userStations
+
+        const configs = createConfig2({ ...callbacks })
+
+        expect(configs.getUserStations()).toEqual(userStations)
+    })
+
 });
