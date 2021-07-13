@@ -1,3 +1,7 @@
+import { isObject, mapValues } from "lodash";
+
+const { Variant } = imports.gi.GLib
+
 declare global {
     interface String {
         replaceAll(substr: string, replacement: string): string
@@ -24,7 +28,7 @@ declare global {
 
 export function initPolyfills() {
 
-    // included in LM 20.2 (cinnamon 5.0.4) but not in LM 20.0 (cinnamon 4.6.7). End of support is April 2025 (20.1 not tested)
+    // included in LM 20.2 (cinnamon 5.0.4) but not in LM 20.0 (cinnamon 4.6.7). (20.1 not tested)
     // Copied from https://stackoverflow.com/a/17606289/11603006
     if (!String.prototype.hasOwnProperty('replaceAll')) {
         String.prototype.replaceAll = function (search: string, replacement: string) {
@@ -34,6 +38,7 @@ export function initPolyfills() {
     }
 
     // Copied from https://github.com/behnammodi/polyfill/blob/master/array.polyfill.js
+    // included in LM 20.1 (cinnamon 4.8) but not in LM 20.0 (cinnamon 4.6.7)
     if (!Array.prototype.flatMap) {
         Object.defineProperty(Array.prototype, 'flatMap', {
             configurable: true,
@@ -42,5 +47,31 @@ export function initPolyfills() {
                 return Array.prototype.map.apply(this, arguments).flat(1);
             },
         });
+    }
+
+
+    // included in LM 20.1 (cinnamon 4.8) but not in LM 20.0 (cinnamon 4.6.7)
+    Variant.prototype.deepUnpack = Variant.prototype.deep_unpack
+
+    // included in LM 20.1 (cinnamon 4.8) but not in LM 20.0 (cinnamon 4.6.7)
+    // TODO: write unit test. Are arrays handled correct??
+    if (!Variant.prototype.recursiveUnpack) {
+        Variant.prototype.recursiveUnpack = function () {
+            function recursiveUnpackKey(key: any) {
+
+                if (key instanceof Variant) {
+                    const deepUnpackedVal = key.deep_unpack()
+
+                    return deepUnpackedVal instanceof Variant
+                        ? deepUnpackedVal.recursiveUnpack() : deepUnpackedVal
+                }
+
+                return key
+            }
+
+            const deepUnpackedVal = this.deep_unpack()
+
+            return isObject(deepUnpackedVal) ? mapValues(deepUnpackedVal, recursiveUnpackKey) : deepUnpackedVal
+        }
     }
 }

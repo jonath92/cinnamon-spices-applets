@@ -36,14 +36,11 @@ export class Variant {
 
                 const deepUnpackedVal = key.deepUnpack()
 
-                if (deepUnpackedVal instanceof Variant) {
-                    return deepUnpackedVal.recursiveUnpack()
-                } else {
-                    return deepUnpackedVal
-                }
-            } else {
-                return key
+                return deepUnpackedVal instanceof Variant
+                    ? deepUnpackedVal.recursiveUnpack() : deepUnpackedVal
             }
+
+            return key
         }
 
         return isObject(this.#unPackedValue) ? mapValues(this.#unPackedValue, recursiveUnpackKey) : this.#unPackedValue

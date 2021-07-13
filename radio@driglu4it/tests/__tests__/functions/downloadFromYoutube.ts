@@ -206,8 +206,4 @@ it('double quotes are correctly escaped', () => {
 
     expect(title.replaceAll('"', '\\"')).toBe(searchTerm)
 
-
-
-    global.log(searchTerm)
-
 })

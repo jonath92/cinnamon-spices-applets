@@ -183,7 +183,7 @@ export function createConfig2(args: Aruments) {
 
     function handleSettingsFileChanged(montior: imports.gi.Gio.FileMonitor, file: imports.gi.Gio.File, otherFile: imports.gi.Gio.File, eventType: imports.gi.Gio.FileMonitorEvent) {
 
-        global.log(`eventType: ${eventType}`)
+        // global.log(`eventType: ${eventType}`)
 
         const newSettings = loadSettingsFile()
 
@@ -202,7 +202,7 @@ export function createConfig2(args: Aruments) {
     }
 
     function saveSettingsToFile() {
-        global.log('save Settings to file called')
+        // global.log('save Settings to file called')
         if (monitorId) monitor.disconnect(monitorId) // prevent endless loop
 
 
