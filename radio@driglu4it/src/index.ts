@@ -1,4 +1,3 @@
-// import * as _ from 'lodash'; now possible
 import { createConfig } from './Config';
 import { ChannelStore } from './ChannelStore';
 import { createChannelList } from './ui/ChannelList/ChannelList';
@@ -26,7 +25,6 @@ import { notifyYoutubeDownloadFailed } from './ui/Notifications/YoutubeDownloadF
 import { notify } from './ui/Notifications/GenericNotification';
 import { createSeeker } from './ui/Seeker';
 import { VOLUME_DELTA } from './consts';
-import { createConfig2 } from './Config2';
 import { initPolyfills } from './polyfill';
 // TODO: I have copied the index.d.ts from redux to types because otherwilse error. Proper Fix: https://stackoverflow.com/questions/43003491/typescript-cannot-find-redux
 import { createStore } from 'redux'
@@ -44,13 +42,6 @@ interface Arguments {
     panelHeight: number,
     instanceId: number
 }
-
-declare global {
-    interface String {
-        replaceAll(substr: string, replacement: string): string
-    }
-}
-
 
 
 export function main(args: Arguments): imports.ui.applet.Applet {
@@ -118,7 +109,7 @@ export function main(args: Arguments): imports.ui.applet.Applet {
     })
 
 
-    const configs2 = createConfig2({
+    const configs = createConfig({
         onIconChanged: handleIconTypeChanged,
         onIconColorPlayingChanged: (color) => {
             appletIcon.setColorWhenPlaying(color)
@@ -132,7 +123,7 @@ export function main(args: Arguments): imports.ui.applet.Applet {
         onMyStationsChanged: handleStationsUpdated,
     })
 
-    const channelStore = new ChannelStore(configs2.getUserStations())
+    const channelStore = new ChannelStore(configs.getUserStations())
 
     const channelList = createChannelList({
         stationNames: channelStore.activatedChannelNames,
@@ -190,14 +181,14 @@ export function main(args: Arguments): imports.ui.applet.Applet {
     popupMenu.add_child(radioActiveSection)
 
     mpvHandler = createMpvHandler({
-        getInitialVolume: () => { return configs2.getInitialVolume() },
+        getInitialVolume: () => { return configs.getInitialVolume() },
         onVolumeChanged: handleVolumeChanged,
         onLengthChanged: hanldeLengthChanged,
         onPositionChanged: handlePositionChanged,
         checkUrlValid: (url) => channelStore.checkUrlValid(url),
         onTitleChanged: handleTitleChanged,
         onPlaybackstatusChanged: handlePlaybackstatusChanged,
-        lastUrl: configs2.getLastUrl(),
+        lastUrl: configs.getLastUrl(),
         onUrlChanged: handleUrlChanged
     })
 
@@ -244,7 +235,7 @@ export function main(args: Arguments): imports.ui.applet.Applet {
         volumeSlider.setVolume(volume)
         appletTooltip.setVolume(volume)
 
-        configs2.setLastVolume(volume)
+        configs.setLastVolume(volume)
     }
 
     function handleIconTypeChanged(iconType: IconType) {
@@ -260,7 +251,7 @@ export function main(args: Arguments): imports.ui.applet.Applet {
         channelStore.channelList = stations
         channelList.setStationNames(channelStore.activatedChannelNames)
 
-        const lastUrlValid = channelStore.checkUrlValid(configs2.getLastUrl())
+        const lastUrlValid = channelStore.checkUrlValid(configs.getLastUrl())
         if (!lastUrlValid) mpvHandler.stop()
     }
 
@@ -268,7 +259,7 @@ export function main(args: Arguments): imports.ui.applet.Applet {
 
         if (playbackstatus === 'Stopped') {
             radioActiveSection.hide()
-            configs2.setLastUrl(null)
+            configs.setLastUrl(null)
             appletLabel.setText(null)
             appletTooltip.setDefaultTooltip()
             popupMenu.close()
@@ -293,7 +284,7 @@ export function main(args: Arguments): imports.ui.applet.Applet {
 
         channelList.setCurrentChannel(channelName)
         infoSection.setChannel(channelName)
-        configs2.setLastUrl(url)
+        configs.setLastUrl(url)
     }
 
     function hanldeLengthChanged(length: number) {
@@ -309,7 +300,7 @@ export function main(args: Arguments): imports.ui.applet.Applet {
         const title = mpvHandler.getCurrentTitle()
 
         const downloadProcess = downloadSongFromYoutube({
-            downloadDir: configs2.getMusicDownloadDir(),
+            downloadDir: configs.getMusicDownloadDir(),
             title,
             onDownloadFinished: (path) => notifyYoutubeDownloadFinished({
                 downloadPath: path
@@ -325,7 +316,7 @@ export function main(args: Arguments): imports.ui.applet.Applet {
 
     // Without returning the montior, the connect-callbacks stops executing after a couple of secs!
     // @ts-ignore
-    applet.settingsMonitor = configs2.monitor
+    applet.settingsMonitor = configs.monitor
 
     return applet
 

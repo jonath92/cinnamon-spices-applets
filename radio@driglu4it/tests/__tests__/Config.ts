@@ -2,7 +2,7 @@
 
 import { CONFIG_DIR_PATH, CONFIG_FILE_PATH } from "consts"
 
-const { FileMonitorFlags } = imports.gi.Gio
+const { FileMonitorFlags, FileMonitorEvent } = imports.gi.Gio
 
 // @ts-ignore
 imports.gi.Gio.File = {
@@ -15,14 +15,15 @@ imports.gi.Gio.File = {
             case CONFIG_FILE_PATH:
                 return mockedSettingsFile
             default:
-                throw new Error('not yet mocked')
+                throw new Error('not mocked')
         }
     }
 }
 
-import { Settings, createDefaultSettings, createConfig2 } from "Config2";
+import { Settings, createDefaultSettings, createConfig } from "Config";
 import { FileCreateFlags } from "../global/gi/Gio"
 import { Channel } from "types"
+import { cloneDeep } from "lodash"
 
 const onIconChanged = jest.fn(() => { })
 const onIconColorPlayingChanged = jest.fn(() => { })
@@ -32,6 +33,11 @@ const onMyStationsChanged = jest.fn(() => { })
 
 const callbacks = { onIconChanged, onIconColorPlayingChanged, onIconColorPausedChanged, onChannelOnPanelChanged, onMyStationsChanged }
 
+const DUMMY_USER_STATIONS: Channel[] = [
+    { inc: true, name: 'dummy1', url: 'dummyUrl1' },
+    { inc: true, name: 'dummy2', url: 'dummyUrl2' }
+]
+
 let settingsDirExist: boolean
 let settingsFileExist: boolean
 let settingsFileChangedCallback: Parameters<imports.gi.Gio.FileMonitor["connect"]>[1]
@@ -39,7 +45,6 @@ let settings: Settings
 
 const mockedSettingsFile = {
     query_exists: () => {
-        // TODO: what if settingsDirExist === false?
         return settingsFileExist
     },
 
@@ -61,6 +66,8 @@ const mockedSettingsFile = {
 
 
         settings = JSON.parse(contents)
+
+        settingsFileExist = true
 
         return [true, ' ']
     },
@@ -85,6 +92,7 @@ const mockedSettingsDir = {
     },
 
     make_directory_with_parents: () => {
+
         // TODO: what if settingsDirExist already ture
         settingsDirExist = true
     },
@@ -97,6 +105,19 @@ const mockedSettingsFileMonitor = {
     }
 }
 
+function simulateSettingsFileChange(newSettings: Settings) {
+
+    // the first 3 args are obviously in reality not null. 
+    settingsFileChangedCallback(null, null, null, FileMonitorEvent.DELETED)
+    settingsFileChangedCallback(null, null, null, FileMonitorEvent.CREATED)
+    // the next callback is only executed when changed in settings dialoge
+    settingsFileChangedCallback(null, null, null, FileMonitorEvent.CHANGED)
+
+    settings = newSettings
+
+    settingsFileChangedCallback(null, null, null, FileMonitorEvent.CHANGES_DONE_HINT)
+}
+
 afterEach(() => {
     settingsDirExist = settingsFileExist = settings = null
 })
@@ -104,7 +125,7 @@ afterEach(() => {
 describe('initialization is working', () => {
 
     it('settings file created when no settings already exist', () => {
-        createConfig2({ ...callbacks })
+        createConfig({ ...callbacks })
         expect(settings).toEqual(createDefaultSettings())
     })
 });
@@ -115,14 +136,13 @@ describe('getters working', () => {
         settings = createDefaultSettings()
         settingsDirExist = true
         settingsFileExist = true
-
     })
 
     it('last url is correctly returned', () => {
 
         const lastUrl = "dummyUrl"
         settings["last-url"].value = lastUrl
-        const configs = createConfig2({ ...callbacks })
+        const configs = createConfig({ ...callbacks })
 
         expect(configs.getLastUrl()).toBe(lastUrl)
     })
@@ -135,7 +155,7 @@ describe('getters working', () => {
             settings['keep-volume-between-sessions'].value = true
             settings['last-volume'].value = lastVolume
 
-            const configs = createConfig2({ ...callbacks })
+            const configs = createConfig({ ...callbacks })
 
             expect(configs.getInitialVolume()).toBe(lastVolume)
 
@@ -148,7 +168,7 @@ describe('getters working', () => {
             settings['keep-volume-between-sessions'].value = false
             settings['initial-volume'].value = initialVolume
 
-            const configs = createConfig2({ ...callbacks })
+            const configs = createConfig({ ...callbacks })
 
             expect(configs.getInitialVolume()).toBe(initialVolume)
 
@@ -159,7 +179,7 @@ describe('getters working', () => {
 
         const musicDir = "file:///home/jonathan/Music/Radio"
         settings["music-download-dir-select"].value = musicDir
-        const configs = createConfig2({ ...callbacks })
+        const configs = createConfig({ ...callbacks })
 
         expect(configs.getMusicDownloadDir()).toBe(musicDir)
 
@@ -167,19 +187,57 @@ describe('getters working', () => {
 
     it('user stations are correclty returned', () => {
 
-        const show = true
-        const url = 'dummyUrl'
-
-        const userStations: Channel[] = [
-            { inc: show, name: 'dummy1', url },
-            { inc: show, name: 'dummy2', url }
-        ]
-
-        settings.tree.value = userStations
-
-        const configs = createConfig2({ ...callbacks })
-
-        expect(configs.getUserStations()).toEqual(userStations)
+        settings.tree.value = DUMMY_USER_STATIONS
+        const configs = createConfig({ ...callbacks })
+        expect(configs.getUserStations()).toEqual(DUMMY_USER_STATIONS)
     })
 
+});
+
+
+describe('callbacks working', () => {
+
+    it('onMyStationChanged get called when changing value', () => {
+        createConfig({ ...callbacks })
+
+        const newSettings = cloneDeep(settings)
+        newSettings.tree.value = DUMMY_USER_STATIONS
+        simulateSettingsFileChange(newSettings)
+
+        expect(onMyStationsChanged).toBeCalledTimes(1)
+        expect(onMyStationsChanged).toBeCalledWith(DUMMY_USER_STATIONS)
+    })
+
+    it('only changed settings trigger a callback', () => {
+        createConfig({ ...callbacks })
+        jest.clearAllMocks()
+
+        const newSettings = cloneDeep(settings)
+        newSettings.tree.value = DUMMY_USER_STATIONS
+        simulateSettingsFileChange(newSettings)
+
+        const { onMyStationsChanged, ...otherCallbacks } = callbacks
+
+        Object.values(otherCallbacks).forEach(cb => {
+            expect(cb).not.toHaveBeenCalled()
+        })
+
+
+    })
+
+    it('onIconChanged get called when changing value', () => {
+        createConfig({ ...callbacks })
+        jest.resetAllMocks()
+
+        const newIconValue = "FULLCOLOR"
+        const newSettings = cloneDeep(settings)
+        newSettings["icon-type"].value = newIconValue
+        simulateSettingsFileChange(newSettings)
+
+        expect(onIconChanged).toBeCalledWith(newIconValue)
+        expect(onIconChanged).toHaveBeenCalledTimes(1)
+
+    })
+
+    // Assuming all other are also called ...
 });

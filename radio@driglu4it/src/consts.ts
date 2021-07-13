@@ -21,7 +21,6 @@ export const MAX_VOLUME = 100 // see https://github.com/linuxmint/cinnamon-spice
 /** in percent */
 export const VOLUME_DELTA = 5
 
-
 // STYLE CLASSES 
 export const POPUP_ICON_CLASS = 'popup-menu-icon'
 export const POPUP_MENU_ITEM_CLASS = 'popup-menu-item'

@@ -40,7 +40,7 @@ export class IconApplet extends Applet {
 
     private _applet_icon: Icon
 
-    constructor(...args) {
+    constructor(...args: any[]) {
         // @ts-ignore
         super(...args)
     }
@@ -73,7 +73,7 @@ export class TextIconApplet extends IconApplet {
     private _applet_label: Label
 
 
-    constructor(...args) {
+    constructor(...args: any[]) {
         // @ts-ignore
         super(...args)
 

@@ -48,6 +48,7 @@ export class Panel {
             typeString = "symbolic";
         }
 
+        // @ts-ignore
         return this._panelZoneSizes[typeString][locationLabel];
 
     }

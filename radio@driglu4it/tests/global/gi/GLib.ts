@@ -28,7 +28,7 @@ export class Variant {
     }
 
 
-    public recursiveUnpack() {
+    public recursiveUnpack(): any {
 
         function recursiveUnpackKey(key: any) {
 
