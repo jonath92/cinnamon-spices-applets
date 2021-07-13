@@ -1,9 +1,8 @@
-import { isEqual } from "lodash"
+import { isEqual, pick } from "lodash"
 import { CONFIG_DIR_PATH, CONFIG_FILE_PATH } from "./consts"
 import { Channel, IconType } from "./types"
 
 const { File, FileMonitorFlags, FileCreateFlags } = imports.gi.Gio
-const { get_file_contents_utf8_sync } = imports.gi.Cinnamon
 
 interface Widget {
     type: 'checkbox' | 'colorchooser' | 'combobox' | 'list' | 'spinbutton' | 'generic' | 'filechooser' | 'custom',
@@ -113,11 +112,11 @@ interface Layout extends Pages, Sections {
     pages: (keyof Pages)[]
 }
 
-interface Settings extends Widgets {
+export interface Settings extends Widgets {
     "layout1": Layout
 }
 
-interface Aruments {
+interface Arguments {
     onIconChanged: (iconType: IconType) => void,
     onIconColorPlayingChanged: (color: string) => void,
     onIconColorPausedChanged: (color: string) => void,
@@ -126,7 +125,7 @@ interface Aruments {
 }
 
 
-export function createConfig2(args: Aruments) {
+export function createConfig2(args: Arguments) {
 
     const {
         onChannelOnPanelChanged,
@@ -135,7 +134,6 @@ export function createConfig2(args: Aruments) {
         onIconColorPlayingChanged,
         onMyStationsChanged
     } = args
-
 
     const callbacks = new Map<keyof WatchedWidgets, () => void>()
 
@@ -147,40 +145,41 @@ export function createConfig2(args: Aruments) {
 
     const configsDir = File.new_for_path(CONFIG_DIR_PATH)
 
-    global.log(File.new_for_path.toString())
-
-    if (!configsDir.query_exists(null)) configsDir.make_directory_with_parents(null)
-
+    if (!configsDir.query_exists(null))
+        configsDir.make_directory_with_parents(null)
 
     const settingsFile = File.new_for_path(CONFIG_FILE_PATH)
     const monitor = settingsFile.monitor_file(FileMonitorFlags.NONE, null)
 
     let monitorId = monitor.connect('changed', handleSettingsFileChanged)
 
+    let settings = createDefaultSettings()
 
-    let [watchedWidgets, fullsettings] = createDefaultSettings()
+    let watchedWidgets: WatchedWidgets = pick(settings, ['tree', 'icon-type', 'color-on', 'color-paused', 'channel-on-panel', 'keep-volume-between-sessions', 'initial-volume', 'music-download-dir-select'])
 
     if (settingsFile.query_exists(null)) {
         const userSettings = loadSettingsFile()
 
-        fullsettings = {
-            ...fullsettings, ...userSettings
+        settings = {
+            ...settings, ...userSettings
         }
 
         Object.keys(watchedWidgets).forEach((key: keyof WatchedWidgets) => {
             if (userSettings[key]) {
-                // no idea why ts is complaining here ..
-                // @ts-ignore
                 watchedWidgets[key] = userSettings[key]
             }
         })
 
     } else {
-        // settingsFile.create(FileCreateFlags.NONE, null)
         saveSettingsToFile()
     }
 
 
+    function loadSettingsFile() {
+
+        const settingsString = settingsFile.load_contents(null)[1]
+        return JSON.parse(settingsString)
+    }
 
     function handleSettingsFileChanged(montior: imports.gi.Gio.FileMonitor, file: imports.gi.Gio.File, otherFile: imports.gi.Gio.File, eventType: imports.gi.Gio.FileMonitorEvent) {
 
@@ -194,23 +193,18 @@ export function createConfig2(args: Aruments) {
 
             if (!isEqual(watchedWidgets[key], newSettings[key])) {
                 callbacks.get(key)?.()
-                //@ts-ignore
                 watchedWidgets[key] = newSettings[key]
             }
         })
 
-        fullsettings = newSettings
+        settings = newSettings
     }
 
     function saveSettingsToFile() {
-        // global.log('save Settings to file called')
         if (monitorId) monitor.disconnect(monitorId) // prevent endless loop
 
-
-        // TODO try catch. What happens when the file is not readable from the user?
-
         const [sucess, tag] = settingsFile.replace_contents(
-            JSON.stringify(fullsettings),
+            JSON.stringify(settings),
             null,
             false,
             FileCreateFlags.REPLACE_DESTINATION,
@@ -221,31 +215,36 @@ export function createConfig2(args: Aruments) {
     }
 
     function setLastUrl(lastUrl: string) {
-        fullsettings["last-url"].value = lastUrl
+        settings["last-url"].value = lastUrl
         saveSettingsToFile()
     }
 
     function setLastVolume(lastVolume: number) {
-        fullsettings["last-volume"].value = lastVolume
+        settings["last-volume"].value = lastVolume
+
+        global.log(`setLastVolume called with: ${lastVolume}`)
         saveSettingsToFile()
     }
 
     function getIconType() {
-        return fullsettings["icon-type"].value
+        return settings["icon-type"].value
     }
 
     function getLastUrl() {
-        return fullsettings["last-url"].value
+        return settings["last-url"].value
     }
 
     function getUserStations() {
-        return fullsettings['tree'].value
+        return settings['tree'].value
     }
 
     function getInitialVolume() {
-        const keepVolume = fullsettings['keep-volume-between-sessions'].value
-        const lastVolume = fullsettings['last-volume'].value
-        const customInitVolume = fullsettings['initial-volume'].value
+
+        const keepVolume = settings['keep-volume-between-sessions'].value
+        const lastVolume = settings['last-volume'].value
+        const customInitVolume = settings['initial-volume'].value
+
+        global.log(`keepVolume: ${keepVolume}, lastVolume: ${lastVolume}`)
 
         let initialVolume = keepVolume ? lastVolume : customInitVolume
 
@@ -258,19 +257,19 @@ export function createConfig2(args: Aruments) {
     }
 
     function getMusicDownloadDir() {
-        return fullsettings['music-download-dir-select'].value
+        return settings['music-download-dir-select'].value
     }
 
     function getColorPlaying() {
-        return fullsettings['color-on'].value
+        return settings['color-on'].value
     }
 
     function getColorPaused() {
-        return fullsettings['color-paused'].value
+        return settings['color-paused'].value
     }
 
     function getChannelOnPanel() {
-        return fullsettings['channel-on-panel'].value
+        return settings['channel-on-panel'].value
     }
 
     onIconChanged(getIconType())
@@ -290,7 +289,7 @@ export function createConfig2(args: Aruments) {
 
 }
 
-function createDefaultSettings(): [WatchedWidgets, Settings] {
+export function createDefaultSettings(): Settings {
 
     const widgets: Widgets = {
         'tree': {
@@ -351,7 +350,7 @@ function createDefaultSettings(): [WatchedWidgets, Settings] {
         'color-paused': {
             type: "colorchooser",
             value: "#9fe1e7",
-            dependency: `icon - type=SYMBOLIC`,
+            dependency: `icon-type=SYMBOLIC`,
             description: "Color of symbolic icon while a radio station is paused",
         },
         'channel-on-panel': {
@@ -471,16 +470,5 @@ function createDefaultSettings(): [WatchedWidgets, Settings] {
         ...widgets,
     }
 
-    return [widgets, fullSettings]
+    return fullSettings
 }
-
-function loadSettingsFile(): Settings {
-
-    try {
-        return JSON.parse(get_file_contents_utf8_sync(CONFIG_FILE_PATH))
-    } catch (error) {
-        return null
-    }
-}
-
-

@@ -233,6 +233,8 @@ export function createMpvHandler(args: Arguments) {
 
     function handleMprisVolumeChanged(mprisVolume: number) {
 
+        global.log(`handleMprisVolumeChanged called with: ${mprisVolume}`)
+
         if (mprisVolume * 100 > MAX_VOLUME) {
             mediaServerPlayer.Volume = MAX_VOLUME / 100
             return

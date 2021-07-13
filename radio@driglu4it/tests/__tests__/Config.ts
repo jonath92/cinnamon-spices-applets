@@ -1,3 +1,5 @@
+// also useful to test: 'xlet-settings applet radio@driglu4it'
+
 import { CONFIG_DIR_PATH, CONFIG_FILE_PATH } from "consts"
 
 const { FileMonitorFlags } = imports.gi.Gio
@@ -16,7 +18,8 @@ imports.gi.Gio.File = {
     }
 }
 
-import { createConfig2 } from "Config2";
+import { Settings, createDefaultSettings, createConfig2 } from "Config2";
+import { FileCreateFlags } from "../global/gi/Gio"
 
 const onIconChanged = jest.fn(() => { })
 const onIconColorPlayingChanged = jest.fn(() => { })
@@ -24,9 +27,12 @@ const onIconColorPausedChanged = jest.fn(() => { })
 const onChannelOnPanelChanged = jest.fn(() => { })
 const onMyStationsChanged = jest.fn(() => { })
 
+const callbacks = { onIconChanged, onIconColorPlayingChanged, onIconColorPausedChanged, onChannelOnPanelChanged, onMyStationsChanged }
+
 let settingsDirExist: boolean
 let settingsFileExist: boolean
 let settingsFileChangedCallback: Parameters<imports.gi.Gio.FileMonitor["connect"]>[1]
+let settings: Settings
 
 const mockedSettingsFile = {
     query_exists: () => {
@@ -42,8 +48,31 @@ const mockedSettingsFile = {
     },
 
     replace_contents(contents: string, etag: string, make_backup: boolean, flags: imports.gi.Gio.FileCreateFlags, cancellable: boolean) {
-        // TODO: improve
+
+        if (!settingsDirExist) {
+            throw new Error('No such file or directory')
+        }
+
+        if (flags !== FileCreateFlags.REPLACE_DESTINATION)
+            throw new Error('not yet mocked')
+
+
+        settings = JSON.parse(contents)
+
         return [true, ' ']
+    },
+
+    load_contents() {
+        if (!settingsDirExist || !settingsFileExist)
+            throw new Error('No such file or directory')
+
+        if (!settings)
+            throw new Error('settings value should be set in test before loading content')
+
+        const settingsString = JSON.stringify(settings)
+
+        return [true, settingsString]
+
     }
 }
 
@@ -65,16 +94,48 @@ const mockedSettingsFileMonitor = {
     }
 }
 
+afterEach(() => {
+    settingsDirExist = settingsFileExist = settings = null
+})
+
 describe('initialization is working', () => {
 
-    it('no error', () => {
-        const config2 = createConfig2({
-            onChannelOnPanelChanged,
-            onIconChanged,
-            onIconColorPausedChanged,
-            onIconColorPlayingChanged,
-            onMyStationsChanged
-        })
+    it('settings file created when no settings already exist', () => {
+        createConfig2({ ...callbacks })
+        expect(settings).toEqual(createDefaultSettings())
+    })
+});
+
+describe('getters working', () => {
+
+    beforeEach(() => {
+        settings = createDefaultSettings()
+        settingsDirExist = true
+        settingsFileExist = true
+
     })
 
+    it('last url is returned', () => {
+
+        const lastUrl = "dummyUrl"
+        settings["last-url"].value = lastUrl
+        const configs = createConfig2({ ...callbacks })
+
+        expect(configs.getLastUrl()).toBe(lastUrl)
+    })
+
+    describe('initial volume is returned', () => {
+        it('correct value returned when keep volume between sessions is set', () => {
+
+            const lastVolume = 90
+
+            settings['keep-volume-between-sessions'].value = true
+            settings['last-volume'].value = lastVolume
+
+            const configs = createConfig2({ ...callbacks })
+
+            expect(configs.getInitialVolume()).toBe(lastVolume)
+
+        })
+    });
 });

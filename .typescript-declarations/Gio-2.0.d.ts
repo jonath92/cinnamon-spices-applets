@@ -5192,7 +5192,7 @@ declare namespace imports.gi.Gio {
          * @returns etag_out (String) — a location to place the current entity tag for the file,
             or null if the entity tag is not needed
          */
-        load_contents(cancellable: Cancellable): any[];
+        load_contents(cancellable: Cancellable): [success: boolean, contents: string];
         load_contents_async(cancellable: Cancellable, callback: AsyncReadyCallback): void;
         /**
          * 
