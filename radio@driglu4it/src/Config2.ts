@@ -147,13 +147,14 @@ export function createConfig2(args: Aruments) {
 
     const configsDir = File.new_for_path(CONFIG_DIR_PATH)
 
+    global.log(File.new_for_path.toString())
+
     if (!configsDir.query_exists(null)) configsDir.make_directory_with_parents(null)
 
 
     const settingsFile = File.new_for_path(CONFIG_FILE_PATH)
     const monitor = settingsFile.monitor_file(FileMonitorFlags.NONE, null)
 
-    // TODO add type for monitor.connect
     let monitorId = monitor.connect('changed', handleSettingsFileChanged)
 
 

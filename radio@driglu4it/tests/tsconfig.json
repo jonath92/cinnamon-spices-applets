@@ -2,7 +2,8 @@
     "compilerOptions": {
         "target": "ES2017",
         "baseUrl": "../src",
-        "esModuleInterop": true
+        "esModuleInterop": true,
+        "noImplicitAny": true
     },
     "include": [
         "../src/**/*",
