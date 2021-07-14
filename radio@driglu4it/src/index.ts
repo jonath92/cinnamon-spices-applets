@@ -1,4 +1,3 @@
-// import * as _ from 'lodash'; now possible
 import { createConfig } from './Config';
 import { ChannelStore } from './ChannelStore';
 import { createChannelList } from './ui/ChannelList/ChannelList';
@@ -26,6 +25,7 @@ import { notifyYoutubeDownloadFailed } from './ui/Notifications/YoutubeDownloadF
 import { notify } from './ui/Notifications/GenericNotification';
 import { createSeeker } from './ui/Seeker';
 import { VOLUME_DELTA } from './consts';
+import { initPolyfills } from './polyfill';
 
 const { ScrollDirection } = imports.gi.Clutter;
 const { getAppletDefinition } = imports.ui.appletManager;
@@ -46,8 +46,8 @@ export function main(args: Arguments): imports.ui.applet.Applet {
         instanceId
     } = args
 
-    // this is a workaround for now. Optimally the lastVolume should be saved persistently each time the volume is changed but this lead to significant performance issue on scrolling at the moment. However this shouldn't be the case as it is no problem to log the volume each time the volume changes (so it is a problem in the config implementation). As a workaround the volume is only saved persistently when the radio stops but the volume obviously can't be received anymore from dbus when the player has been already stopped ... 
-    let lastVolume: number
+    initPolyfills()
+
     let mpvHandler: ReturnType<typeof createMpvHandler>
 
     let installationInProgress = false
@@ -88,10 +88,8 @@ export function main(args: Arguments): imports.ui.applet.Applet {
         orientation
     })
 
-    const configs = createConfig({
-        uuid: __meta.uuid,
-        instanceId,
 
+    const configs = createConfig({
         onIconChanged: handleIconTypeChanged,
         onIconColorPlayingChanged: (color) => {
             appletIcon.setColorWhenPlaying(color)
@@ -105,7 +103,7 @@ export function main(args: Arguments): imports.ui.applet.Applet {
         onMyStationsChanged: handleStationsUpdated,
     })
 
-    const channelStore = new ChannelStore(configs.userStations)
+    const channelStore = new ChannelStore(configs.getUserStations())
 
     const channelList = createChannelList({
         stationNames: channelStore.activatedChannelNames,
@@ -163,14 +161,14 @@ export function main(args: Arguments): imports.ui.applet.Applet {
     popupMenu.add_child(radioActiveSection)
 
     mpvHandler = createMpvHandler({
-        getInitialVolume: () => { return configs.initialVolume },
+        getInitialVolume: () => { return configs.getInitialVolume() },
         onVolumeChanged: handleVolumeChanged,
         onLengthChanged: hanldeLengthChanged,
         onPositionChanged: handlePositionChanged,
         checkUrlValid: (url) => channelStore.checkUrlValid(url),
         onTitleChanged: handleTitleChanged,
         onPlaybackstatusChanged: handlePlaybackstatusChanged,
-        lastUrl: configs.lastUrl,
+        lastUrl: configs.getLastUrl(),
         onUrlChanged: handleUrlChanged
     })
 
@@ -198,7 +196,6 @@ export function main(args: Arguments): imports.ui.applet.Applet {
         mpvHandler?.stop()
     }
 
-
     function handleScroll(scrollDirection: imports.gi.Clutter.ScrollDirection) {
         const volumeChange =
             scrollDirection === ScrollDirection.UP ? VOLUME_DELTA : -VOLUME_DELTA
@@ -214,11 +211,11 @@ export function main(args: Arguments): imports.ui.applet.Applet {
         infoSection.setSongTitle(title)
     }
 
-    function handleVolumeChanged(volume: number | null) {
+    function handleVolumeChanged(volume: number) {
         volumeSlider.setVolume(volume)
         appletTooltip.setVolume(volume)
 
-        lastVolume = volume
+        configs.setLastVolume(volume)
     }
 
     function handleIconTypeChanged(iconType: IconType) {
@@ -234,7 +231,7 @@ export function main(args: Arguments): imports.ui.applet.Applet {
         channelStore.channelList = stations
         channelList.setStationNames(channelStore.activatedChannelNames)
 
-        const lastUrlValid = channelStore.checkUrlValid(configs.lastUrl)
+        const lastUrlValid = channelStore.checkUrlValid(configs.getLastUrl())
         if (!lastUrlValid) mpvHandler.stop()
     }
 
@@ -242,10 +239,9 @@ export function main(args: Arguments): imports.ui.applet.Applet {
 
         if (playbackstatus === 'Stopped') {
             radioActiveSection.hide()
-            configs.lastVolume = lastVolume
-            configs.lastUrl = null
+            configs.setLastUrl(null)
             appletLabel.setText(null)
-            handleVolumeChanged(null)
+            appletTooltip.setDefaultTooltip()
             popupMenu.close()
         }
 
@@ -258,7 +254,6 @@ export function main(args: Arguments): imports.ui.applet.Applet {
         if (playbackstatus === 'Playing' || playbackstatus === 'Paused') {
             playPauseBtn.setPlaybackStatus(playbackstatus)
         }
-
     }
 
     function handleUrlChanged(url: string) {
@@ -269,7 +264,7 @@ export function main(args: Arguments): imports.ui.applet.Applet {
 
         channelList.setCurrentChannel(channelName)
         infoSection.setChannel(channelName)
-        configs.lastUrl = url
+        configs.setLastUrl(url)
     }
 
     function hanldeLengthChanged(length: number) {
@@ -285,7 +280,7 @@ export function main(args: Arguments): imports.ui.applet.Applet {
         const title = mpvHandler.getCurrentTitle()
 
         const downloadProcess = downloadSongFromYoutube({
-            downloadDir: configs.musicDownloadDir,
+            downloadDir: configs.getMusicDownloadDir(),
             title,
             onDownloadFinished: (path) => notifyYoutubeDownloadFinished({
                 downloadPath: path
@@ -298,6 +293,10 @@ export function main(args: Arguments): imports.ui.applet.Applet {
             onCancelClicked: () => downloadProcess.cancel()
         })
     }
+
+    // Without returning the montior, the connect-callbacks stops executing after a couple of secs!
+    // @ts-ignore
+    applet.settingsMonitor = configs.monitor
 
     return applet
 

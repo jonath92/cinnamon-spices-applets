@@ -2,8 +2,9 @@ const { get_home_dir } = imports.gi.GLib;
 export const APPLET_SITE = 'https://cinnamon-spices.linuxmint.com/applets/view/297'
 
 export const DEFAULT_TOOLTIP_TXT = 'Radio++'
-export const CONFIG_DIR = `${get_home_dir()}/.cinnamon/configs/${__meta.uuid}`;
-export const MPRIS_PLUGIN_PATH = CONFIG_DIR + '/.mpris.so'
+export const CONFIG_DIR_PATH = `${get_home_dir()}/.cinnamon/configs/${__meta.uuid}`;
+export const CONFIG_FILE_PATH = `${CONFIG_DIR_PATH}/${__meta.uuid}.json`
+export const MPRIS_PLUGIN_PATH = CONFIG_DIR_PATH + '/.mpris.so'
 export const MPRIS_PLUGIN_URL = "https://github.com/hoyon/mpv-mpris/releases/download/0.5/mpris.so"
 
 export const MEDIA_PLAYER_2_NAME = "org.mpris.MediaPlayer2";
@@ -19,7 +20,6 @@ export const MAX_VOLUME = 100 // see https://github.com/linuxmint/cinnamon-spice
 
 /** in percent */
 export const VOLUME_DELTA = 5
-
 
 // STYLE CLASSES 
 export const POPUP_ICON_CLASS = 'popup-menu-icon'
