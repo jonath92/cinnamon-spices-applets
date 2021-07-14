@@ -86,6 +86,13 @@ export function createMpvHandler(args: Arguments) {
         onUrlChanged(currentUrl)
         onPlaybackstatusChanged(initialPlaybackStatus)
         onVolumeChanged(getVolume())
+
+        // TODO: use action creators: https://redux.js.org/tutorials/fundamentals/part-7-standard-patterns
+        store.dispatch({
+            type: 'CHANGE_VOLUME',
+            payload: getVolume()
+        })
+
         onTitleChanged(getCurrentTitle())
         onLengthChanged(currentLength)
         onPositionChanged(getPosition())
@@ -245,7 +252,8 @@ export function createMpvHandler(args: Arguments) {
         setCvcVolume(normalizedVolume)
 
         onVolumeChanged(normalizedVolume)
-        
+
+        // TODO: use action creators: https://redux.js.org/tutorials/fundamentals/part-7-standard-patterns
         store.dispatch({
             type: 'CHANGE_VOLUME',
             payload: normalizedVolume

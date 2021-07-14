@@ -1,20 +1,31 @@
 import { createActivWidget } from "../lib/ActivWidget";
 import { createSlider } from "../lib/Slider";
 import { getVolumeIcon, POPUP_ICON_CLASS, POPUP_MENU_ITEM_CLASS, VOLUME_DELTA } from '../consts'
+import { Store } from "redux"
+import { Actions, State } from '../types'
 
 const { BoxLayout, Icon, IconType } = imports.gi.St
 const { Tooltip } = imports.ui.tooltips
 const { KEY_Right, KEY_Left, ScrollDirection } = imports.gi.Clutter
 
 interface Arguments {
-    onVolumeChanged: (value: number) => void
+    onVolumeChanged: (value: number) => void,
+    store: Store<State, Actions>
 }
 
 export function createVolumeSlider(args: Arguments) {
 
     const {
-        onVolumeChanged
+        onVolumeChanged,
+        store
     } = args
+
+
+    store.subscribe(() => {
+        const state = store.getState()
+        updateVolume(state.volume, false)
+    })
+
 
     let tooltip: imports.ui.tooltips.Tooltip
 
@@ -109,16 +120,7 @@ export function createVolumeSlider(args: Arguments) {
         tooltip.set_text(`Volume: ${volume.toString()} %`)
     }
 
-    /**
-     * 
-     * @param newVolume in percent (0-100)
-     */
-    function setVolume(newVolume: number) {
-        updateVolume(newVolume, false)
-    }
-
     return {
         actor: container,
-        setVolume
     }
 }

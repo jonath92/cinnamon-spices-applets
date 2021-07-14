@@ -113,7 +113,6 @@ export function createAppletIcon(args: Arguments) {
         setColorWhenPlaying,
         setColorWhenPaused,
         setIconType,
-        updateIconSize
     }
 
 }

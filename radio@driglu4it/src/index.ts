@@ -30,8 +30,6 @@ import { initPolyfills } from './polyfill';
 import { createAppletStore } from './Store';
 
 const { ScrollDirection } = imports.gi.Clutter;
-const { getAppletDefinition } = imports.ui.appletManager;
-const { panelManager } = imports.ui.main
 const { IconType, BoxLayout } = imports.gi.St
 
 interface Arguments {
@@ -56,15 +54,6 @@ export function main(args: Arguments): imports.ui.applet.Applet {
 
     let installationInProgress = false
 
-    const appletDefinition = getAppletDefinition({
-        applet_id: instanceId,
-    })
-
-    const panel = panelManager.panels.find(panel =>
-        panel?.panelId === appletDefinition.panelId
-    )
-
-    panel.connect('icon-size-changed', () => appletIcon.updateIconSize())
 
     const appletIcon = createAppletIcon({
         instanceId
@@ -115,7 +104,8 @@ export function main(args: Arguments): imports.ui.applet.Applet {
     })
 
     const volumeSlider = createVolumeSlider({
-        onVolumeChanged: (volume) => mpvHandler?.setVolume(volume)
+        onVolumeChanged: (volume) => mpvHandler?.setVolume(volume),
+        store
     })
 
     const popupMenu = createPopupMenu({ launcher: applet.actor })
@@ -217,7 +207,6 @@ export function main(args: Arguments): imports.ui.applet.Applet {
     }
 
     function handleVolumeChanged(volume: number) {
-        volumeSlider.setVolume(volume)
         configs.setLastVolume(volume)
     }
 
