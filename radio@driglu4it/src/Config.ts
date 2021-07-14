@@ -205,7 +205,6 @@ export function createConfig(args: Arguments) {
     }
 
 
-
     function setLastUrl(lastUrl: string) {
         settings["last-url"].value = lastUrl
         saveSettingsToFileThrottled()

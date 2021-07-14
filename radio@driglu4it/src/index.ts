@@ -66,7 +66,6 @@ export function main(args: Arguments): imports.ui.applet.Applet {
     store.dispatch({ type: 'ADD_USER' })
 
     // this is only implemented to hide 
-    new AppletSettings({}, __meta.uuid, instanceId)
 
     let mpvHandler: ReturnType<typeof createMpvHandler>
 
