@@ -53,7 +53,7 @@ export function downloadSongFromYoutube(args: Arguments) {
 
     function cancel() {
         hasBeenCancelled = true
-        // it seems to be no problem to even call this after the process has already finished
+        // it seems to be no problem to call this even after the process has already finished
         process.force_exit()
     }
 

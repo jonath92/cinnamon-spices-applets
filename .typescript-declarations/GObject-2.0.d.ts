@@ -30,19 +30,18 @@ declare namespace imports.gi.GObject {
 
 
     class Object {
-        add_toggle_ref(notify: ToggleNotify, data: any): void;
-        add_weak_pointer(weak_pointer_location: any): void;
-        bind_property(source_property: string, target: Object, target_property: string, flags: BindingFlags): Binding;
-        bind_property_full(source_property: string, target: Object, target_property: string, flags: BindingFlags, transform_to: BindingTransformFunc, transform_from: BindingTransformFunc, user_data: any, notify: GLib.DestroyNotify): Binding;
-        bind_property_with_closures(source_property: string, target: Object, target_property: string, flags: BindingFlags, transform_to: Closure, transform_from: Closure): Binding;
-        /** signal+property: string, callback: Function */
-        connect(...params: any): any;
-        disconnect(signalId: number): void;
-        // disconnect (signal_spec: string) : void;
-        dup_data(key: string, dup_func: GLib.DuplicateFunc, user_data: any): any;
-        dup_qdata(quark: GLib.Quark, dup_func: GLib.DuplicateFunc, user_data: any): any;
-        force_floating(): void;
-        freeze_notify(): void;
+        add_toggle_ref (notify: ToggleNotify, data: any) : void;
+        add_weak_pointer (weak_pointer_location: any) : void;
+        bind_property (source_property: string, target: Object, target_property: string, flags: BindingFlags) : Binding;
+        bind_property_full (source_property: string, target: Object, target_property: string, flags: BindingFlags, transform_to: BindingTransformFunc, transform_from: BindingTransformFunc, user_data: any, notify: GLib.DestroyNotify) : Binding;
+        bind_property_with_closures (source_property: string, target: Object, target_property: string, flags: BindingFlags, transform_to: Closure, transform_from: Closure) : Binding;
+		/** signal+property: string, callback: Function */
+		connect (...params: any) : any;
+        disconnect (signal_id: number) : void;
+        dup_data (key: string, dup_func: GLib.DuplicateFunc, user_data: any) : any;
+        dup_qdata (quark: GLib.Quark, dup_func: GLib.DuplicateFunc, user_data: any) : any;
+        force_floating () : void;
+        freeze_notify () : void;
         // get (first_property_name: string) : void;
         get_data(key: string): any;
         // get_property (property_name: string, value: Value) : void;

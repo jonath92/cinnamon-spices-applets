@@ -5193,7 +5193,7 @@ declare namespace imports.gi.Gio {
             or null if the entity tag is not needed
          */
         load_contents(cancellable: Cancellable): [success: boolean, contents: string];
-        load_contents_async(cancellable: Cancellable, callback: AsyncReadyCallback): void;
+        load_contents_async (cancellable: Cancellable, callback: AsyncReadyCallback): void;
         /**
          * 
          * @param res 
@@ -5808,8 +5808,9 @@ declare namespace imports.gi.Gio {
         MOVED_OUT = 10
     }
 
-
-
+    
+    
+    
     enum FileType {
         UNKNOWN = 0,
         REGULAR = 1,
@@ -6284,9 +6285,9 @@ declare namespace imports.gi.Gio {
         WATCH_HARD_LINKS = 4,
         WATCH_MOVES = 8
     }
-
-
-
+    
+    
+    
     enum FileQueryInfoFlags {
         NONE = 0,
         NOFOLLOW_SYMLINKS = 1

@@ -30,7 +30,7 @@ import { initPolyfills } from './polyfill';
 import { createAppletStore } from './Store';
 
 const { ScrollDirection } = imports.gi.Clutter;
-const { IconType, BoxLayout } = imports.gi.St
+const { BoxLayout } = imports.gi.St
 
 interface Arguments {
     orientation: imports.gi.St.Side,
@@ -199,6 +199,7 @@ export function main(args: Arguments): imports.ui.applet.Applet {
     function handleTitleChanged(title: string) {
         infoSection.setSongTitle(title)
     }
+
 
 
     function handleIconTypeChanged(iconType: AppletIcon) {
