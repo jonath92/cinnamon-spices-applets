@@ -27,7 +27,7 @@ const ApplicationsViewModeLIST = 0, ApplicationsViewModeGRID = 1;
 const REMEMBER_RECENT_KEY = 'remember-recent-files';
 const {CategoryButton, AppButton, ContextMenu, SidebarButton} = require('./buttons');
 const {BookmarksManager} = require('./browserBookmarks');
-const {EMOJI} = require('./emoji');
+const {EMOJI, MODED, MODABLE} = require('./emoji');
 const {wikiSearch} = require('./wikipediaSearch');
 const SEARCH_THRESHOLD = 0.45;
 const PlacementTOP = 0, PlacementBOTTOM = 1, PlacementLEFT = 2, PlacementRIGHT = 3;
@@ -129,6 +129,7 @@ class CinnamenuApplet extends TextIconApplet {
         { key: 'show-hidden-files',         value: 'showHiddenFiles',       cb: null },
 
         { key: 'enable-emoji-search',       value: 'enableEmojiSearch',     cb: null },
+        { key: 'emoji-default-skin',        value: 'emojiDefaultSkin',      cb: null },
         { key: 'web-search-option',         value: 'webSearchOption',       cb: null },
         { key: 'enable-home-folder-search', value: 'searchHomeFolder',      cb: null },
         { key: 'enable-web-bookmarks-search', value: 'enableWebBookmarksSearch', cb: this._onEnableWebBookmarksChange },
@@ -982,6 +983,7 @@ class CinnamenuApplet extends TextIconApplet {
 
         //=======search providers==========
         //---calculator---
+        let calculatorResult = null;
         const replacefn = (match) => {
             if (['E','PI','abs','acos','acosh','asin','asinh','atan','atanh','cbrt','ceil','cos',
             'cosh','exp','floor','fround','log','max','min','pow','random','round','sign','sin',
@@ -1005,13 +1007,14 @@ class CinnamenuApplet extends TextIconApplet {
                 this.calcGIcon = new Gio.FileIcon({ file: Gio.file_new_for_path(__meta.path + '/calc.png') });
             }
             otherResults.push({  isSearchResult: true,
-                            name: _('Solution:') + ' ' + ans,
+                            name: ans.toString(),//('Solution:') + ' ' + ans,
                             description: _('Click to copy'),
                             deleteAfterUse: true,
                             icon: new St.Icon({ gicon: this.calcGIcon, icon_size: this.getAppIconSize() }),
                             activate: () => {   const clipboard = St.Clipboard.get_default();
                                                 clipboard.set_text(St.ClipboardType.CLIPBOARD, ans.toString());}
                          });
+            calculatorResult = pattern_raw + " = " + ans;
         }
 
         //---web bookmarks search-----
@@ -1060,7 +1063,7 @@ class CinnamenuApplet extends TextIconApplet {
             }
 
             //Display results
-            this.appsView.populate(primaryResults.concat(otherResults), null);
+            this.appsView.populate(primaryResults.concat(otherResults), calculatorResult);
             const buttons = this.appsView.getActiveButtons();//todo
             if (buttons.length > 0) {
                 buttons[0].handleEnter();
@@ -1115,6 +1118,11 @@ class CinnamenuApplet extends TextIconApplet {
                         match2.score *= 0.95; //slightly lower priority for keyword match
                         const bestMatchScore = Math.max(match1.score, match2.score);
                         if (bestMatchScore > SEARCH_THRESHOLD) {
+                            if (MODABLE.includes(emoji.code)) {
+                              const i = MODABLE.indexOf(emoji.code);
+                              const skinTone = ['', '\u{1F3FB}', '\u{1F3FC}', '\u{1F3FD}', '\u{1F3FE}', '\u{1F3FF}'][this.settings.emojiDefaultSkin];
+                              emoji.tone = MODED[i].replace('\u{1F3FB}', skinTone);
+                            }
                             emojiResults.push({
                                     name: emoji.name,
                                     score: bestMatchScore / 10.0, //gives score between 0 and 0.121 so that
@@ -1123,9 +1131,10 @@ class CinnamenuApplet extends TextIconApplet {
                                     nameWithSearchMarkup: match1.result,
                                     isSearchResult: true,
                                     deleteAfterUse: true,
-                                    emoji: emoji.code,
+                                    emoji: emoji.tone || emoji.code,
+                                    emojiDefault: emoji.code,
                                     activate: () => { const clipboard = St.Clipboard.get_default();
-                                        clipboard.set_text(St.ClipboardType.CLIPBOARD, emoji.code);}
+                                        clipboard.set_text(St.ClipboardType.CLIPBOARD, emoji.tone || emoji.code);}
                                             });
                         } });
 
@@ -1208,7 +1217,8 @@ class CinnamenuApplet extends TextIconApplet {
                     }
 
                     //update display of results at intervals or when search completed
-                    if (foldersToDo.length === 0 || Date.now() - lastUpdateTime > updateInterval) {
+                    if (currentFolderIndex === foldersToDo.length - 1 ||
+                                                    Date.now() - lastUpdateTime > updateInterval) {
                         if (results.length > 0 && this.searchActive &&
                                                                 thisSearchId === this.currentSearchId) {
                             primaryResults = primaryResults.concat(results);
@@ -1224,9 +1234,9 @@ class CinnamenuApplet extends TextIconApplet {
                         currentFolderIndex++;
                         searchNextDir(thisSearchId);
                     }
+
                 });
             };
-
             searchNextDir(this.currentSearchId);
         }
 
@@ -1419,6 +1429,7 @@ class CinnamenuApplet extends TextIconApplet {
  *  .isSearchResult
  *  .deleteAfterUse
  *  .emoji
+ *  .emojiDefault
  *  .launch()
  *  .activate()
  */
@@ -2149,6 +2160,7 @@ class Sidebar {//Creates the sidebar. Creates SidebarButtons and populates the s
         this.items = [];
         this.innerBox = new St.BoxLayout({
                         vertical: (sidebarPlacement === PlacementLEFT || sidebarPlacement === PlacementRIGHT) });
+
         //Cinnamox themes draw a border at the bottom of sidebarScrollBox so remove menu-favorites-scrollbox class.
         let themePath = Main.getThemeStylesheet();
         if (!themePath) themePath = '';
@@ -2156,7 +2168,7 @@ class Sidebar {//Creates the sidebar. Creates SidebarButtons and populates the s
         this.sidebarScrollBox = new St.ScrollView({x_fill: true, y_fill: false, x_align: St.Align.MIDDLE,
                                                         y_align: St.Align.MIDDLE, style_class: scroll_style });
 
-        const vscroll_bar = this.sidebarScrollBox.get_vscroll_bar();
+        //const vscroll_bar = this.sidebarScrollBox.get_vscroll_bar();
         this.sidebarScrollBox.add_actor(this.innerBox);
         this.sidebarScrollBox.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.NEVER);
         this.sidebarScrollBox.set_auto_scrolling(this.appThis.settings.enableAutoScroll);
@@ -2165,6 +2177,7 @@ class Sidebar {//Creates the sidebar. Creates SidebarButtons and populates the s
         this.sidebarOuterBox = new St.BoxLayout({style_class: style_class});
         this.sidebarOuterBox.add(this.sidebarScrollBox, { expand: false, x_fill: false, y_fill: false,
                                                 x_align: St.Align.MIDDLE, y_align: St.Align.MIDDLE });
+
         this.separator = new St.BoxLayout({x_expand: false, y_expand: false});
     }
 
