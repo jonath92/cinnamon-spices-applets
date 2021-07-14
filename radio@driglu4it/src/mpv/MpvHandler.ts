@@ -1,8 +1,8 @@
-import { PlayPause, AdvancedPlaybackStatus, Actions, State } from '../types'
-import { Store } from "redux"
+import { PlayPause, AdvancedPlaybackStatus } from '../types'
 
 import { MPV_MPRIS_BUS_NAME, MEDIA_PLAYER_2_PATH, MPRIS_PLUGIN_PATH, MAX_VOLUME, MEDIA_PLAYER_2_NAME, MEDIA_PLAYER_2_PLAYER_NAME, MPV_CVC_NAME } from '../consts'
 import { MprisMediaPlayerDbus, MprisPropsDbus, PlaybackStatus } from '../MprisTypes';
+import { useStore } from '../Store';
 const { getDBusProperties, getDBus, getDBusProxyWithOwner } = imports.misc.interfaces
 const { spawnCommandLine } = imports.misc.util;
 // see https://lazka.github.io/pgi-docs/Cvc-1.0/index.html
@@ -24,7 +24,6 @@ export interface Arguments {
 
     // TODO make as setter
     getInitialVolume: { (): number },
-    store: Store<State, Actions>
 
 }
 
@@ -39,8 +38,9 @@ export function createMpvHandler(args: Arguments) {
         checkUrlValid,
         lastUrl,
         getInitialVolume,
-        store
     } = args
+
+    const store = useStore()
 
     const dbus = getDBus()
 

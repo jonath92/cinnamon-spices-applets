@@ -1,8 +1,7 @@
 import { createActivWidget } from "../lib/ActivWidget";
 import { createSlider } from "../lib/Slider";
 import { getVolumeIcon, POPUP_ICON_CLASS, POPUP_MENU_ITEM_CLASS, VOLUME_DELTA } from '../consts'
-import { Store } from "redux"
-import { Actions, State } from '../types'
+import { useStore } from "../Store";
 
 const { BoxLayout, Icon, IconType } = imports.gi.St
 const { Tooltip } = imports.ui.tooltips
@@ -10,16 +9,15 @@ const { KEY_Right, KEY_Left, ScrollDirection } = imports.gi.Clutter
 
 interface Arguments {
     onVolumeChanged: (value: number) => void,
-    store: Store<State, Actions>
 }
 
 export function createVolumeSlider(args: Arguments) {
 
     const {
         onVolumeChanged,
-        store
     } = args
 
+    const store = useStore()
 
     store.subscribe(() => {
         const state = store.getState()

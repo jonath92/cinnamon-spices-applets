@@ -47,13 +47,11 @@ export function main(args: Arguments): imports.ui.applet.Applet {
     } = args
 
     initPolyfills()
-
-    const store = createAppletStore()
+    createAppletStore()
 
     let mpvHandler: ReturnType<typeof createMpvHandler>
 
     let installationInProgress = false
-
 
     const appletIcon = createAppletIcon({
         instanceId
@@ -78,7 +76,6 @@ export function main(args: Arguments): imports.ui.applet.Applet {
     const appletTooltip = createAppletTooltip({
         applet,
         orientation,
-        store
     })
 
 
@@ -104,8 +101,7 @@ export function main(args: Arguments): imports.ui.applet.Applet {
     })
 
     const volumeSlider = createVolumeSlider({
-        onVolumeChanged: (volume) => mpvHandler?.setVolume(volume),
-        store
+        onVolumeChanged: (volume) => mpvHandler?.setVolume(volume)
     })
 
     const popupMenu = createPopupMenu({ launcher: applet.actor })
@@ -164,7 +160,6 @@ export function main(args: Arguments): imports.ui.applet.Applet {
         onPlaybackstatusChanged: handlePlaybackstatusChanged,
         lastUrl: configs.getLastUrl(),
         onUrlChanged: handleUrlChanged,
-        store
     })
 
     // CALLBACKS

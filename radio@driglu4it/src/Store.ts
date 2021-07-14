@@ -1,5 +1,7 @@
-import { createStore } from "redux"
+import { createStore, Store } from "redux"
 import { Actions, State } from "./types"
+
+let store: Store<State, Actions>
 
 export function createAppletStore() {
 
@@ -15,6 +17,10 @@ export function createAppletStore() {
         }
     }
 
-    return createStore(reducer)
+    store = createStore(reducer)
+}
 
+
+export function useStore() {
+    return store
 }
