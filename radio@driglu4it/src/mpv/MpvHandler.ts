@@ -3,6 +3,8 @@ import { PlayPause, AdvancedPlaybackStatus } from '../types'
 import { MPV_MPRIS_BUS_NAME, MEDIA_PLAYER_2_PATH, MPRIS_PLUGIN_PATH, MAX_VOLUME, MEDIA_PLAYER_2_NAME, MEDIA_PLAYER_2_PLAYER_NAME, MPV_CVC_NAME } from '../consts'
 import { MprisMediaPlayerDbus, MprisPropsDbus, PlaybackStatus } from '../MprisTypes';
 import { useStore } from '../Store';
+import { volumeChanged } from '../Actions';
+
 const { getDBusProperties, getDBus, getDBusProxyWithOwner } = imports.misc.interfaces
 const { spawnCommandLine } = imports.misc.util;
 // see https://lazka.github.io/pgi-docs/Cvc-1.0/index.html
@@ -12,7 +14,6 @@ const { MixerControl } = imports.gi.Cvc;
 export interface Arguments {
     onPlaybackstatusChanged: (playbackStatus: AdvancedPlaybackStatus) => void,
     onUrlChanged: (url: string) => void,
-    onVolumeChanged: (volume: number) => void,
     onTitleChanged: (title: string) => void,
     /** length in seconds */
     onLengthChanged: (length: number) => void,
@@ -31,7 +32,6 @@ export function createMpvHandler(args: Arguments) {
     const {
         onPlaybackstatusChanged,
         onUrlChanged,
-        onVolumeChanged,
         onTitleChanged,
         onLengthChanged,
         onPositionChanged,
@@ -85,13 +85,8 @@ export function createMpvHandler(args: Arguments) {
 
         onUrlChanged(currentUrl)
         onPlaybackstatusChanged(initialPlaybackStatus)
-        onVolumeChanged(getVolume())
 
-        // TODO: use action creators: https://redux.js.org/tutorials/fundamentals/part-7-standard-patterns
-        store.dispatch({
-            type: 'CHANGE_VOLUME',
-            payload: getVolume()
-        })
+        store.dispatch(volumeChanged(getVolume()))
 
         onTitleChanged(getCurrentTitle())
         onLengthChanged(currentLength)
@@ -251,13 +246,8 @@ export function createMpvHandler(args: Arguments) {
         const normalizedVolume = Math.round(mprisVolume * 100)
         setCvcVolume(normalizedVolume)
 
-        onVolumeChanged(normalizedVolume)
+        store.dispatch(volumeChanged(getVolume()))
 
-        // TODO: use action creators: https://redux.js.org/tutorials/fundamentals/part-7-standard-patterns
-        store.dispatch({
-            type: 'CHANGE_VOLUME',
-            payload: normalizedVolume
-        })
     }
 
     function handleCvcVolumeChanged() {

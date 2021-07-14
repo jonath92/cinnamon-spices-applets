@@ -1,5 +1,6 @@
 import { throttle } from "lodash"
 import { CONFIG_DIR_PATH, CONFIG_FILE_PATH } from "./consts"
+import { useStore } from "./Store"
 import { Channel, IconType } from "./types"
 
 const { File, FileMonitorFlags, FileCreateFlags, FileMonitorEvent } = imports.gi.Gio
@@ -137,6 +138,15 @@ export function createConfig(args: Arguments) {
 
     const watchedWidgets: (keyof WatchedWidgets)[] = ["tree", "icon-type", "color-on", "color-paused", "channel-on-panel", "keep-volume-between-sessions", "initial-volume", "music-download-dir-select"]
 
+    const store = useStore()
+
+    store.subscribe(() => {
+        const state = store.getState()
+
+        setLastVolume(state.volume)
+
+    })
+
     const callbacks = new Map<keyof WatchedWidgets, () => void>()
 
     callbacks.set('tree', () => onMyStationsChanged(getUserStations()))
@@ -211,6 +221,9 @@ export function createConfig(args: Arguments) {
     }
 
     function setLastVolume(lastVolume: number) {
+
+        if (lastVolume === settings["last-volume"].value) return
+
         settings["last-volume"].value = lastVolume
         saveSettingsToFileThrottled()
     }

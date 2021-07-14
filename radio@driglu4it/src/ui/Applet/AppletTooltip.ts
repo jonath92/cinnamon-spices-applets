@@ -18,7 +18,6 @@ export function createAppletTooltip(args: Arguments) {
     const tooltip = new PanelItemTooltip(applet, null, orientation)
     const store = useStore()
 
-
     setDefaultTooltip()
 
     store.subscribe(() => {
