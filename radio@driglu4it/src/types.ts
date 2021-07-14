@@ -11,10 +11,10 @@ export interface Channel {
 export type AppletIcon = 'SYMBOLIC' | 'FULLCOLOR' | 'BICOLOR'
 
 export type Actions = {
-    type: 'CHANGE_VOLUME',
+    type: 'VOLUME_CHANGED',
     payload: number
 } | {
-    type: 'CHANGE_SONG_TITLE',
+    type: 'SONG_TITLE_CHANGED',
     payload: string
 }
 

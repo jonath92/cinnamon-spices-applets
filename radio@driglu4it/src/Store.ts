@@ -7,9 +7,9 @@ export function createAppletStore() {
 
     const reducer = (state: State, action: Actions): State => {
         switch (action.type) {
-            case 'CHANGE_VOLUME':
+            case 'VOLUME_CHANGED':
                 return { ...state, volume: action.payload }
-            case 'CHANGE_SONG_TITLE':
+            case 'SONG_TITLE_CHANGED':
                 return { ...state, song_title: action.payload }
             default:
                 global.logWarning('unhandled action type')
