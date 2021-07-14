@@ -1,7 +1,7 @@
 import { createConfig } from './Config';
 import { ChannelStore } from './ChannelStore';
 import { createChannelList } from './ui/ChannelList/ChannelList';
-import { AdvancedPlaybackStatus, Channel, IconType } from './types';
+import { AdvancedPlaybackStatus, Channel, AppletIcon } from './types';
 import { createMpvHandler } from './mpv/MpvHandler';
 import { createVolumeSlider } from './ui/VolumeSlider';
 import { createPopupMenu } from './lib/PopupMenu';
@@ -201,7 +201,7 @@ export function main(args: Arguments): imports.ui.applet.Applet {
     }
 
 
-    function handleIconTypeChanged(iconType: IconType) {
+    function handleIconTypeChanged(iconType: AppletIcon) {
         appletIcon.setIconType(iconType)
     }
 

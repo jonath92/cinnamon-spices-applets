@@ -1,7 +1,7 @@
 import { throttle } from "lodash"
 import { CONFIG_DIR_PATH, CONFIG_FILE_PATH } from "./consts"
 import { useStore } from "./Store"
-import { Channel, IconType } from "./types"
+import { Channel, AppletIcon } from "./types"
 
 const { File, FileMonitorFlags, FileCreateFlags, FileMonitorEvent } = imports.gi.Gio
 
@@ -22,7 +22,7 @@ interface FileChooser extends Widget {
 interface Combobox extends Widget {
     type: 'combobox',
     options: any,
-    value: IconType
+    value: AppletIcon
 }
 
 interface ColorChooser extends Widget {
@@ -118,7 +118,7 @@ export interface Settings extends Widgets {
 }
 
 interface Arguments {
-    onIconChanged: (iconType: IconType) => void,
+    onIconChanged: (iconType: AppletIcon) => void,
     onIconColorPlayingChanged: (color: string) => void,
     onIconColorPausedChanged: (color: string) => void,
     onChannelOnPanelChanged: (channelOnPanel: boolean) => void,

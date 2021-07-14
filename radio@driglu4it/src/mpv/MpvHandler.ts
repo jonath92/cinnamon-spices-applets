@@ -1,7 +1,5 @@
-import { PlayPause, AdvancedPlaybackStatus } from '../types'
-
 import { MPV_MPRIS_BUS_NAME, MEDIA_PLAYER_2_PATH, MPRIS_PLUGIN_PATH, MAX_VOLUME, MEDIA_PLAYER_2_NAME, MEDIA_PLAYER_2_PLAYER_NAME, MPV_CVC_NAME } from '../consts'
-import { MprisMediaPlayerDbus, MprisPropsDbus, PlaybackStatus } from '../MprisTypes';
+import { MprisMediaPlayerDbus, MprisPropsDbus, PlayPause, AdvancedPlaybackStatus, PlaybackStatus } from '../types';
 import { useStore } from '../Store';
 import { volumeChanged } from '../Actions';
 
