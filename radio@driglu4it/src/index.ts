@@ -26,7 +26,7 @@ import { notify } from './ui/Notifications/GenericNotification';
 import { createSeeker } from './ui/Seeker';
 import { VOLUME_DELTA } from './consts';
 import { initPolyfills } from './polyfill';
-// TODO: I have copied the index.d.ts from redux to types because otherwilse error. Proper Fix: https://stackoverflow.com/questions/43003491/typescript-cannot-find-redux
+
 import { createStore } from 'redux'
 
 
