@@ -10,7 +10,7 @@ export interface Channel {
 
 export type AppletIcon = 'SYMBOLIC' | 'FULLCOLOR' | 'BICOLOR'
 
-export type Actions = {
+export type Action = {
     type: 'VOLUME_CHANGED',
     payload: number
 } | {
@@ -19,8 +19,10 @@ export type Actions = {
 }
 
 export interface State {
-    volume: number,
-    song_title: string
+    mpv: {
+        volume: number,
+        song_title: string
+    }
 }
 
 // MPRIS 

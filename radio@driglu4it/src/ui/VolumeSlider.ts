@@ -21,7 +21,7 @@ export function createVolumeSlider(args: Arguments) {
 
     store.subscribe(() => {
         const state = store.getState()
-        updateVolume(state.volume, false)
+        updateVolume(state.mpv.volume, false)
     })
 
 

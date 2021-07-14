@@ -22,7 +22,7 @@ export function createAppletTooltip(args: Arguments) {
 
     store.subscribe(() => {
         const state = store.getState()
-        setVolume(state.volume)
+        setVolume(state.mpv.volume)
     })
 
     function setVolume(volume: number) {

@@ -143,7 +143,7 @@ export function createConfig(args: Arguments) {
     store.subscribe(() => {
         const state = store.getState()
 
-        setLastVolume(state.volume)
+        setLastVolume(state.mpv.volume)
 
     })
 

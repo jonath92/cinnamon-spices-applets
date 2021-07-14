@@ -1,6 +1,6 @@
-import { Actions } from "./types"
+import { Action } from "./types"
 
-export const volumeChanged = (volume: number): Actions => {
+export const volumeChanged = (volume: number): Action => {
     return {
         type: 'VOLUME_CHANGED',
         payload: volume
