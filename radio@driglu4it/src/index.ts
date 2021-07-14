@@ -27,15 +27,12 @@ import { createSeeker } from './ui/Seeker';
 import { VOLUME_DELTA } from './consts';
 import { initPolyfills } from './polyfill';
 
-import { createStore } from 'redux'
-
+import { createAppletStore } from './Store';
 
 const { ScrollDirection } = imports.gi.Clutter;
 const { getAppletDefinition } = imports.ui.appletManager;
 const { panelManager } = imports.ui.main
 const { IconType, BoxLayout } = imports.gi.St
-const { AppletSettings } = imports.ui.settings;
-
 
 interface Arguments {
     orientation: imports.gi.St.Side,
@@ -53,19 +50,7 @@ export function main(args: Arguments): imports.ui.applet.Applet {
 
     initPolyfills()
 
-    const reducer = (state: any = []) => {
-        return state
-    }
-
-    const store = createStore(reducer)
-
-    store.subscribe(() => {
-        // global.log(`store: ${store.getState()}`)
-    })
-
-    store.dispatch({ type: 'ADD_USER' })
-
-    // this is only implemented to hide 
+    const store = createAppletStore()
 
     let mpvHandler: ReturnType<typeof createMpvHandler>
 
@@ -82,8 +67,7 @@ export function main(args: Arguments): imports.ui.applet.Applet {
     panel.connect('icon-size-changed', () => appletIcon.updateIconSize())
 
     const appletIcon = createAppletIcon({
-        locationLabel: appletDefinition.location_label,
-        panel
+        instanceId
     })
 
     const appletLabel = createAppletLabel()
@@ -104,7 +88,8 @@ export function main(args: Arguments): imports.ui.applet.Applet {
 
     const appletTooltip = createAppletTooltip({
         applet,
-        orientation
+        orientation,
+        store
     })
 
 
@@ -188,7 +173,8 @@ export function main(args: Arguments): imports.ui.applet.Applet {
         onTitleChanged: handleTitleChanged,
         onPlaybackstatusChanged: handlePlaybackstatusChanged,
         lastUrl: configs.getLastUrl(),
-        onUrlChanged: handleUrlChanged
+        onUrlChanged: handleUrlChanged,
+        store
     })
 
     // CALLBACKS
@@ -232,8 +218,6 @@ export function main(args: Arguments): imports.ui.applet.Applet {
 
     function handleVolumeChanged(volume: number) {
         volumeSlider.setVolume(volume)
-        appletTooltip.setVolume(volume)
-
         configs.setLastVolume(volume)
     }
 

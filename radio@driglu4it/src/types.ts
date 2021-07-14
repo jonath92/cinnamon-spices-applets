@@ -9,3 +9,16 @@ export interface Channel {
 }
 
 export type IconType = 'SYMBOLIC' | 'FULLCOLOR' | 'BICOLOR'
+
+export type Actions = {
+    type: 'CHANGE_VOLUME',
+    payload: number
+} | {
+    type: 'CHANGE_SONG_TITLE',
+    payload: string
+}
+
+export interface State {
+    volume: number,
+    song_title: string
+}

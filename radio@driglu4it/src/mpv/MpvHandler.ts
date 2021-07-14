@@ -1,4 +1,6 @@
-import { PlayPause, AdvancedPlaybackStatus } from '../types'
+import { PlayPause, AdvancedPlaybackStatus, Actions, State } from '../types'
+import { Store } from "redux"
+
 import { MPV_MPRIS_BUS_NAME, MEDIA_PLAYER_2_PATH, MPRIS_PLUGIN_PATH, MAX_VOLUME, MEDIA_PLAYER_2_NAME, MEDIA_PLAYER_2_PLAYER_NAME, MPV_CVC_NAME } from '../consts'
 import { MprisMediaPlayerDbus, MprisPropsDbus, PlaybackStatus } from '../MprisTypes';
 const { getDBusProperties, getDBus, getDBusProxyWithOwner } = imports.misc.interfaces
@@ -21,7 +23,8 @@ export interface Arguments {
     lastUrl: string,
 
     // TODO make as setter
-    getInitialVolume: { (): number }
+    getInitialVolume: { (): number },
+    store: Store<State, Actions>
 
 }
 
@@ -36,7 +39,7 @@ export function createMpvHandler(args: Arguments) {
         checkUrlValid,
         lastUrl,
         getInitialVolume,
-
+        store
     } = args
 
     const dbus = getDBus()
@@ -240,7 +243,13 @@ export function createMpvHandler(args: Arguments) {
 
         const normalizedVolume = Math.round(mprisVolume * 100)
         setCvcVolume(normalizedVolume)
+
         onVolumeChanged(normalizedVolume)
+        
+        store.dispatch({
+            type: 'CHANGE_VOLUME',
+            payload: normalizedVolume
+        })
     }
 
     function handleCvcVolumeChanged() {

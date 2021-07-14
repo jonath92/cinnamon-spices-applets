@@ -3,23 +3,28 @@ import { AdvancedPlaybackStatus, IconType } from "../../types"
 
 const { Icon, IconType } = imports.gi.St
 const { IconType: IconTypeEnum } = imports.gi.St
+const { panelManager } = imports.ui.main
+const { getAppletDefinition } = imports.ui.appletManager;
 
 
-// TODO the AppletIcon shouldn't have access to this!
-// Better to just pass the iconType size for both fullcolor and symbolic icon
 interface Arguments {
-    // panel and location label are needed to calc the icon size
-    panel: imports.ui.panel.Panel,
-    locationLabel: imports.ui.appletManager.LocationLabel
+    instanceId: number
 }
 
 
 export function createAppletIcon(args: Arguments) {
 
     const {
-        panel,
-        locationLabel
+        instanceId
     } = args
+
+    const appletDefinition = getAppletDefinition({
+        applet_id: instanceId,
+    })
+
+    const panel = panelManager.panels.find(panel =>
+        panel?.panelId === appletDefinition.panelId
+    )
 
     let playbackStatus: AdvancedPlaybackStatus
 
@@ -40,7 +45,7 @@ export function createAppletIcon(args: Arguments) {
 
         icon.icon_name = iconName
         icon.icon_type = iconTypeEnum
-        icon.icon_size = panel.getPanelZoneIconSize(locationLabel, iconTypeEnum)
+        icon.icon_size = panel.getPanelZoneIconSize(appletDefinition.location_label, iconTypeEnum)
     }
 
 
@@ -64,7 +69,7 @@ export function createAppletIcon(args: Arguments) {
     }
 
     function updateIconSize() {
-        const iconSize = panel.getPanelZoneIconSize(locationLabel, icon.icon_type)
+        const iconSize = panel.getPanelZoneIconSize(appletDefinition.location_label, icon.icon_type)
         icon.icon_size = iconSize
     }
 
@@ -97,6 +102,10 @@ export function createAppletIcon(args: Arguments) {
 
         icon.set_style(style)
     }
+
+
+    panel.connect('icon-size-changed', () => updateIconSize())
+
 
     return {
         actor: icon,
