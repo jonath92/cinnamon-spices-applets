@@ -20,11 +20,15 @@ export function createAppletTooltip(args: Arguments) {
     setDefaultTooltip()
 
     store.subscribe(() => {
+        global.log('this is called')
         const state = store.getState()
         setVolume(state.mpv.volume)
     })
 
     function setVolume(volume: number) {
+        if (volume == null) {
+            return
+        }
         tooltip.set_text(`Volume: ${volume.toString()} %`)
     }
 

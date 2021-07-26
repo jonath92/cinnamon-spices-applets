@@ -15,10 +15,20 @@ type Action = {
 interface State {
     mpv: {
         volume: number,
-        song_title: string
+        song_title: string,
+        playbackStatus: AdvancedPlaybackStatus
     }
 }
-const reducer = (state: State, action: Action): State => {
+
+const initialState: State = {
+    mpv: {
+        volume: null,
+        song_title: null,
+        playbackStatus: 'Stopped'
+    }
+}
+
+const reducer = (state: State = initialState, action: Action): State => {
 
     switch (action.type) {
         case 'VOLUME_CHANGED':
@@ -37,6 +47,14 @@ const reducer = (state: State, action: Action): State => {
                     song_title: action.payload
                 }
             }
+        case 'PLAYBACKSTATUS_CHANGED':
+            return {
+                ...state,
+                mpv: {
+                    ...state.mpv,
+                    playbackStatus: action.payload
+                }
+            }
         default:
             // TODO: not logging when action starts with @@redux
             global.logWarning('unhandled action type')
@@ -45,6 +63,21 @@ const reducer = (state: State, action: Action): State => {
 }
 
 export const store = createStore(reducer)
+
+
+export function watchProp<T>(selectProp: () => T, cb: (newValue: T, oldValue?: T) => void) {
+    let currentValue = selectProp()
+
+    store.subscribe(() => {
+        const newValue = selectProp()
+
+        if (currentValue === newValue)
+            return
+
+        cb(newValue, currentValue)
+        currentValue = newValue
+    })
+}
 
 
 // ACTIONS

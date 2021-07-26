@@ -1,4 +1,5 @@
 import { Channel, AppletIcon } from "./types";
+import { store, watchProp as watchStateProp } from "./Store";
 
 const { AppletSettings } = imports.ui.settings;
 
@@ -70,6 +71,14 @@ export const createConfig = (args: Arguments) => {
 
     appletSettings.bind('music-download-dir-select', 'musicDownloadDir',
         () => handleMusicDirChanged())
+
+
+    watchStateProp(() => store.getState().mpv.playbackStatus, (newValue) => {
+
+        if (newValue === 'Stopped')
+            settingsObject.lastVolume = store.getState().mpv.volume
+    })
+
 
     function getInitialVolume() {
         const {

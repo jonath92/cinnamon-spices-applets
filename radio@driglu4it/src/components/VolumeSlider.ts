@@ -89,6 +89,10 @@ export function createVolumeSlider(args: Arguments) {
      * @param showTooltip
      */
     function updateVolume(newVolume: number, showTooltip: boolean) {
+
+        if (newVolume == null)
+            return
+
         const newVolumeRounded = Math.round(newVolume)
 
         if (newVolumeRounded === volume) return

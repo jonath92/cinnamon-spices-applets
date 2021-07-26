@@ -1,12 +1,11 @@
 import { createMpvApi } from '../lib/api/Mpv'
-import { store, volumeChanged } from '../Store'
+import { playbackStatusChanged, store, volumeChanged } from '../Store'
 import { AdvancedPlaybackStatus } from '../types'
 
 
 interface Arguments {
     onPlaybackstatusChanged: (playbackStatus: AdvancedPlaybackStatus) => void,
     onUrlChanged: (url: string) => void,
-    onVolumeChanged: (volume: number) => void,
     onTitleChanged: (title: string) => void,
     /** length in seconds */
     onLengthChanged: (length: number) => void,
@@ -27,7 +26,6 @@ export function createMpvHandler(args: Arguments) {
     const {
         onPlaybackstatusChanged,
         onUrlChanged,
-        onVolumeChanged,
         onTitleChanged,
         onLengthChanged,
         onPositionChanged,
@@ -38,13 +36,16 @@ export function createMpvHandler(args: Arguments) {
 
 
     function handleVolumeChanged(volume: number) {
-        onVolumeChanged(volume)
         store.dispatch(volumeChanged(volume))
     }
 
+    function handlePlaybackstatusChanged(playbackStatus: AdvancedPlaybackStatus) {
+        onPlaybackstatusChanged(playbackStatus)
+        store.dispatch(playbackStatusChanged(playbackStatus))
+    }
 
     const mpvHandler = createMpvApi({
-        onPlaybackstatusChanged,
+        onPlaybackstatusChanged: handlePlaybackstatusChanged,
         onUrlChanged,
         onVolumeChanged: handleVolumeChanged,
         onTitleChanged,

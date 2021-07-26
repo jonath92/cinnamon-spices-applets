@@ -167,7 +167,6 @@ export function main(args: Arguments): imports.ui.applet.Applet {
 
     mpvHandler = createMpvHandler({
         getInitialVolume: () => { return configs.initialVolume },
-        onVolumeChanged: handleVolumeChanged,
         onLengthChanged: hanldeLengthChanged,
         onPositionChanged: handlePositionChanged,
         checkUrlValid: (url) => channelStore.checkUrlValid(url),
@@ -217,9 +216,6 @@ export function main(args: Arguments): imports.ui.applet.Applet {
         infoSection.setSongTitle(title)
     }
 
-    function handleVolumeChanged(volume: number | null) {
-        lastVolume = volume
-    }
 
     function handleIconTypeChanged(iconType: AppletIcon) {
         appletIcon.setIconType(iconType)
