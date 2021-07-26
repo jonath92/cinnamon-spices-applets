@@ -25,7 +25,7 @@ export interface Arguments {
 
 }
 
-export function createMpvHandler(args: Arguments) {
+export function createMpvApi(args: Arguments) {
     const {
         onPlaybackstatusChanged,
         onUrlChanged,
@@ -36,7 +36,6 @@ export function createMpvHandler(args: Arguments) {
         checkUrlValid,
         lastUrl,
         getInitialVolume,
-
     } = args
 
     const dbus = getDBus()

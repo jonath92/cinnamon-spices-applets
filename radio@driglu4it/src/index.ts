@@ -3,7 +3,6 @@ import { createConfig } from './Config';
 import { ChannelStore } from './ChannelStore';
 import { createChannelList } from './components/ChannelList/ChannelList';
 import { AdvancedPlaybackStatus, Channel, AppletIcon } from './types';
-import { createMpvHandler } from './lib/api/Mpv';
 import { createVolumeSlider } from './components/VolumeSlider';
 import { createPopupMenu } from './lib/ui/PopupMenu';
 import { createSeparatorMenuItem } from './lib/ui/PopupSeperator';
@@ -27,6 +26,7 @@ import { notify } from './components/Notifications/GenericNotification';
 import { createSeeker } from './components/Seeker';
 import { VOLUME_DELTA } from './consts';
 import { initPolyfills } from './polyfill';
+import { createMpvHandler } from './utils/mpvHandler';
 
 const { ScrollDirection } = imports.gi.Clutter;
 const { getAppletDefinition } = imports.ui.appletManager;
@@ -219,7 +219,7 @@ export function main(args: Arguments): imports.ui.applet.Applet {
 
     function handleVolumeChanged(volume: number | null) {
         volumeSlider.setVolume(volume)
-        appletTooltip.setVolume(volume)
+        // appletTooltip.setVolume(volume)
 
         lastVolume = volume
     }

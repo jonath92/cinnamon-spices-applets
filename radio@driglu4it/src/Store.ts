@@ -44,6 +44,21 @@ const reducer = (state: State, action: Action): State => {
     }
 }
 
-
 export const store = createStore(reducer)
 
+
+// ACTIONS
+
+export const volumeChanged = (volume: number): Action => {
+    return {
+        type: 'VOLUME_CHANGED',
+        payload: volume
+    }
+}
+
+export const playbackStatusChanged = (playbackstatus: AdvancedPlaybackStatus): Action => {
+    return {
+        type: 'PLAYBACKSTATUS_CHANGED',
+        payload: playbackstatus
+    }
+}
