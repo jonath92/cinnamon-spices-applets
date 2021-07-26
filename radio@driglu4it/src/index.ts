@@ -218,9 +218,6 @@ export function main(args: Arguments): imports.ui.applet.Applet {
     }
 
     function handleVolumeChanged(volume: number | null) {
-        volumeSlider.setVolume(volume)
-        // appletTooltip.setVolume(volume)
-
         lastVolume = volume
     }
 
