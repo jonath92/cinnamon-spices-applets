@@ -1,4 +1,4 @@
-import { createSubMenu } from "../../lib/PopupSubMenu";
+import { createSubMenu } from "../../lib/ui/PopupSubMenu";
 import { createChannelMenuItem } from "./ChannelMenuItem";
 import { AdvancedPlaybackStatus } from "../../types";
 
