@@ -29,8 +29,6 @@ import { initPolyfills } from './polyfill';
 import { createMpvHandler } from './utils/mpvHandler';
 
 const { ScrollDirection } = imports.gi.Clutter;
-const { getAppletDefinition } = imports.ui.appletManager;
-const { panelManager } = imports.ui.main
 const { BoxLayout } = imports.gi.St
 
 interface Arguments {
@@ -47,25 +45,15 @@ export function main(args: Arguments): imports.ui.applet.Applet {
         instanceId
     } = args
 
+
     initPolyfills()
 
     let mpvHandler: ReturnType<typeof createMpvHandler>
 
     let installationInProgress = false
 
-    const appletDefinition = getAppletDefinition({
-        applet_id: instanceId,
-    })
-
-    const panel = panelManager.panels.find(panel =>
-        panel?.panelId === appletDefinition.panelId
-    )
-
-    panel.connect('icon-size-changed', () => appletIcon.updateIconSize())
-
     const appletIcon = createAppletIcon({
-        locationLabel: appletDefinition.location_label,
-        panel
+        instanceId
     })
 
     const appletLabel = createAppletLabel()

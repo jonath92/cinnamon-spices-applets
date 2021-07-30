@@ -1,24 +1,19 @@
 import { RADIO_SYMBOLIC_ICON_NAME, LOADING_ICON_NAME } from "../../consts"
 import { AdvancedPlaybackStatus, AppletIcon } from "../../types"
 
-const { Icon, IconType } = imports.gi.St
+const { Icon } = imports.gi.St
 const { IconType: IconTypeEnum } = imports.gi.St
+const { panelManager } = imports.ui.main
+const { getAppletDefinition } = imports.ui.appletManager;
 
-
-// TODO the AppletIcon shouldn't have access to this!
-// Better to just pass the iconType size for both fullcolor and symbolic icon
 interface Arguments {
-    // panel and location label are needed to calc the icon size
-    panel: imports.ui.panel.Panel,
-    locationLabel: imports.ui.appletManager.LocationLabel
+    instanceId: number
 }
-
 
 export function createAppletIcon(args: Arguments) {
 
     const {
-        panel,
-        locationLabel
+        instanceId
     } = args
 
     let playbackStatus: AdvancedPlaybackStatus
@@ -27,6 +22,19 @@ export function createAppletIcon(args: Arguments) {
         ['Stopped', ' '],
         ['Loading', ' ']
     ])
+
+    const appletDefinition = getAppletDefinition({
+        applet_id: instanceId,
+    })
+
+    const locationLabel = appletDefinition.location_label
+
+    const panel = panelManager.panels.find(panel =>
+        panel?.panelId === appletDefinition.panelId
+    )
+
+    panel.connect('icon-size-changed', () => updateIconSize())
+
 
     const icon = new Icon({})
 
@@ -104,7 +112,6 @@ export function createAppletIcon(args: Arguments) {
         setColorWhenPlaying,
         setColorWhenPaused,
         setIconType,
-        updateIconSize
     }
 
 }
