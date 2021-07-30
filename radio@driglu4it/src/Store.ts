@@ -65,7 +65,8 @@ const reducer = (state: State = initialState, action: Action): State => {
 export const store = createStore(reducer)
 
 
-export function watchProp<T>(selectProp: () => T, cb: (newValue: T, oldValue?: T) => void) {
+// TODO: use https://www.npmjs.com/package/object-path
+export function watchStateProp<T>(selectProp: () => T, cb: (newValue: T, oldValue?: T) => void) {
     let currentValue = selectProp()
 
     store.subscribe(() => {

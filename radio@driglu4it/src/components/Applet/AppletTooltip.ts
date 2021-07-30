@@ -1,5 +1,5 @@
 import { DEFAULT_TOOLTIP_TXT } from "../../consts"
-import { store } from "../../Store"
+import { store, watchStateProp } from "../../Store"
 
 const { PanelItemTooltip } = imports.ui.tooltips
 
@@ -19,14 +19,13 @@ export function createAppletTooltip(args: Arguments) {
 
     setDefaultTooltip()
 
-    store.subscribe(() => {
-        global.log('this is called')
-        const state = store.getState()
-        setVolume(state.mpv.volume)
+    watchStateProp(() => store.getState().mpv.volume, (newValue) => {
+        setVolume(newValue)
     })
 
     function setVolume(volume: number) {
         if (volume == null) {
+            global.logWarning('setVolume called with null or undefined')
             return
         }
         tooltip.set_text(`Volume: ${volume.toString()} %`)

@@ -49,8 +49,6 @@ export function main(args: Arguments): imports.ui.applet.Applet {
 
     initPolyfills()
 
-    // this is a workaround for now. Optimally the lastVolume should be saved persistently each time the volume is changed but this lead to significant performance issue on scrolling at the moment. However this shouldn't be the case as it is no problem to log the volume each time the volume changes (so it is a problem in the config implementation). As a workaround the volume is only saved persistently when the radio stops but the volume obviously can't be received anymore from dbus when the player has been already stopped ... 
-    let lastVolume: number
     let mpvHandler: ReturnType<typeof createMpvHandler>
 
     let installationInProgress = false
@@ -238,7 +236,6 @@ export function main(args: Arguments): imports.ui.applet.Applet {
 
         if (playbackstatus === 'Stopped') {
             radioActiveSection.hide()
-            configs.lastVolume = lastVolume
             configs.lastUrl = null
             appletLabel.setText(null)
             appletTooltip.setDefaultTooltip()

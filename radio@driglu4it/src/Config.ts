@@ -1,5 +1,5 @@
 import { Channel, AppletIcon } from "./types";
-import { store, watchProp as watchStateProp } from "./Store";
+import { store, watchStateProp } from "./Store";
 
 const { AppletSettings } = imports.ui.settings;
 
