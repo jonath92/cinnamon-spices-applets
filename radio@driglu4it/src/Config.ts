@@ -75,8 +75,10 @@ export const createConfig = (args: Arguments) => {
 
     watchStateProp(() => store.getState().mpv.playbackStatus, (newValue) => {
 
-        if (newValue === 'Stopped')
+        if (newValue === 'Stopped') {
             settingsObject.lastVolume = store.getState().mpv.volume
+            settingsObject.lastUrl = null
+        }
     })
 
 

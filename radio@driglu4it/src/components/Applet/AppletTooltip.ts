@@ -1,5 +1,5 @@
 import { DEFAULT_TOOLTIP_TXT } from "../../consts"
-import { store, watchStateProp } from "../../Store"
+import { playbackStatusChanged, store, watchStateProp } from "../../Store"
 
 const { PanelItemTooltip } = imports.ui.tooltips
 
@@ -23,6 +23,12 @@ export function createAppletTooltip(args: Arguments) {
         setVolume(newValue)
     })
 
+    watchStateProp(() => store.getState().mpv.playbackStatus, (newValue) => {
+        if (newValue === 'Stopped') {
+            setDefaultTooltip()
+        }
+    })
+
     function setVolume(volume: number) {
         if (volume == null) {
             global.logWarning('setVolume called with null or undefined')
@@ -35,7 +41,4 @@ export function createAppletTooltip(args: Arguments) {
         tooltip.set_text(DEFAULT_TOOLTIP_TXT)
     }
 
-    return {
-        setDefaultTooltip
-    }
 }

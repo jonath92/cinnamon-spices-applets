@@ -1,3 +1,5 @@
+import { playbackStatusChanged, store, watchStateProp } from "../../Store"
+
 const { Label } = imports.gi.St
 const { EllipsizeMode } = imports.gi.Pango
 const { ActorAlign } = imports.gi.Clutter
@@ -18,6 +20,14 @@ export function createAppletLabel() {
 
     let visible: boolean
     let text: string
+
+
+    watchStateProp(() => store.getState().mpv.playbackStatus, (newValue) => {
+        if (newValue === 'Stopped') {
+            setText(null)
+        }
+    })
+
 
 
     /**

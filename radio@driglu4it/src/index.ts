@@ -1,7 +1,6 @@
-// import * as _ from 'lodash'; now possible
 import { createConfig } from './Config';
 import { ChannelStore } from './ChannelStore';
-import { createChannelList } from './components/ChannelList/ChannelList';
+import { createChannelList } from './components/PopupMenu/ChannelList';
 import { AdvancedPlaybackStatus, Channel, AppletIcon } from './types';
 import { createVolumeSlider } from './components/VolumeSlider';
 import { createPopupMenu } from './lib/ui/PopupMenu';
@@ -72,7 +71,7 @@ export function main(args: Arguments): imports.ui.applet.Applet {
         onRightClick: () => popupMenu?.close()
     })
 
-    const appletTooltip = createAppletTooltip({
+    createAppletTooltip({
         applet,
         orientation
     })
@@ -224,9 +223,6 @@ export function main(args: Arguments): imports.ui.applet.Applet {
 
         if (playbackstatus === 'Stopped') {
             radioActiveSection.hide()
-            configs.lastUrl = null
-            appletLabel.setText(null)
-            appletTooltip.setDefaultTooltip()
             popupMenu.close()
         }
 
