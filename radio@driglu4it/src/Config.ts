@@ -1,6 +1,6 @@
 import { Channel, AppletIcon } from "./types";
 import { getState, store, watchSelector } from "./Store";
-import { userStationsChanged } from "./slices/settingsSlice";
+import { initialVolumeChanged, userStationsChanged } from "./slices/settingsSlice";
 
 const { AppletSettings } = imports.ui.settings;
 
@@ -59,11 +59,17 @@ export const createConfig = (args: Arguments) => {
     appletSettings.bind('channel-on-panel', 'channelNameOnPanel',
         (channelOnPanel: boolean) => onChannelOnPanelChanged(channelOnPanel))
 
-    appletSettings.bind('keep-volume-between-sessions', "keepVolume")
+    appletSettings.bind('keep-volume-between-sessions', "keepVolume", () => {
+        store.dispatch(initialVolumeChanged(getInitialVolume()))
+    })
 
-    appletSettings.bind('initial-volume', 'customInitVolume')
+    appletSettings.bind('initial-volume', 'customInitVolume', () => {
+        store.dispatch(initialVolumeChanged(getInitialVolume()))
+    })
 
-    appletSettings.bind('last-volume', 'lastVolume')
+    appletSettings.bind('last-volume', 'lastVolume', () => {
+        store.dispatch(initialVolumeChanged(getInitialVolume()))
+    })
 
     appletSettings.bind('tree', "userStations", (stations: Channel[]) => {
         store.dispatch(userStationsChanged(stations))
@@ -75,22 +81,6 @@ export const createConfig = (args: Arguments) => {
     appletSettings.bind('music-download-dir-select', 'musicDownloadDir',
         () => handleMusicDirChanged())
 
-
-    watchSelector(() => getState().mpv.playbackStatus, (newValue) => {
-
-        if (newValue === 'Stopped') {
-            settingsObject.lastVolume = store.getState().mpv.volume
-            settingsObject.lastUrl = null
-        }
-    })
-
-
-    watchSelector(() => getState().mpv.url, (newValue) => {
-        settingsObject.lastUrl = newValue
-    })
-
-
-    store.dispatch(userStationsChanged(settingsObject.userStations))
 
     function getInitialVolume() {
         const {
@@ -113,12 +103,30 @@ export const createConfig = (args: Arguments) => {
     }
 
 
+    store.dispatch(userStationsChanged(settingsObject.userStations))
+    store.dispatch(initialVolumeChanged(getInitialVolume()))
+
+
     onIconChanged(settingsObject.iconType)
     onIconColorPlayingChanged(settingsObject.symbolicIconColorWhenPlaying)
     onIconColorPausedChanged(settingsObject.symbolicIconColorWhenPaused)
     onChannelOnPanelChanged(settingsObject.channelNameOnPanel)
 
     // TODO also onMyStationChanged should be called (and removed as arg from  ChannelStore)
+
+    watchSelector(() => getState().mpv.playbackStatus, (newValue) => {
+
+        if (newValue === 'Stopped') {
+            settingsObject.lastVolume = store.getState().mpv.volume
+            settingsObject.lastUrl = null
+        }
+    })
+
+
+    watchSelector(() => getState().mpv.url, (newValue) => {
+        settingsObject.lastUrl = newValue
+    })
+
 
     return settingsObject
 

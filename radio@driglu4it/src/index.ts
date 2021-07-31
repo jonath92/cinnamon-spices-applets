@@ -144,7 +144,6 @@ export function main(args: Arguments): imports.ui.applet.Applet {
     popupMenu.add_child(radioActiveSection)
 
     mpvHandler = createMpvHandler({
-        getInitialVolume: () => { return configs.initialVolume },
         onLengthChanged: hanldeLengthChanged,
         onPositionChanged: handlePositionChanged,
         checkUrlValid: (url) => channelStore.checkUrlValid(url),

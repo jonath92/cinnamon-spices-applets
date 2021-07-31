@@ -14,13 +14,13 @@ export const store = configureStore({
 })
 
 
-export function watchSelector<T>(selectProp: () => T, cb: (newValue: T, oldValue?: T) => void) {
+export function watchSelector<T>(selectProp: () => T, cb: (newValue: T, oldValue?: T) => void, checkEquality = true) {
     let currentValue = selectProp()
 
     store.subscribe(() => {
         const newValue = selectProp()
 
-        if (isEqual(currentValue, newValue))
+        if (checkEquality && isEqual(currentValue, newValue))
             return
 
         cb(newValue, currentValue)

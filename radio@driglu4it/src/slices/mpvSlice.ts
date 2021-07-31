@@ -31,7 +31,7 @@ const mpvSlice = createSlice({
             state.playbackStatus = action.payload
 
             if (state.playbackStatus === 'Stopped') {
-                state.volume = null
+                // the volume is not set to null because needed when restarting mpv
                 state.url = null
                 state.song_title = null
             }

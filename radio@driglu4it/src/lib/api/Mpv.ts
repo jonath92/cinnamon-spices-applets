@@ -20,9 +20,7 @@ export interface Arguments {
     /** the lastUrl is used to determine if mpv is initially (i.e. on cinnamon restart) running for radio purposes and not for something else. It is not sufficient to get the url from a dbus interface and check if the url is valid because some streams (such as .pls streams) change their url dynamically. This approach in not 100% foolproof but probably the best possible approach */
     lastUrl: string,
 
-    // TODO make as setter
-    getInitialVolume: { (): number }
-
+    initialVolume: number,
 }
 
 export function createMpvApi(args: Arguments) {
@@ -35,7 +33,10 @@ export function createMpvApi(args: Arguments) {
         onPositionChanged,
         checkUrlValid,
         lastUrl,
-        getInitialVolume,
+    } = args
+
+    let {
+        initialVolume
     } = args
 
     const dbus = getDBus()
@@ -274,8 +275,6 @@ export function createMpvApi(args: Arguments) {
 
         if (getPlaybackStatus() === 'Stopped') {
 
-            let initialVolume = getInitialVolume()
-
             if (initialVolume == null) {
                 global.logWarning('initial Volume was null or undefined. Applying 50 as a fallback solution to prevent radio stop working')
                 initialVolume = 50
@@ -399,6 +398,7 @@ export function createMpvApi(args: Arguments) {
         getCurrentTitle,
         setPosition,
         deactivateAllListener,
+        setInitialVolume: (volume: number) => initialVolume = volume,
         // it is very confusing but dbus must be returned!
         // Otherwilse all listeners stop working after about 20 seconds which is fucking difficult to debug
         dbus
