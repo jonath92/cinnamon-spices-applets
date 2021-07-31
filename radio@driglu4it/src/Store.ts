@@ -1,15 +1,14 @@
-import { AdvancedPlaybackStatus, Channel } from "./types";
-import { createStore } from "redux"
-import { combineReducers } from 'redux'
 import { mpvReducer } from "./slices/mpvSlice";
+import { settingsReducer } from "./slices/settingsSlice";
+import { configureStore } from '@reduxjs/toolkit'
 
-const reducer = combineReducers({
-    mpv: mpvReducer
+
+export const store = configureStore({
+    reducer: {
+        mpv: mpvReducer,
+        settings: settingsReducer
+    }
 })
-
-
-
-export const store = createStore(reducer)
 
 
 // TODO: use https://www.npmjs.com/package/object-path

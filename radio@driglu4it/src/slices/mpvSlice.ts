@@ -1,6 +1,6 @@
 import { AdvancedPlaybackStatus } from "../types";
 
-export type MpvActions = {
+type MpvActions = {
     type: 'VOLUME_CHANGED',
     payload: number
 } | {
