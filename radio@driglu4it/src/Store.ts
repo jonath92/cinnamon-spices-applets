@@ -13,6 +13,7 @@ export const store = configureStore({
     }
 })
 
+
 export function watchSelector<T>(selectProp: () => T, cb: (newValue: T, oldValue?: T) => void) {
     let currentValue = selectProp()
 
@@ -35,6 +36,7 @@ export function selectCurrentChannelName(): string {
     const channelList = getState().settings.userStations
     const currentUrl = getState().mpv.url
 
+    // TODO: what is when two Channels have the same Name or Url? :O
     const currentChannel = channelList.find(cnl => cnl.url === currentUrl)
 
     return currentChannel ? currentChannel.name : null

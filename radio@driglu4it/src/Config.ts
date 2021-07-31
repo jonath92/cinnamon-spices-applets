@@ -1,5 +1,5 @@
 import { Channel, AppletIcon } from "./types";
-import { store, watchSelector } from "./Store";
+import { getState, store, watchSelector } from "./Store";
 import { userStationsChanged } from "./slices/settingsSlice";
 
 const { AppletSettings } = imports.ui.settings;
@@ -76,12 +76,17 @@ export const createConfig = (args: Arguments) => {
         () => handleMusicDirChanged())
 
 
-    watchSelector(() => store.getState().mpv.playbackStatus, (newValue) => {
+    watchSelector(() => getState().mpv.playbackStatus, (newValue) => {
 
         if (newValue === 'Stopped') {
             settingsObject.lastVolume = store.getState().mpv.volume
             settingsObject.lastUrl = null
         }
+    })
+
+
+    watchSelector(() => getState().mpv.url, (newValue) => {
+        settingsObject.lastUrl = newValue
     })
 
 

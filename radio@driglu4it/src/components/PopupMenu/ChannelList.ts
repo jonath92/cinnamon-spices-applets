@@ -4,10 +4,6 @@ import { AdvancedPlaybackStatus, Channel } from "../../types";
 import { selectCurrentChannelName, store, watchSelector } from "../../Store";
 import { urlChanged } from "../../slices/mpvSlice";
 
-interface Arguments {
-    onChannelClicked: (name: string) => void
-}
-
 function selectChannels(): Channel[] {
     return store.getState().settings.userStations
 }
@@ -16,7 +12,7 @@ function selectPlaybackStatus(): AdvancedPlaybackStatus {
     return store.getState().mpv.playbackStatus
 }
 
-export function createChannelList(args: Arguments) {
+export function createChannelList() {
 
     const subMenu = createSubMenu({ text: 'My Stations' })
 

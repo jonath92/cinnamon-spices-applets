@@ -29,6 +29,12 @@ const mpvSlice = createSlice({
         },
         playbackStatusChanged(state, action: PayloadAction<AdvancedPlaybackStatus>) {
             state.playbackStatus = action.payload
+
+            if (state.playbackStatus === 'Stopped') {
+                state.volume = null
+                state.url = null
+                state.song_title = null
+            }
         },
         urlChanged(state, action: PayloadAction<string>) {
             state.url = action.payload

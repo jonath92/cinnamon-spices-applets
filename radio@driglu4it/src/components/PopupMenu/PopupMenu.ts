@@ -13,8 +13,10 @@ export function createRadioPopupMenu(args: Arguments) {
 
     const popupMenu = createPopupMenu({ launcher })
 
-    // const channelList = createChannelList({
+    const channelList = createChannelList()
 
-    // })
+    popupMenu.add_child(channelList.actor)
+    //popupMenu.add_child(radioActiveSection)
 
+    return popupMenu
 }

@@ -1,14 +1,12 @@
 import { createConfig } from './Config';
 import { ChannelStore } from './ChannelStore';
-import { createChannelList } from './components/PopupMenu/ChannelList';
 import { AdvancedPlaybackStatus, Channel, AppletIcon } from './types';
 import { createVolumeSlider } from './components/VolumeSlider';
-import { createPopupMenu } from './lib/ui/PopupMenu';
 import { createSeparatorMenuItem } from './lib/ui/PopupSeperator';
 import { createMediaControlToolbar } from './components/Toolbar/MediaControlToolbar';
 import { createPlayPauseButton } from './components/Toolbar/PlayPauseButton';
 import { createStopBtn } from './components/Toolbar/StopButton';
-import { createInfoSection } from './components/InfoSection';
+import { createInfoSection } from './components/PopupMenu/InfoSection';
 import { createDownloadButton } from './components/Toolbar/DownloadButton';
 import { createCopyButton } from './components/Toolbar/CopyButton';
 import { downloadSongFromYoutube } from './lib/functions/downloadFromYoutube';
@@ -26,6 +24,7 @@ import { createSeeker } from './components/Seeker';
 import { VOLUME_DELTA } from './consts';
 import { initPolyfills } from './polyfill';
 import { createMpvHandler } from './utils/mpvHandler';
+import { createRadioPopupMenu } from './components/PopupMenu/PopupMenu';
 
 const { ScrollDirection } = imports.gi.Clutter;
 const { BoxLayout } = imports.gi.St
@@ -95,15 +94,11 @@ export function main(args: Arguments): imports.ui.applet.Applet {
 
     const channelStore = new ChannelStore(configs.userStations)
 
-    const channelList = createChannelList({
-        onChannelClicked: handleChannelClicked
-    })
-
     const volumeSlider = createVolumeSlider({
         onVolumeChanged: (volume) => mpvHandler?.setVolume(volume)
     })
 
-    const popupMenu = createPopupMenu({ launcher: applet.actor })
+    const popupMenu = createRadioPopupMenu({ launcher: applet.actor })
     const infoSection = createInfoSection()
 
     //toolbar
@@ -146,7 +141,6 @@ export function main(args: Arguments): imports.ui.applet.Applet {
         radioActiveSection.add_child(widget)
     })
 
-    popupMenu.add_child(channelList.actor)
     popupMenu.add_child(radioActiveSection)
 
     mpvHandler = createMpvHandler({
@@ -191,10 +185,6 @@ export function main(args: Arguments): imports.ui.applet.Applet {
         mpvHandler.increaseDecreaseVolume(volumeChange)
     }
 
-    function handleChannelClicked(name: string) {
-        const channelUrl = channelStore.getChannelUrl(name)
-        mpvHandler.setUrl(channelUrl)
-    }
 
     function handleTitleChanged(title: string) {
         infoSection.setSongTitle(title)
@@ -237,12 +227,8 @@ export function main(args: Arguments): imports.ui.applet.Applet {
 
     function handleUrlChanged(url: string) {
 
-        const channelName = url ? channelStore.getChannelName(url) : null
 
-        appletLabel.setText(channelName)
-
-        infoSection.setChannel(channelName)
-        configs.lastUrl = url
+        // appletLabel.setText(channelName)
     }
 
     function hanldeLengthChanged(length: number) {

@@ -1,4 +1,4 @@
-import { store, watchSelector } from "../../Store"
+import { getState, selectCurrentChannelName, watchSelector } from "../../Store"
 
 const { Label } = imports.gi.St
 const { EllipsizeMode } = imports.gi.Pango
@@ -22,14 +22,17 @@ export function createAppletLabel() {
     let text: string
 
 
-    watchSelector(() => store.getState().mpv.playbackStatus, (newValue) => {
+    watchSelector(() => getState().mpv.playbackStatus, (newValue) => {
         if (newValue === 'Stopped') {
             setText(null)
         }
     })
 
+    watchSelector(selectCurrentChannelName, (newValue) => {
+        setText(newValue)
+    })
 
-
+    
     /**
      * 
      * @param newValue text to show on the label. The text however is only visible in the GUI when visible is true. It is also shown no text when passing null for text but in that case the text is shown again when calling this function again with a string (i.e this function is intended to be used with null when the text shall only temporarily be hidden)    
@@ -57,6 +60,5 @@ export function createAppletLabel() {
     return {
         actor: label,
         setVisibility,
-        setText,
     }
 }

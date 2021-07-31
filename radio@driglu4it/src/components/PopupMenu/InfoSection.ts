@@ -1,5 +1,6 @@
-import * as consts from "../consts";
-import { createIconMenuItem } from "../lib/ui/IconMenuItem";
+import * as consts from "../../consts";
+import { createIconMenuItem } from "../../lib/ui/IconMenuItem";
+import { getState, selectCurrentChannelName, watchSelector } from "../../Store";
 const { BoxLayout } = imports.gi.St
 
 export function createInfoSection() {
@@ -24,9 +25,10 @@ export function createInfoSection() {
         return iconMenuItem
     }
 
-    function setChannel(channeName: string) {
-        channelInfoItem.setText(channeName)
-    }
+    watchSelector(selectCurrentChannelName, (newName) => {
+        channelInfoItem.setText(newName)
+    })
+
 
     function setSongTitle(songTitle: string) {
         songInfoItem.setText(songTitle)
@@ -35,7 +37,6 @@ export function createInfoSection() {
     return {
         actor: infoSection,
         setSongTitle,
-        setChannel
     }
 
 }

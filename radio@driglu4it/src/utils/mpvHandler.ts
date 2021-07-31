@@ -63,6 +63,7 @@ export function createMpvHandler(args: Arguments) {
     })
 
     watchSelector(() => getState().mpv.url, (newValue) => {
+        global.log('setUrl called')
         mpvHandler.setUrl(newValue)
     })
 
