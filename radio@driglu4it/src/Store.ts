@@ -1,8 +1,9 @@
 import mpvReducer from "./slices/mpvSlice";
-import { settingsReducer } from "./slices/settingsSlice";
+import settingsReducer, { action } from "./slices/settingsSlice";
 import { configureStore } from '@reduxjs/toolkit'
 
 
+// TODO: store.dispatch currently allows AnyAction (i.e. no prober intelsense). No idea how to fix this :-(
 export const store = configureStore({
     reducer: {
         mpv: mpvReducer,
@@ -25,5 +26,4 @@ export function watchStateProp<T>(selectProp: () => T, cb: (newValue: T, oldValu
         currentValue = newValue
     })
 }
-
 

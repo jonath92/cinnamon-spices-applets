@@ -82,6 +82,8 @@ export const createConfig = (args: Arguments) => {
     })
 
 
+    // store.dispatch()
+
     function getInitialVolume() {
         const {
             keepVolume,

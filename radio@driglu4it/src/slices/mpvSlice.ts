@@ -1,5 +1,5 @@
 import { AdvancedPlaybackStatus } from "../types";
-import { createSlice } from '@reduxjs/toolkit'
+import { createSlice, PayloadAction } from '@reduxjs/toolkit'
 
 interface MpvState {
     volume: number,
@@ -19,60 +19,18 @@ const mpvSlice = createSlice({
     name: 'mpv',
     initialState,
     reducers: {
-        volumeChanged(state, action) {
+        volumeChanged(state, action: PayloadAction<number>) {
             state.volume = action.payload
         },
-        titleChanged(state, action) {
+        titleChanged(state, action: PayloadAction<string>) {
             state.song_title = action.payload
         },
-        playbackStatusChanged(state, action) {
+        playbackStatusChanged(state, action: PayloadAction<AdvancedPlaybackStatus>) {
             state.playbackStatus = action.payload
-        }
-    }
+        },
+    },
 })
 
 export const { volumeChanged, titleChanged, playbackStatusChanged } = mpvSlice.actions
 
-
 export default mpvSlice.reducer
-
-// export const mpvReducer = (state: MpvState = mpvInitialState, action: MpvActions): MpvState => {
-//     switch (action.type) {
-//         case 'mpv/volume_changed':
-//             return {
-//                 ...state,
-//                 volume: action.payload
-//             }
-//         case 'mpv/song_title_changed':
-//             return {
-//                 ...state,
-//                 song_title: action.payload
-
-//             }
-//         case 'mpv_playbackstatus_changed':
-//             return {
-//                 ...state,
-//                 playbackStatus: action.payload
-//             }
-//         default:
-//             global.logWarning('unhandled action type')
-//             return { ...state }
-//     }
-// }
-
-
-// // ACTIONS
-
-// export const volumeChanged = (volume: number): MpvActions => {
-//     return {
-//         type: 'mpv/volume_changed',
-//         payload: volume
-//     }
-// }
-
-// export const playbackStatusChanged = (playbackstatus: AdvancedPlaybackStatus): MpvActions => {
-//     return {
-//         type: 'mpv_playbackstatus_changed',
-//         payload: playbackstatus
-//     }
-// }

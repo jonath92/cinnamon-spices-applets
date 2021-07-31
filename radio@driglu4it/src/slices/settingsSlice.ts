@@ -1,28 +1,31 @@
 import { Channel } from "../types";
+import { createSlice, PayloadAction } from '@reduxjs/toolkit'
 
-type SettingsActions = {
-    type: 'USER_STATIONS_CHANGED',
-    payload: Channel[]
-}
 
 interface SettingsState {
     userStations: Channel[]
 }
 
-const settingsInitialState: SettingsState = {
+const initialState: SettingsState = {
     userStations: []
 }
 
-export const settingsReducer = (state: SettingsState = settingsInitialState, action: SettingsActions): SettingsState => {
-    switch (action.type) {
-        case 'USER_STATIONS_CHANGED':
-            return {
-                ...state,
-                userStations: action.payload
-            }
-        default:
-            return {
-                ...state
-            }
+const settingsSlice = createSlice({
+    name: 'settings',
+    initialState,
+    reducers: {
+        userStationsChanged(state, action: PayloadAction<Channel[]>) {
+            state.userStations = action.payload
+        }
     }
-}
+})
+
+export const { userStationsChanged } = settingsSlice.actions
+
+
+export const action = settingsSlice.actions
+
+
+global.log(action.userStationsChanged.type)
+
+export default settingsSlice.reducer
