@@ -107,7 +107,7 @@ export function main(args: Arguments): imports.ui.applet.Applet {
     })
 
     const stopBtn = createStopBtn({
-        onClick: () => mpvHandler.stop()
+        onClick: () => mpvHandler?.stop()
     })
 
     const downloadBtn = createDownloadButton({

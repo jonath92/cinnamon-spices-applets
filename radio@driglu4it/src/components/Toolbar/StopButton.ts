@@ -16,7 +16,7 @@ export function createStopBtn(args: Arguments) {
     const stopBtn = createControlBtn({
         iconName: STOP_ICON_NAME,
         tooltipTxt: "Stop",
-        onClick: () => store.dispatch(playbackStatusChanged('Stopped'))
+        onClick
     });
 
     return {

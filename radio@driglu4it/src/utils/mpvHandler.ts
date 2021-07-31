@@ -1,4 +1,4 @@
-import { createMpvApi } from '../lib/api/Mpv'
+import { createMpvApi } from '../lib/api/mpvApi'
 import { playbackStatusChanged, titleChanged, urlChanged, volumeChanged } from '../slices/mpvSlice'
 import { getState, store, watchSelector } from '../Store'
 import { AdvancedPlaybackStatus } from '../types'
@@ -67,8 +67,8 @@ export function createMpvHandler(args: Arguments) {
 
     watchSelector(() => getState().mpv.playbackStatus, (newValue) => {
         if (newValue === 'Stopped') {
-            //mpvHandler.setInitialVolume(getState().mpv.volume)
-            // mpvHandler.stop()
+            mpvHandler.setInitialVolume(getState().mpv.volume)
+            mpvHandler.stop()
         }
     })
 

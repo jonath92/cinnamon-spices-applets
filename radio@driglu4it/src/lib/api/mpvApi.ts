@@ -273,6 +273,10 @@ export function createMpvApi(args: Arguments) {
 
     function setUrl(url: string) {
 
+        if (url == null) {
+            throw new Error('url must not be null or undefined')
+        }
+
         if (getPlaybackStatus() === 'Stopped') {
 
             if (initialVolume == null) {
@@ -331,11 +335,6 @@ export function createMpvApi(args: Arguments) {
     }
 
     function stop() {
-        global.log('stop called')
-        const stack = new Error().stack
-
-        global.log(JSON.stringify(stack))
-
         if (getPlaybackStatus() === "Stopped") return
 
         mediaServerPlayer.StopSync()
