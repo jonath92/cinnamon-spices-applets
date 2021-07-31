@@ -1,31 +1,22 @@
 import { createSubMenu } from "../../lib/ui/PopupSubMenu";
 import { createChannelMenuItem } from "./ChannelMenuItem";
-import { AdvancedPlaybackStatus } from "../../types";
+import { AdvancedPlaybackStatus, Channel } from "../../types";
 import { selectCurrentChannelName, store, watchSelector } from "../../Store";
+import { urlChanged } from "../../slices/mpvSlice";
 
 interface Arguments {
     onChannelClicked: (name: string) => void
 }
 
-function selectActivatedChannelNames(): string[] {
-
-    const channelItems = store.getState().settings.userStations
-
-    return channelItems.flatMap(channel => {
-        return channel.inc ? channel.name : []
-    })
+function selectChannels(): Channel[] {
+    return store.getState().settings.userStations
 }
 
 function selectPlaybackStatus(): AdvancedPlaybackStatus {
     return store.getState().mpv.playbackStatus
 }
 
-
 export function createChannelList(args: Arguments) {
-
-    const {
-        onChannelClicked
-    } = args
 
     const subMenu = createSubMenu({ text: 'My Stations' })
 
@@ -34,11 +25,10 @@ export function createChannelList(args: Arguments) {
     let currentChannelName: string
     let playbackStatus: AdvancedPlaybackStatus = 'Stopped'
 
-    // Todo: why needed??
-    setStationNames(selectActivatedChannelNames())
+    setChannels(selectChannels())
 
-    watchSelector(selectActivatedChannelNames, (newStationNames) => {
-        setStationNames(newStationNames)
+    watchSelector(selectChannels, (newChannels) => {
+        setChannels(newChannels)
     })
 
     watchSelector(selectPlaybackStatus, (newStatus) => {
@@ -49,21 +39,24 @@ export function createChannelList(args: Arguments) {
         setCurrentChannel(newName)
     })
 
-    function setStationNames(names: string[]) {
+    function setChannels(channels: Channel[]) {
         channelItems.clear()
         subMenu.box.remove_all_children()
 
-        names.forEach(name => {
+        channels.forEach(cnl => {
+
+            if (!cnl.inc) return
+
             const channelPlaybackstatus =
-                (name === currentChannelName) ? playbackStatus : 'Stopped'
+                (cnl.name === currentChannelName) ? playbackStatus : 'Stopped'
 
             const channelItem = createChannelMenuItem({
-                channelName: name,
-                onActivated: onChannelClicked,
+                channelName: cnl.name,
+                onActivated: () => store.dispatch(urlChanged(cnl.url)),
                 playbackStatus: channelPlaybackstatus
             })
 
-            channelItems.set(name, channelItem)
+            channelItems.set(cnl.name, channelItem)
             subMenu.box.add_child(channelItem.actor)
         })
     }

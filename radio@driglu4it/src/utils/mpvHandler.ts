@@ -1,6 +1,6 @@
 import { createMpvApi } from '../lib/api/Mpv'
 import { playbackStatusChanged, urlChanged, volumeChanged } from '../slices/mpvSlice'
-import { store } from '../Store'
+import { getState, store, watchSelector } from '../Store'
 import { AdvancedPlaybackStatus } from '../types'
 
 
@@ -60,6 +60,10 @@ export function createMpvHandler(args: Arguments) {
         checkUrlValid,
         lastUrl,
         getInitialVolume,
+    })
+
+    watchSelector(() => getState().mpv.url, (newValue) => {
+        mpvHandler.setUrl(newValue)
     })
 
     return mpvHandler

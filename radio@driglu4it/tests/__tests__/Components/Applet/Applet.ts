@@ -1,4 +1,4 @@
-import { createApplet } from "ui/Applet/Applet"
+import { createApplet } from "../tests/__tests__/Components/Applet/Applet"
 const { Icon, Label } = imports.gi.St
 const { BoxLayout } = imports.gi.St
 const { Event } = imports.gi.Clutter

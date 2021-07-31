@@ -27,7 +27,7 @@ export function watchSelector<T>(selectProp: () => T, cb: (newValue: T, oldValue
     })
 }
 
-function getState() {
+export function getState() {
     return store.getState()
 }
 

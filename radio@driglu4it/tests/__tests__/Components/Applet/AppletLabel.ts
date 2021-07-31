@@ -1,4 +1,4 @@
-import { createAppletLabel } from "ui/Applet/AppletLabel";
+import { createAppletLabel } from "../tests/__tests__/Components/Applet/AppletLabel";
 const { EllipsizeMode } = imports.gi.Pango
 
 

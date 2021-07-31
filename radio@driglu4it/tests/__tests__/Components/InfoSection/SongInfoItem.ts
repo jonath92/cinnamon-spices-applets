@@ -1,4 +1,4 @@
-import { createSongInfoItem } from "ui/InfoSection/SongInfoItem"
+import { createSongInfoItem } from "../tests/__tests__/Components/InfoSection/SongInfoItem"
 import { MAX_STRING_LENGTH, SONG_INFO_ICON_NAME } from 'consts';
 import { limitString } from 'functions/limitString';
 

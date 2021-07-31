@@ -15,7 +15,7 @@ jest.mock('lib/Slider', () => ({
 }))
 
 import { POPUP_ICON_CLASS } from "consts"
-import { createVolumeSlider } from "ui/VolumeSlider";
+import { createVolumeSlider } from "../tests/__tests__/Components/VolumeSlider";
 import { IconType } from "../../global/gi/St"
 
 function getChildren(volumeSlider: ReturnType<typeof createVolumeSlider>) {

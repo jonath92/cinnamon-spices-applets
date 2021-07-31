@@ -1,5 +1,5 @@
 import { DEFAULT_TOOLTIP_TXT } from "consts"
-import { createAppletTooltip } from "ui/Applet/AppletTooltip"
+import { createAppletTooltip } from "../tests/__tests__/Components/Applet/AppletTooltip"
 
 const { Applet } = imports.ui.applet
 const { PanelItemTooltip } = imports.ui.tooltips

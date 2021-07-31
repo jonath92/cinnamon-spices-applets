@@ -1,6 +1,6 @@
 import { RADIO_SYMBOLIC_ICON_NAME } from "consts"
 import { IconType } from "types"
-import { createAppletIcon } from "ui/Applet/AppletIcon"
+import { createAppletIcon } from "../tests/__tests__/Components/Applet/AppletIcon"
 
 const { Panel } = imports.ui.panel
 const { IconType } = imports.gi.St

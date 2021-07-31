@@ -1,4 +1,4 @@
-import { Arguments as ChannelMenuItemArguments } from "ui/ChannelList/ChannelMenuItem";
+import { Arguments as ChannelMenuItemArguments } from "components/PopupMenu/ChannelMenuItem";
 const { Label } = imports.gi.St
 
 interface ChannelState {
@@ -37,7 +37,7 @@ const createChannelMenuItem = jest.fn((args: ChannelMenuItemArguments) => {
     }
 })
 
-jest.mock('ui/ChannelList/ChannelMenuItem', () => ({
+jest.mock('components/PopupMenu/ChannelMenuItem', () => ({
     createChannelMenuItem
 }))
 
@@ -52,7 +52,7 @@ jest.mock('lib/PopupSubMenu', () => ({
     }
 }))
 
-import { createChannelList } from "ui/ChannelList/ChannelList";
+import { createChannelList } from "components/PopupMenu/ChannelList"
 import { AdvancedPlaybackStatus } from "types";
 
 const sharedChannel = "Austrian Rock Radio"

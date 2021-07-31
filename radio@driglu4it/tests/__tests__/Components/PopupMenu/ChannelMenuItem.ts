@@ -1,6 +1,6 @@
 import * as consts from "consts"
 import { limitString } from "functions/limitString"
-import { createChannelMenuItem } from "ui/ChannelList/ChannelMenuItem"
+import { createChannelMenuItem } from "../tests/__tests__/Components/ChannelList/ChannelMenuItem"
 
 const channelName = 'WDR 2 Rhein und Ruhr'
 const channelNameShortened = limitStringToMaxLength(channelName)

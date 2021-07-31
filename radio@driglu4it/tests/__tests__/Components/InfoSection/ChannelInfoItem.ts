@@ -1,4 +1,4 @@
-import { createChannelInfoItem } from 'ui/InfoSection/ChannelInfoItem'
+import { createChannelInfoItem } from '../tests/__tests__/Components/InfoSection/ChannelInfoItem'
 import { limitString } from 'functions/limitString';
 import * as consts from 'consts'
 
