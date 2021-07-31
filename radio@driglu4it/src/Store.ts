@@ -1,4 +1,4 @@
-import { mpvReducer } from "./slices/mpvSlice";
+import mpvReducer from "./slices/mpvSlice";
 import { settingsReducer } from "./slices/settingsSlice";
 import { configureStore } from '@reduxjs/toolkit'
 
