@@ -1,3 +1,6 @@
+import { createPopupMenu } from "../../lib/ui/PopupMenu"
+import { createChannelList } from "./ChannelList"
+
 interface Arguments {
     launcher: imports.gi.St.Widget,
 }
@@ -8,5 +11,10 @@ export function createRadioPopupMenu(args: Arguments) {
         launcher
     } = args
 
-    
+    const popupMenu = createPopupMenu({ launcher })
+
+    // const channelList = createChannelList({
+
+    // })
+
 }

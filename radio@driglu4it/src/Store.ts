@@ -1,66 +1,13 @@
-import { AdvancedPlaybackStatus } from "./types";
+import { AdvancedPlaybackStatus, Channel } from "./types";
 import { createStore } from "redux"
+import { combineReducers } from 'redux'
+import { mpvReducer } from "./slices/mpvSlice";
 
-type Action = {
-    type: 'VOLUME_CHANGED',
-    payload: number
-} | {
-    type: 'SONG_TITLE_CHANGED',
-    payload: string
-} | {
-    type: 'PLAYBACKSTATUS_CHANGED',
-    payload: AdvancedPlaybackStatus
-}
+const reducer = combineReducers({
+    mpv: mpvReducer
+})
 
-interface State {
-    mpv: {
-        volume: number,
-        song_title: string,
-        playbackStatus: AdvancedPlaybackStatus
-    }
-}
 
-const initialState: State = {
-    mpv: {
-        volume: null,
-        song_title: null,
-        playbackStatus: 'Stopped'
-    }
-}
-
-const reducer = (state: State = initialState, action: Action): State => {
-
-    switch (action.type) {
-        case 'VOLUME_CHANGED':
-            return {
-                ...state,
-                mpv: {
-                    ...state.mpv,
-                    volume: action.payload
-                }
-            }
-        case 'SONG_TITLE_CHANGED':
-            return {
-                ...state,
-                mpv: {
-                    ...state.mpv,
-                    song_title: action.payload
-                }
-            }
-        case 'PLAYBACKSTATUS_CHANGED':
-            return {
-                ...state,
-                mpv: {
-                    ...state.mpv,
-                    playbackStatus: action.payload
-                }
-            }
-        default:
-            // TODO: not logging when action starts with @@redux
-            global.logWarning('unhandled action type')
-            return { ...state }
-    }
-}
 
 export const store = createStore(reducer)
 
@@ -81,18 +28,3 @@ export function watchStateProp<T>(selectProp: () => T, cb: (newValue: T, oldValu
 }
 
 
-// ACTIONS
-
-export const volumeChanged = (volume: number): Action => {
-    return {
-        type: 'VOLUME_CHANGED',
-        payload: volume
-    }
-}
-
-export const playbackStatusChanged = (playbackstatus: AdvancedPlaybackStatus): Action => {
-    return {
-        type: 'PLAYBACKSTATUS_CHANGED',
-        payload: playbackstatus
-    }
-}

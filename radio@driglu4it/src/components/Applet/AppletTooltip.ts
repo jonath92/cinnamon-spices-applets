@@ -1,5 +1,5 @@
 import { DEFAULT_TOOLTIP_TXT } from "../../consts"
-import { playbackStatusChanged, store, watchStateProp } from "../../Store"
+import { store, watchStateProp } from "../../Store"
 
 const { PanelItemTooltip } = imports.ui.tooltips
 

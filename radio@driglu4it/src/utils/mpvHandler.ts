@@ -1,5 +1,6 @@
 import { createMpvApi } from '../lib/api/Mpv'
-import { playbackStatusChanged, store, volumeChanged } from '../Store'
+import { playbackStatusChanged, volumeChanged } from '../slices/mpvSlice'
+import { store } from '../Store'
 import { AdvancedPlaybackStatus } from '../types'
 
 

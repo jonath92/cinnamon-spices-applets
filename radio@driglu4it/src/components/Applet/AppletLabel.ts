@@ -1,4 +1,4 @@
-import { playbackStatusChanged, store, watchStateProp } from "../../Store"
+import { store, watchStateProp } from "../../Store"
 
 const { Label } = imports.gi.St
 const { EllipsizeMode } = imports.gi.Pango
