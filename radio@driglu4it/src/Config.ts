@@ -72,8 +72,11 @@ export const createConfig = (args: Arguments) => {
     })
 
     appletSettings.bind('tree', "userStations", (stations: Channel[]) => {
-        store.dispatch(userStationsChanged(stations))
-        onMyStationsChanged(stations)
+
+        const stationsFiltered = getFilteredUserStations()
+
+        store.dispatch(userStationsChanged(stationsFiltered))
+        onMyStationsChanged(stationsFiltered)
     })
 
     appletSettings.bind('last-url', 'lastUrl')
@@ -94,6 +97,13 @@ export const createConfig = (args: Arguments) => {
         return initialVolume
     }
 
+
+    function getFilteredUserStations() {
+        return settingsObject.userStations.flatMap(station => {
+            return station.inc ? { ...station, url: station.url.trim() } : []
+        })
+    }
+
     function handleMusicDirChanged() {
 
         // By Default the value is set to ~/Music/Radio but when changing to another location and back again to the default value in the settings dialog, the music dir is set to null instead of the default value again. As workaround the music dir is set programmatically to default value again if value is set to null (and the settings dialog can't be opened anymore). 
@@ -103,7 +113,7 @@ export const createConfig = (args: Arguments) => {
     }
 
 
-    store.dispatch(userStationsChanged(settingsObject.userStations))
+    store.dispatch(userStationsChanged(getFilteredUserStations()))
     store.dispatch(initialVolumeChanged(getInitialVolume()))
 
 

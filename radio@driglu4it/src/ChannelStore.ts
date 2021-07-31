@@ -1,3 +1,4 @@
+import { isEqual } from 'lodash'
 import { Channel } from './types'
 
 export class ChannelStore {
@@ -10,9 +11,7 @@ export class ChannelStore {
 
     public set channelList(channelList: Channel[]) {
 
-        this._channelList = channelList.flatMap(channel => {
-            return channel.inc ? { ...channel, url: channel.url.trim() } : []
-        })
+        this._channelList = channelList
 
     }
 
@@ -27,8 +26,8 @@ export class ChannelStore {
     }
 
     public checkListChanged(channelList: Channel[]) {
-        return JSON.stringify(channelList) === JSON.stringify(this._channelList) ?
-            false : true
+
+        return !isEqual(channelList, this._channelList)
     }
 
     public checkUrlValid(channelUrl: string) {

@@ -147,10 +147,8 @@ export function main(args: Arguments): imports.ui.applet.Applet {
         onLengthChanged: hanldeLengthChanged,
         onPositionChanged: handlePositionChanged,
         checkUrlValid: (url) => channelStore.checkUrlValid(url),
-        onTitleChanged: handleTitleChanged,
         onPlaybackstatusChanged: handlePlaybackstatusChanged,
         lastUrl: configs.lastUrl,
-        onUrlChanged: handleUrlChanged
     })
 
     // CALLBACKS
@@ -185,10 +183,6 @@ export function main(args: Arguments): imports.ui.applet.Applet {
     }
 
 
-    function handleTitleChanged(title: string) {
-        infoSection.setSongTitle(title)
-    }
-
 
     function handleIconTypeChanged(iconType: AppletIcon) {
         appletIcon.setIconType(iconType)
@@ -222,12 +216,6 @@ export function main(args: Arguments): imports.ui.applet.Applet {
             playPauseBtn.setPlaybackStatus(playbackstatus)
         }
 
-    }
-
-    function handleUrlChanged(url: string) {
-
-
-        // appletLabel.setText(channelName)
     }
 
     function hanldeLengthChanged(length: number) {

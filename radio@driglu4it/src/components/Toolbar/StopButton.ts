@@ -1,4 +1,6 @@
 import { STOP_ICON_NAME } from "../../consts";
+import { playbackStatusChanged } from "../../slices/mpvSlice";
+import { store } from "../../Store";
 import { createControlBtn } from "./ControlBtn";
 
 interface Arguments {
@@ -14,7 +16,7 @@ export function createStopBtn(args: Arguments) {
     const stopBtn = createControlBtn({
         iconName: STOP_ICON_NAME,
         tooltipTxt: "Stop",
-        onClick
+        onClick: () => store.dispatch(playbackStatusChanged('Stopped'))
     });
 
     return {

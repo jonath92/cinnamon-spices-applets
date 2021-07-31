@@ -29,14 +29,13 @@ export function createInfoSection() {
         channelInfoItem.setText(newName)
     })
 
+    watchSelector(() => getState().mpv.song_title, (newTitle) => {
+        songInfoItem.setText(newTitle)
+    })
 
-    function setSongTitle(songTitle: string) {
-        songInfoItem.setText(songTitle)
-    }
 
     return {
         actor: infoSection,
-        setSongTitle,
     }
 
 }

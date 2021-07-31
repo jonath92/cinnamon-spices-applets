@@ -331,6 +331,11 @@ export function createMpvApi(args: Arguments) {
     }
 
     function stop() {
+        global.log('stop called')
+        const stack = new Error().stack
+
+        global.log(JSON.stringify(stack))
+
         if (getPlaybackStatus() === "Stopped") return
 
         mediaServerPlayer.StopSync()

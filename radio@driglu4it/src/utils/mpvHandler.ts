@@ -1,13 +1,11 @@
 import { createMpvApi } from '../lib/api/Mpv'
-import { playbackStatusChanged, urlChanged, volumeChanged } from '../slices/mpvSlice'
+import { playbackStatusChanged, titleChanged, urlChanged, volumeChanged } from '../slices/mpvSlice'
 import { getState, store, watchSelector } from '../Store'
 import { AdvancedPlaybackStatus } from '../types'
 
 
 interface Arguments {
     onPlaybackstatusChanged: (playbackStatus: AdvancedPlaybackStatus) => void,
-    onUrlChanged: (url: string) => void,
-    onTitleChanged: (title: string) => void,
     /** length in seconds */
     onLengthChanged: (length: number) => void,
     /** position in seconds */
@@ -23,8 +21,6 @@ export function createMpvHandler(args: Arguments) {
 
     const {
         onPlaybackstatusChanged,
-        onUrlChanged,
-        onTitleChanged,
         onLengthChanged,
         onPositionChanged,
         checkUrlValid,
@@ -42,15 +38,18 @@ export function createMpvHandler(args: Arguments) {
     }
 
     function handleUrlChanged(url: string) {
-        onUrlChanged(url)
         store.dispatch(urlChanged(url))
+    }
+
+    function handleTitleChanged(title: string) {
+        store.dispatch(titleChanged(title))
     }
 
     const mpvHandler = createMpvApi({
         onPlaybackstatusChanged: handlePlaybackstatusChanged,
         onUrlChanged: handleUrlChanged,
         onVolumeChanged: handleVolumeChanged,
-        onTitleChanged,
+        onTitleChanged: handleTitleChanged,
         onLengthChanged,
         onPositionChanged,
         checkUrlValid,
@@ -63,13 +62,13 @@ export function createMpvHandler(args: Arguments) {
     })
 
     watchSelector(() => getState().settings.initialVolume, (newValue) => {
-        global.log('initialVolume watcher called')
         mpvHandler.setInitialVolume(newValue)
     })
 
     watchSelector(() => getState().mpv.playbackStatus, (newValue) => {
         if (newValue === 'Stopped') {
-            mpvHandler.setInitialVolume(getState().mpv.volume)
+            //mpvHandler.setInitialVolume(getState().mpv.volume)
+            // mpvHandler.stop()
         }
     })
 
