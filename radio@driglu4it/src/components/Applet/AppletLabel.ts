@@ -1,4 +1,4 @@
-import { store, watchStateProp } from "../../Store"
+import { store, watchSelector } from "../../Store"
 
 const { Label } = imports.gi.St
 const { EllipsizeMode } = imports.gi.Pango
@@ -22,7 +22,7 @@ export function createAppletLabel() {
     let text: string
 
 
-    watchStateProp(() => store.getState().mpv.playbackStatus, (newValue) => {
+    watchSelector(() => store.getState().mpv.playbackStatus, (newValue) => {
         if (newValue === 'Stopped') {
             setText(null)
         }

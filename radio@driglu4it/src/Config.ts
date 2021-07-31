@@ -1,5 +1,6 @@
 import { Channel, AppletIcon } from "./types";
-import { store, watchStateProp } from "./Store";
+import { store, watchSelector } from "./Store";
+import { userStationsChanged } from "./slices/settingsSlice";
 
 const { AppletSettings } = imports.ui.settings;
 
@@ -64,8 +65,10 @@ export const createConfig = (args: Arguments) => {
 
     appletSettings.bind('last-volume', 'lastVolume')
 
-    appletSettings.bind('tree', "userStations",
-        onMyStationsChanged)
+    appletSettings.bind('tree', "userStations", (stations: Channel[]) => {
+        store.dispatch(userStationsChanged(stations))
+        onMyStationsChanged(stations)
+    })
 
     appletSettings.bind('last-url', 'lastUrl')
 
@@ -73,7 +76,7 @@ export const createConfig = (args: Arguments) => {
         () => handleMusicDirChanged())
 
 
-    watchStateProp(() => store.getState().mpv.playbackStatus, (newValue) => {
+    watchSelector(() => store.getState().mpv.playbackStatus, (newValue) => {
 
         if (newValue === 'Stopped') {
             settingsObject.lastVolume = store.getState().mpv.volume
@@ -82,7 +85,7 @@ export const createConfig = (args: Arguments) => {
     })
 
 
-    // store.dispatch()
+    store.dispatch(userStationsChanged(settingsObject.userStations))
 
     function getInitialVolume() {
         const {

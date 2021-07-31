@@ -21,10 +21,6 @@ export class ChannelStore {
     }
 
 
-    public get activatedChannelNames() {
-        return this._channelList.map(channel => channel.name)
-    }
-
     // TODO: what is when two Channels have the same Name or Url? :O
     public getChannelName(channelUrl: string) {
         const channel = this._channelList.find(cnl => cnl.url === channelUrl)

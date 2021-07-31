@@ -20,12 +20,10 @@ const settingsSlice = createSlice({
     }
 })
 
-export const { userStationsChanged } = settingsSlice.actions
+// Actions
+export const {
+    userStationsChanged
+} = settingsSlice.actions
 
-
-export const action = settingsSlice.actions
-
-
-global.log(action.userStationsChanged.type)
 
 export default settingsSlice.reducer

@@ -1,26 +1,53 @@
 import { createSubMenu } from "../../lib/ui/PopupSubMenu";
 import { createChannelMenuItem } from "./ChannelMenuItem";
 import { AdvancedPlaybackStatus } from "../../types";
+import { selectCurrentChannelName, store, watchSelector } from "../../Store";
 
 interface Arguments {
-    stationNames: string[],
     onChannelClicked: (name: string) => void
 }
+
+function selectActivatedChannelNames(): string[] {
+
+    const channelItems = store.getState().settings.userStations
+
+    return channelItems.flatMap(channel => {
+        return channel.inc ? channel.name : []
+    })
+}
+
+function selectPlaybackStatus(): AdvancedPlaybackStatus {
+    return store.getState().mpv.playbackStatus
+}
+
 
 export function createChannelList(args: Arguments) {
 
     const {
-        stationNames,
         onChannelClicked
     } = args
 
     const subMenu = createSubMenu({ text: 'My Stations' })
 
+    // the channelItems are saved here to the map and to the container as on the container only the reduced name are shown. Theoretically it therefore couldn't be differentiated between two long channel names with the same first 30 (or so) characters   
+    const channelItems = new Map<string, ReturnType<typeof createChannelMenuItem>>()
     let currentChannelName: string
     let playbackStatus: AdvancedPlaybackStatus = 'Stopped'
 
-    // the channelItems are saved here to the map and to the container as on the container only the reduced name are shown. Theoretically it therefore couldn't be differentiated between two long channel names with the same first 30 (or so) characters   
-    const channelItems = new Map<string, ReturnType<typeof createChannelMenuItem>>()
+    // Todo: why needed??
+    setStationNames(selectActivatedChannelNames())
+
+    watchSelector(selectActivatedChannelNames, (newStationNames) => {
+        setStationNames(newStationNames)
+    })
+
+    watchSelector(selectPlaybackStatus, (newStatus) => {
+        setPlaybackStatus(newStatus)
+    })
+
+    watchSelector(selectCurrentChannelName, (newName) => {
+        setCurrentChannel(newName)
+    })
 
     function setStationNames(names: string[]) {
         channelItems.clear()
@@ -68,12 +95,7 @@ export function createChannelList(args: Arguments) {
         currentChannelName = name
     }
 
-    setStationNames(stationNames)
-
     return {
-        actor: subMenu.actor,
-        setPlaybackStatus,
-        setStationNames,
-        setCurrentChannel
+        actor: subMenu.actor
     }
 }

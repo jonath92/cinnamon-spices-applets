@@ -1,5 +1,5 @@
 import { createMpvApi } from '../lib/api/Mpv'
-import { playbackStatusChanged, volumeChanged } from '../slices/mpvSlice'
+import { playbackStatusChanged, urlChanged, volumeChanged } from '../slices/mpvSlice'
 import { store } from '../Store'
 import { AdvancedPlaybackStatus } from '../types'
 
@@ -45,9 +45,14 @@ export function createMpvHandler(args: Arguments) {
         store.dispatch(playbackStatusChanged(playbackStatus))
     }
 
+    function handleUrlChanged(url: string) {
+        onUrlChanged(url)
+        store.dispatch(urlChanged(url))
+    }
+
     const mpvHandler = createMpvApi({
         onPlaybackstatusChanged: handlePlaybackstatusChanged,
-        onUrlChanged,
+        onUrlChanged: handleUrlChanged,
         onVolumeChanged: handleVolumeChanged,
         onTitleChanged,
         onLengthChanged,

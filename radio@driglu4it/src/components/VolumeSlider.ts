@@ -1,7 +1,7 @@
 import { createActivWidget } from "../lib/ui/ActivWidget";
 import { createSlider } from "../lib/ui/Slider";
 import { getVolumeIcon, POPUP_ICON_CLASS, POPUP_MENU_ITEM_CLASS, VOLUME_DELTA } from '../consts'
-import { store, watchStateProp } from "../Store";
+import { store, watchSelector } from "../Store";
 
 const { BoxLayout, Icon, IconType } = imports.gi.St
 const { Tooltip } = imports.ui.tooltips
@@ -34,7 +34,7 @@ export function createVolumeSlider(args: Arguments) {
         onValueChanged: handleSliderValueChanged
     })
 
-    watchStateProp(() => store.getState().mpv.volume, (newValue) => {
+    watchSelector(() => store.getState().mpv.volume, (newValue) => {
         setVolume(newValue)
     })
 

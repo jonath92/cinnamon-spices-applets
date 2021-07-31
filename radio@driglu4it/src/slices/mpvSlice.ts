@@ -4,17 +4,19 @@ import { createSlice, PayloadAction } from '@reduxjs/toolkit'
 interface MpvState {
     volume: number,
     song_title: string,
-    playbackStatus: AdvancedPlaybackStatus
+    playbackStatus: AdvancedPlaybackStatus,
+    url: string
 }
 
 const initialState: MpvState = {
     volume: null,
     song_title: null,
-    playbackStatus: 'Stopped'
+    playbackStatus: 'Stopped',
+    url: null
 }
 
-// TODO: can it be improved with createEntityAdapter? https://redux.js.org/tutorials/fundamentals/part-8-modern-redux#using-createentityadapter
 
+// TODO: can it be simplified with createEntityAdapter? https://redux.js.org/tutorials/fundamentals/part-8-modern-redux#using-createentityadapter
 const mpvSlice = createSlice({
     name: 'mpv',
     initialState,
@@ -28,9 +30,21 @@ const mpvSlice = createSlice({
         playbackStatusChanged(state, action: PayloadAction<AdvancedPlaybackStatus>) {
             state.playbackStatus = action.payload
         },
+        urlChanged(state, action: PayloadAction<string>) {
+            state.url = action.payload
+        }
     },
 })
 
-export const { volumeChanged, titleChanged, playbackStatusChanged } = mpvSlice.actions
+// Actions
+export const {
+    volumeChanged,
+    titleChanged,
+    playbackStatusChanged,
+    urlChanged
+} = mpvSlice.actions
+
 
 export default mpvSlice.reducer
+
+
