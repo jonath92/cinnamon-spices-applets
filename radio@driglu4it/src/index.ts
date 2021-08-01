@@ -23,7 +23,7 @@ import { notify } from './components/Notifications/GenericNotification';
 import { createSeeker } from './components/Seeker';
 import { VOLUME_DELTA } from './consts';
 import { initPolyfills } from './polyfill';
-import { createMpvHandler } from './utils/mpvHandler';
+import { createMpvHandler, useMpvHandler } from './utils/mpvHandler';
 import { createRadioPopupMenu } from './components/PopupMenu/PopupMenu';
 
 const { ScrollDirection } = imports.gi.Clutter;
@@ -43,10 +43,15 @@ export function main(args: Arguments): imports.ui.applet.Applet {
         instanceId
     } = args
 
-
     initPolyfills()
 
-    let mpvHandler: ReturnType<typeof createMpvHandler>
+    createMpvHandler({
+        onLengthChanged: hanldeLengthChanged,
+        onPositionChanged: handlePositionChanged,
+        onPlaybackstatusChanged: handlePlaybackstatusChanged,
+    })
+
+    const mpvHandler = useMpvHandler()
 
     let installationInProgress = false
 
@@ -75,6 +80,7 @@ export function main(args: Arguments): imports.ui.applet.Applet {
         orientation
     })
 
+    // TODO configs should be on top
     const configs = createConfig({
         uuid: __meta.uuid,
         instanceId,
@@ -143,13 +149,6 @@ export function main(args: Arguments): imports.ui.applet.Applet {
 
     popupMenu.add_child(radioActiveSection)
 
-    mpvHandler = createMpvHandler({
-        onLengthChanged: hanldeLengthChanged,
-        onPositionChanged: handlePositionChanged,
-        checkUrlValid: (url) => channelStore.checkUrlValid(url),
-        onPlaybackstatusChanged: handlePlaybackstatusChanged,
-        lastUrl: configs.lastUrl,
-    })
 
     // CALLBACKS
 
@@ -203,23 +202,23 @@ export function main(args: Arguments): imports.ui.applet.Applet {
     function handlePlaybackstatusChanged(playbackstatus: AdvancedPlaybackStatus) {
 
         if (playbackstatus === 'Stopped') {
-            radioActiveSection.hide()
-            popupMenu.close()
+            radioActiveSection?.hide()
+            popupMenu?.close()
         }
 
         if (playbackstatus !== 'Stopped' && !radioActiveSection.visible)
-            radioActiveSection.show()
+            radioActiveSection?.show()
 
-        appletIcon.setPlaybackStatus(playbackstatus)
+        appletIcon?.setPlaybackStatus(playbackstatus)
 
         if (playbackstatus === 'Playing' || playbackstatus === 'Paused') {
-            playPauseBtn.setPlaybackStatus(playbackstatus)
+            playPauseBtn?.setPlaybackStatus(playbackstatus)
         }
 
     }
 
     function hanldeLengthChanged(length: number) {
-        seeker.setLength(length)
+        seeker?.setLength(length)
     }
 
     function handlePositionChanged(position: number) {

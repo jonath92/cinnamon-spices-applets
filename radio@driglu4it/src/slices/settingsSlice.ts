@@ -1,15 +1,16 @@
 import { Channel } from "../types";
 import { createSlice, PayloadAction } from '@reduxjs/toolkit'
 
-
 interface SettingsState {
     userStations: Channel[],
-    initialVolume: number
+    initialVolume: number,
+    lastUrl: string
 }
 
 const initialState: SettingsState = {
     userStations: [],
-    initialVolume: null
+    initialVolume: null,
+    lastUrl: null
 }
 
 const settingsSlice = createSlice({
@@ -21,14 +22,18 @@ const settingsSlice = createSlice({
         },
         initialVolumeChanged(state, action: PayloadAction<number>) {
             state.initialVolume = action.payload
+        },
+        lastUrlChanged(state, action: PayloadAction<string>) {
+            state.lastUrl = action.payload
         }
     }
 })
 
-// Actions
+// Action Creators
 export const {
     userStationsChanged,
-    initialVolumeChanged
+    initialVolumeChanged,
+    lastUrlChanged
 } = settingsSlice.actions
 
 

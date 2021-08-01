@@ -1,6 +1,6 @@
 import { Channel, AppletIcon } from "./types";
 import { getState, store, watchSelector } from "./Store";
-import { initialVolumeChanged, userStationsChanged } from "./slices/settingsSlice";
+import { initialVolumeChanged, lastUrlChanged, userStationsChanged } from "./slices/settingsSlice";
 
 const { AppletSettings } = imports.ui.settings;
 
@@ -115,6 +115,7 @@ export const createConfig = (args: Arguments) => {
 
     store.dispatch(userStationsChanged(getFilteredUserStations()))
     store.dispatch(initialVolumeChanged(getInitialVolume()))
+    store.dispatch(lastUrlChanged(settingsObject.lastUrl))
 
 
     onIconChanged(settingsObject.iconType)
@@ -122,7 +123,7 @@ export const createConfig = (args: Arguments) => {
     onIconColorPausedChanged(settingsObject.symbolicIconColorWhenPaused)
     onChannelOnPanelChanged(settingsObject.channelNameOnPanel)
 
-    // TODO also onMyStationChanged should be called (and removed as arg from  ChannelStore)
+
 
     watchSelector(() => getState().mpv.playbackStatus, (newValue) => {
 

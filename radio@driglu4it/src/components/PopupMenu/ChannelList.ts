@@ -3,6 +3,7 @@ import { createChannelMenuItem } from "./ChannelMenuItem";
 import { AdvancedPlaybackStatus, Channel } from "../../types";
 import { selectCurrentChannelName, store, watchSelector } from "../../Store";
 import { urlChanged } from "../../slices/mpvSlice";
+import { useMpvHandler } from "../../utils/mpvHandler";
 
 function selectChannels(): Channel[] {
     return store.getState().settings.userStations
@@ -20,6 +21,7 @@ export function createChannelList() {
     const channelItems = new Map<string, ReturnType<typeof createChannelMenuItem>>()
     let currentChannelName: string
     let playbackStatus: AdvancedPlaybackStatus = 'Stopped'
+    const mpvHandler = useMpvHandler()
 
     setChannels(selectChannels())
 
@@ -48,7 +50,7 @@ export function createChannelList() {
 
             const channelItem = createChannelMenuItem({
                 channelName: cnl.name,
-                onActivated: () => store.dispatch(urlChanged(cnl.url)),
+                onActivated: () => mpvHandler.setUrl(cnl.url),
                 playbackStatus: channelPlaybackstatus
             })
 

@@ -1,6 +1,6 @@
 import { createMpvApi } from '../lib/api/mpvApi'
 import { playbackStatusChanged, titleChanged, urlChanged, volumeChanged } from '../slices/mpvSlice'
-import { getState, store, watchSelector } from '../Store'
+import { getState, store, watchSelector, } from '../Store'
 import { AdvancedPlaybackStatus } from '../types'
 
 
@@ -10,21 +10,34 @@ interface Arguments {
     onLengthChanged: (length: number) => void,
     /** position in seconds */
     onPositionChanged: (position: number) => void,
-    checkUrlValid: (url: string) => boolean,
-    /** the lastUrl is used to determine if mpv is initially (i.e. on cinnamon restart) running for radio purposes and not for something else. It is not sufficient to get the url from a dbus interface and check if the url is valid because some streams (such as .pls streams) change their url dynamically. This approach in not 100% foolproof but probably the best possible approach */
-    lastUrl: string,
 }
 
 
+let mpvHandler: ReturnType<typeof createMpvApi>
+
+
+function selectValidUrls() {
+    return getState().settings.userStations.map(channel => channel.url)
+}
+
+function selectInitialVolume() {
+    return getState().settings.initialVolume
+}
+
+
+// TODO export of create and use necessary? Wouldn't a getFunction be sufficient?
 
 export function createMpvHandler(args: Arguments) {
+
+    if (mpvHandler) {
+        global.logWarning('createMpvHandler should be called only once')
+        return
+    }
 
     const {
         onPlaybackstatusChanged,
         onLengthChanged,
         onPositionChanged,
-        checkUrlValid,
-        lastUrl,
     } = args
 
 
@@ -45,33 +58,26 @@ export function createMpvHandler(args: Arguments) {
         store.dispatch(titleChanged(title))
     }
 
-    const mpvHandler = createMpvApi({
+    mpvHandler = createMpvApi({
         onPlaybackstatusChanged: handlePlaybackstatusChanged,
         onUrlChanged: handleUrlChanged,
         onVolumeChanged: handleVolumeChanged,
         onTitleChanged: handleTitleChanged,
         onLengthChanged,
         onPositionChanged,
-        checkUrlValid,
-        lastUrl,
-        initialVolume: getState().settings.initialVolume
+        lastUrl: getState().settings.lastUrl,
+        initialVolume: selectInitialVolume(),
+        validUrls: selectValidUrls()
     })
 
-    watchSelector(() => getState().mpv.url, (newValue) => {
-        mpvHandler.setUrl(newValue)
-    })
 
-    watchSelector(() => getState().settings.initialVolume, (newValue) => {
-        mpvHandler.setInitialVolume(newValue)
-    })
+    watchSelector(selectInitialVolume, (newValue) => mpvHandler.setInitialVolume(newValue))
+    watchSelector(selectValidUrls, (newValue) => mpvHandler.setValidUrls(newValue))
+}
 
-    watchSelector(() => getState().mpv.playbackStatus, (newValue) => {
-        if (newValue === 'Stopped') {
-            mpvHandler.setInitialVolume(getState().mpv.volume)
-            mpvHandler.stop()
-        }
-    })
+export function useMpvHandler() {
+    if (!mpvHandler)
+        throw new Error('createMpvHandler must be called once before this function')
 
     return mpvHandler
-
 }

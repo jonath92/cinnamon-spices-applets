@@ -16,11 +16,10 @@ export interface Arguments {
     onLengthChanged: (length: number) => void,
     /** position in seconds */
     onPositionChanged: (position: number) => void,
-    checkUrlValid: (url: string) => boolean,
     /** the lastUrl is used to determine if mpv is initially (i.e. on cinnamon restart) running for radio purposes and not for something else. It is not sufficient to get the url from a dbus interface and check if the url is valid because some streams (such as .pls streams) change their url dynamically. This approach in not 100% foolproof but probably the best possible approach */
     lastUrl: string,
-
     initialVolume: number,
+    validUrls: string[]
 }
 
 export function createMpvApi(args: Arguments) {
@@ -31,12 +30,12 @@ export function createMpvApi(args: Arguments) {
         onTitleChanged,
         onLengthChanged,
         onPositionChanged,
-        checkUrlValid,
         lastUrl,
     } = args
 
     let {
-        initialVolume
+        initialVolume,
+        validUrls
     } = args
 
     const dbus = getDBus()
@@ -133,7 +132,7 @@ export function createMpvApi(args: Arguments) {
                 const title = metadata?.['xesam:title']
 
                 const length = metadata?.["mpris:length"]
-                const newUrlValid = checkUrlValid(url)
+                const newUrlValid = validUrls.includes(url)
                 const relevantEvent = newUrlValid || currentUrl
 
                 if (!relevantEvent) return // happens when mpv is running with a file/stream not managed by the applet
@@ -405,6 +404,8 @@ export function createMpvApi(args: Arguments) {
         setInitialVolume: (volume: number) => initialVolume = volume,
         // it is very confusing but dbus must be returned!
         // Otherwilse all listeners stop working after about 20 seconds which is fucking difficult to debug
-        dbus
+        dbus,
+
+        setValidUrls: (newUrls: string[]) => validUrls = newUrls
     }
 }
