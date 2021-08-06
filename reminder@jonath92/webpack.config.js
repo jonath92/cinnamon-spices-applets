@@ -15,7 +15,16 @@ const libraryName = `${appletShortName}Applet`
 
 // TODO: write the content of applet.js to file
 
-const buildPath = path.resolve(__dirname, `files/${appletFullName}/${cinnamonVersion}/`)
+const buildPath = path.resolve(__dirname, `files/${appletFullName}/${cinnamonVersion}`)
+
+
+fs.mkdirSync(buildPath, { recursive: true })
+
+const appletJsPath = buildPath + '/applet.js'
+console.log(buildPath)
+
+
+fs.writeFileSync(appletJsPath, 'jo')
 
 
 /** @type {import('webpack').Configuration} */
