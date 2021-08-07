@@ -917,6 +917,7 @@ declare namespace imports.gi.Soup {
 		public data: string;
 		public length: number;
 
+		public append(data: Uint8Array): void;
 
 		public append(use: MemoryUse, data: number[], length: number): void;
 		public append_buffer(buffer: Buffer): void;

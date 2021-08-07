@@ -10,6 +10,7 @@ const { get_home_dir } = imports.gi.GLib;
 const CONFIG_DIR = `${get_home_dir()}/.cinnamon/configs/${__meta.uuid}`;
 const { new_for_path } = imports.gi.Gio.File
 
+const ByteArray = imports.byteArray;
 
 let refreshToken: string
 let accessToken: string
@@ -28,6 +29,12 @@ interface HttpError {
 }
 
 // not complete
+interface Headers {
+    'Content-Type': 'application/json' | 'application/x-www-form-urlencoded',
+    'Authorization'?: string
+}
+
+// not complete
 interface TokenResponse {
     access_token: string,
     refresh_token: string
@@ -40,8 +47,7 @@ interface LoadJsonArgs {
     method?: Method,
     bodyParams: HTTPParams,
     queryParams?: HTTPParams,
-    contentType?: string,
-    useAuth?: boolean
+    headers: Headers
 }
 
 interface HTTPParams {
@@ -59,22 +65,25 @@ export async function getSoonEvents() {
 async function refreshTokens() {
     const url = 'https://login.microsoftonline.com/common/oauth2/v2.0/token'
 
-    const params = {
-        client_id: CLIENT_ID,
-        client_secret: CLIENT_SECRET,
-        grant_type: "refresh_token",
-        refresh_token: refreshToken
-    }
-
     try {
         const response = await loadJsonAsync({
             method: 'POST',
             url,
-            bodyParams: params
+            bodyParams: {
+                client_id: CLIENT_ID,
+                client_secret: CLIENT_SECRET,
+                grant_type: "refresh_token",
+                refresh_token: refreshToken
+            },
+            headers: {
+                "Content-Type": 'application/x-www-form-urlencoded'
+            }
         }) as TokenResponse
 
         accessToken = response.access_token
+        // TODO: save RefreshToken to file as only valid for 90 days
         refreshToken = response.refresh_token
+
     } catch (error) {
         global.logError(`couldn't refresh Token, error: ${JSON.stringify(error)}`)
     }
@@ -133,8 +142,7 @@ function loadJsonAsync(args: LoadJsonArgs) {
         method = 'GET',
         bodyParams,
         queryParams,
-        contentType = 'application/x-www-form-urlencoded',
-        useAuth = false
+        headers
     } = args
 
     const query = queryParams ? `${url}?${stringify(queryParams)}` : url
@@ -142,19 +150,13 @@ function loadJsonAsync(args: LoadJsonArgs) {
 
     const bodyParamsStringified = stringify(bodyParams)
 
-    message.set_request(contentType, MemoryUse.COPY, bodyParamsStringified)
+    Object.entries(headers).forEach(([key, value]) => {
+        message.request_headers.append(key, value)
+    })
 
-    if (useAuth) {
-        global.log('added auth')
-        message.request_headers.append('Authorization', `Bearer ${accessToken}`)
-    }
+    message.request_body.append(ByteArray.fromString(bodyParamsStringified, 'UTF-16'))
 
-    if (contentType !== 'application/x-www-form-urlencoded') {
-        //message.request_headers.append('Content-Type', 'application/x-www-form-urlencoded')
-        // @ts-ignore
-        message.set_content_type('application/x-www-form-urlencoded')
-
-    }
+    //message.set_request(contentType, MemoryUse.COPY, bodyParamsStringified)
 
 
     return new Promise((resolve, reject) => {
