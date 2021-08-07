@@ -20,7 +20,7 @@ interface Arguments {
 }
 
 
-function main(args: Arguments) {
+export function main(args: Arguments) {
 
     const {
         orientation,
