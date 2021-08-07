@@ -37,8 +37,11 @@ type Method = "GET" | "POST" | "PUT" | "DELETE";
 
 interface LoadJsonArgs {
     url: string,
-    method: Method,
-    bodyParams: HTTPParams
+    method?: Method,
+    bodyParams: HTTPParams,
+    queryParams?: HTTPParams,
+    contentType?: string,
+    useAuth?: boolean
 }
 
 interface HTTPParams {
@@ -49,6 +52,7 @@ interface HTTPParams {
 export async function getSoonEvents() {
     !refreshToken && await loadRefreshTokenFromSettings()
     !accessToken && await refreshTokens()
+    loadCalendarData()
 }
 
 
@@ -121,36 +125,48 @@ function checkForHttpError(message: imports.gi.Soup.Message): HttpError | false 
 
 }
 
-
 function loadJsonAsync(args: LoadJsonArgs) {
 
     global.log('loadJsonAsync Called')
     const {
         url,
         method = 'GET',
-        bodyParams
+        bodyParams,
+        queryParams,
+        contentType = 'application/x-www-form-urlencoded',
+        useAuth = false
     } = args
 
-    const message = Message.new(method, url)
+    const query = queryParams ? `${url}?${stringify(queryParams)}` : url
+    const message = Message.new(method, query)
 
     const bodyParamsStringified = stringify(bodyParams)
 
-    // @ts-ignore
-    message.set_request('application/x-www-form-urlencoded', MemoryUse.COPY, bodyParamsStringified)
+    message.set_request(contentType, MemoryUse.COPY, bodyParamsStringified)
+
+    if (useAuth) {
+        global.log('added auth')
+        message.request_headers.append('Authorization', `Bearer ${accessToken}`)
+    }
+
+    if (contentType !== 'application/x-www-form-urlencoded') {
+        //message.request_headers.append('Content-Type', 'application/x-www-form-urlencoded')
+        // @ts-ignore
+        message.set_content_type('application/x-www-form-urlencoded')
+
+    }
 
 
     return new Promise((resolve, reject) => {
         httpSession.queue_message(message, (session, message) => {
-            const error = checkForHttpError(message);
 
-            global.log(error, JSON.stringify(error))
+            const error = checkForHttpError(message);
             if (error) {
                 reject(error)
                 return
             }
 
-            const data = JSON.stringify(message.response_body.data)
-            global.log(data)
+            const data = JSON.parse(message.response_body.data)
             resolve(data)
         })
     })
@@ -158,4 +174,41 @@ function loadJsonAsync(args: LoadJsonArgs) {
 
 
 
+}
+
+async function loadCalendarData() {
+    global.log('loadCalendar Data called')
+
+    // TODO only for one day
+    const nowMillisecs = Date.now()
+    const nextWeekMillisecs = nowMillisecs + 604_800_000
+
+    const queryParams = {
+        startdatetime: new Date(nowMillisecs).toISOString(),
+        endDateTime: new Date(nextWeekMillisecs).toISOString()
+    }
+
+    const query = `https://graph.microsoft.com/v1.0/me/calendarview?${stringify(queryParams)}`;
+
+    const message = Message.new('GET', query)
+
+    message.request_headers.append(
+        'Content-Type',
+        'application/json'
+    )
+
+    global.log('this line first called')
+
+
+    message.request_headers.append(
+        'Authorization',
+        `Bearer ${accessToken}`
+    )
+
+    global.log('this line called')
+
+    httpSession.queue_message(message, (session, message) => {
+        const data = JSON.parse(message.response_body.data)
+        global.log(JSON.stringify(data))
+    })
 }
