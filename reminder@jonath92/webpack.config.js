@@ -3,6 +3,7 @@ const path = require('path');
 const webpack = require('webpack');
 const fs = require('fs')
 const os = require('os')
+const { exec } = require("child_process");
 
 // Constants which might need to be changed when using this file for other apples
 const DESCRIPTION = "Get Reminder for Office 365 accounts"
@@ -63,6 +64,11 @@ module.exports = {
             ) => {
                 compiler.hooks.afterEmit.tap('afterEmitPlugin', async (compilation) => {
                     await copyDir(BUILD_DIR, LOCAL_TESTING_DIR)
+                    exec('xdotool key ctrl+alt+0xff1b', (error, stdout, stderr) => {
+                        if (stderr){
+                            console.log(`stderr: ${stderr}`);
+                        }
+                    })
                 })
             }
         }
@@ -74,6 +80,18 @@ function createAppletJs() {
 
     const APPLET_JS_PATH = BUILD_DIR + '/applet.js'
     fs.writeFileSync(APPLET_JS_PATH, APPLET_JS_CONTENT)
+}
+
+function createMetadata(){
+
+    const metadata = {
+        uuid: UUID, 
+        name: NAME, 
+        description: DESCRIPTION   
+    }
+
+    const METADA_PATH = BUILD_DIR + '/metadata.json'
+    fs.writeFileSync(METADA_PATH, JSON.stringify(metadata))
 }
 
 async function copyDir  (src, dest) {
@@ -93,16 +111,4 @@ async function copyDir  (src, dest) {
           : fs.copyFileSync(srcPath, destPath)
       })
     )
-}
-
-function createMetadata(){
-
-    const metadata = {
-        uuid: UUID, 
-        name: NAME, 
-        description: DESCRIPTION   
-    }
-
-    const METADA_PATH = BUILD_DIR + '/metadata.json'
-    fs.writeFileSync(METADA_PATH, JSON.stringify(metadata))
 }

@@ -1550,10 +1550,10 @@ declare namespace imports.gi.Soup {
 
 
 	enum MemoryUse {
-		static = 0,
-		take = 1,
-		copy = 2,
-		temporary = 3
+		STATIC = 0,
+		TAKE = 1,
+		COPY = 2,
+		TEMPORARY = 3
 	}
 
 
