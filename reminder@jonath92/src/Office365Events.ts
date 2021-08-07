@@ -45,7 +45,7 @@ type Method = "GET" | "POST" | "PUT" | "DELETE";
 interface LoadJsonArgs {
     url: string,
     method?: Method,
-    bodyParams: HTTPParams,
+    bodyParams?: HTTPParams,
     queryParams?: HTTPParams,
     headers: Headers
 }
@@ -136,7 +136,6 @@ function checkForHttpError(message: imports.gi.Soup.Message): HttpError | false 
 
 function loadJsonAsync(args: LoadJsonArgs) {
 
-    global.log('loadJsonAsync Called')
     const {
         url,
         method = 'GET',
@@ -148,16 +147,14 @@ function loadJsonAsync(args: LoadJsonArgs) {
     const query = queryParams ? `${url}?${stringify(queryParams)}` : url
     const message = Message.new(method, query)
 
-    const bodyParamsStringified = stringify(bodyParams)
-
     Object.entries(headers).forEach(([key, value]) => {
         message.request_headers.append(key, value)
     })
 
-    message.request_body.append(ByteArray.fromString(bodyParamsStringified, 'UTF-16'))
-
-    //message.set_request(contentType, MemoryUse.COPY, bodyParamsStringified)
-
+    if (bodyParams) {
+        const bodyParamsStringified = stringify(bodyParams)
+        message.request_body.append(ByteArray.fromString(bodyParamsStringified, 'UTF-16'))
+    }
 
     return new Promise((resolve, reject) => {
         httpSession.queue_message(message, (session, message) => {
@@ -174,8 +171,6 @@ function loadJsonAsync(args: LoadJsonArgs) {
     })
 
 
-
-
 }
 
 async function loadCalendarData() {
@@ -185,32 +180,22 @@ async function loadCalendarData() {
     const nowMillisecs = Date.now()
     const nextWeekMillisecs = nowMillisecs + 604_800_000
 
-    const queryParams = {
-        startdatetime: new Date(nowMillisecs).toISOString(),
-        endDateTime: new Date(nextWeekMillisecs).toISOString()
+    try {
+        const response = await loadJsonAsync({
+            url: 'https://graph.microsoft.com/v1.0/me/calendarview',
+            headers: {
+                "Content-Type": 'application/json',
+                Authorization: `Bearer ${accessToken}`
+            },
+            queryParams: {
+                startdatetime: new Date(nowMillisecs).toISOString(),
+                endDateTime: new Date(nextWeekMillisecs).toISOString()
+            }
+        })
+
+        global.log(JSON.stringify(response))
+    } catch (error) {
+        global.logError("Couldn't get calendar data", JSON.stringify(error))
     }
 
-    const query = `https://graph.microsoft.com/v1.0/me/calendarview?${stringify(queryParams)}`;
-
-    const message = Message.new('GET', query)
-
-    message.request_headers.append(
-        'Content-Type',
-        'application/json'
-    )
-
-    global.log('this line first called')
-
-
-    message.request_headers.append(
-        'Authorization',
-        `Bearer ${accessToken}`
-    )
-
-    global.log('this line called')
-
-    httpSession.queue_message(message, (session, message) => {
-        const data = JSON.parse(message.response_body.data)
-        global.log(JSON.stringify(data))
-    })
 }
