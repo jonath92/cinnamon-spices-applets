@@ -1,4 +1,5 @@
 import { ReminderApplet } from "./Applet";
+import { getSoonEvents } from "./Office365Events";
 
 
 interface Arguments {
@@ -15,6 +16,11 @@ export function main(args: Arguments) {
         instanceId: instance_id
     } = args
 
+    const reminderApplet = new ReminderApplet(orientation, panel_height, instance_id)
 
-    return new ReminderApplet(orientation, panel_height, instance_id)
+    reminderApplet.on_applet_clicked = () => getSoonEvents()
+
+
+    return reminderApplet
+
 }
