@@ -17,6 +17,8 @@
     "webpack-cli": "^4.7.2"
   },
   "dependencies": {
+    "cinnamonpopup": "^1.0.1",
+    "jjainexegi": "^5.0.0",
     "query-string": "^7.0.1"
   }
 }

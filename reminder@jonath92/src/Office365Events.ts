@@ -54,13 +54,36 @@ interface HTTPParams {
     [key: string]: boolean | string | number;
 }
 
-
-export async function getSoonEvents() {
-    !refreshToken && await loadRefreshTokenFromSettings()
-    !accessToken && await refreshTokens()
-    loadCalendarData()
+interface CalendarTime {
+    dateTime: string,
+    timeZone: string
 }
 
+// not complete
+export interface CalendarEvent {
+    id: string,
+    subject: string,
+    webLink: string,
+    start: CalendarTime
+}
+
+
+
+
+export async function getTodayEvents() {
+
+    let calendarData: CalendarEvent[]
+
+    try {
+        !refreshToken && await loadRefreshTokenFromSettings()
+        !accessToken && await refreshTokens()
+        calendarData = await loadCalendarData()
+    } catch (error) {
+        global.logError("couldn't get soon occuring events", error);
+    }
+
+    return calendarData
+}
 
 async function refreshTokens() {
     const url = 'https://login.microsoftonline.com/common/oauth2/v2.0/token'
@@ -105,7 +128,6 @@ async function loadRefreshTokenFromSettings() {
 
     if (!refreshToken) throw new Error('refresh Token is undefined')
 }
-
 
 function checkForHttpError(message: imports.gi.Soup.Message): HttpError | false {
 
@@ -173,29 +195,35 @@ function loadJsonAsync(args: LoadJsonArgs) {
 
 }
 
-async function loadCalendarData() {
-    global.log('loadCalendar Data called')
+async function loadCalendarData(): Promise<CalendarEvent[]> {
 
-    // TODO only for one day
+    // TODO only for 15 mins
     const nowMillisecs = Date.now()
     const nextWeekMillisecs = nowMillisecs + 604_800_000
 
-    try {
-        const response = await loadJsonAsync({
-            url: 'https://graph.microsoft.com/v1.0/me/calendarview',
-            headers: {
-                "Content-Type": 'application/json',
-                Authorization: `Bearer ${accessToken}`
-            },
-            queryParams: {
-                startdatetime: new Date(nowMillisecs).toISOString(),
-                endDateTime: new Date(nextWeekMillisecs).toISOString()
-            }
-        })
+    return new Promise(async (resolve, reject) => {
+        try {
+            const response = await loadJsonAsync({
+                url: 'https://graph.microsoft.com/v1.0/me/calendarview',
+                headers: {
+                    "Content-Type": 'application/json',
+                    Authorization: `Bearer ${accessToken}`
+                },
+                queryParams: {
+                    startdatetime: new Date(nowMillisecs).toISOString(),
+                    endDateTime: new Date(nextWeekMillisecs).toISOString()
+                }
+            })
 
-        global.log(JSON.stringify(response))
-    } catch (error) {
-        global.logError("Couldn't get calendar data", JSON.stringify(error))
-    }
+            // @ts-ignore
+            const calendar = response.value as CalendarEvent[]
+            resolve(calendar)
+        } catch (error) {
+            global.logError("Couldn't get calendar data", JSON.stringify(error))
+            reject(error)
+        }
+    })
+
+
 
 }
