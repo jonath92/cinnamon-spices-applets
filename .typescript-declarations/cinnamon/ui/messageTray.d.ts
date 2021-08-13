@@ -129,7 +129,7 @@ declare namespace imports.ui.messageTray {
 		protected _titleLabel: gi.St.Label;
 		protected _icon: gi.St.Icon;
 		protected _bodyUrlHighlighter: URLHighlighter;
-		protected _destroyedReason: string;
+		protected _destroyedReason: NotificationDestroyedReason;
 
 		public constructor(source: SystemNotificationSource, title: string, body: string, params?: Partial<NotificationParams>);
 
@@ -200,11 +200,11 @@ declare namespace imports.ui.messageTray {
 
 		protected _onDestroy(): void;
 
-		public destroy(reason: string): void;
+		public destroy(reason: NotificationDestroyedReason): void;
 
 		public connect(event: 'action-invoked', cb: (actor: this, actionId: string) => void): void
 		public connect(event: 'done-displaying' | 'clicked', cb: (actor: this) => void): void
-		public connect(event: 'destroyed', cb: (actor: this, destroyedReason: string) => void): void
+		public connect(event: 'destroy', cb: (actor: this, destroyedReason: string) => void): void
 
 	}
 
@@ -359,6 +359,8 @@ declare namespace imports.ui.messageTray {
 		protected _hideNotification(): void;
 
 		protected _hideNotificationCompleted(): void;
+
+		public connect(event: 'notify-applet-update', cb: (actor: this, notification: Notification) => void): number
 	}
 
 

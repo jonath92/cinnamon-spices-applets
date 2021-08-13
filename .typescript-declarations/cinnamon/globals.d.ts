@@ -33,6 +33,8 @@ declare class global {
 
     static stage_input_mode: imports.gi.Cinnamon.StageInputMode
 
+    static reparentActor(actor_before: imports.gi.Clutter.Actor, actor_after: imports.gi.Clutter.Actor): void
+
 
 }
 

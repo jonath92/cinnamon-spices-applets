@@ -2251,6 +2251,10 @@ declare namespace imports.gi.Clutter {
 		 * GObject.finalize() implementation.
 		 */
 		unmap(): void;
+
+		/** Deprecated since 1.10. Use Actor.remove_child instead */
+		unparent(): void;
+
 		/**
 		 *  Deprecated since 1.16. Actors are automatically unrealized, and nothing
 		 * requires explicit realization.
@@ -2776,6 +2780,7 @@ declare namespace imports.gi.Clutter {
 		set_line_alignment(alignment: gi.Pango.Alignment): void;
 		set_line_wrap_mode(wrap_mode: gi.Pango.WrapMode): void;
 		get_layout(): gi.Pango.Layout;
+		set_markup(markup: string): void
 	}
 	export class TextBuffer {
 

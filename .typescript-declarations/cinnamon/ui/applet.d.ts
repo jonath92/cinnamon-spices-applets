@@ -48,14 +48,14 @@ declare namespace imports.ui.applet {
 		uuid: string;
 		name: string;
 		description: string;
-    	"max-instances"?: number;
-    	version?: string;
-    	multiversion?: boolean;
-    	"cinnamon-version"?: string[];
-    	state?: number;
-    	path: string;
+		"max-instances"?: number;
+		version?: string;
+		multiversion?: boolean;
+		"cinnamon-version"?: string[];
+		state?: number;
+		path: string;
 		error?: string;
-    	force_loaded: boolean;
+		force_loaded: boolean;
 	}
 
 	/**
@@ -290,7 +290,9 @@ declare namespace imports.ui.applet {
 	/** Applet with icon */
 	export class IconApplet extends Applet {
 		/** Actor of the icon */
-		private _applet_icon: gi.St.Icon;
+		protected _applet_icon: gi.St.Icon;
+
+		protected _applet_icon_box: gi.St.Bin;
 
 		/**
 		 * 

@@ -39,6 +39,9 @@ declare namespace imports.gi.St {
 	interface Bin extends BinOptions, WidgetMethodsReadableProps {
 		get_child(): Widget;
 		set_child(widget: Widget): void
+
+		// no idea where it comes from ...
+		add(actor: Clutter.Actor): void
 	}
 
 	export class Bin {
@@ -514,6 +517,7 @@ declare namespace imports.gi.St {
 		x_fill: boolean,
 		y_fill: boolean,
 		x_align: Align,
+		y_align: Align
 	}
 
 	export class Table extends Widget {
