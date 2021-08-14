@@ -78,7 +78,6 @@ export class NoticiationApplet extends TextIconApplet {
         })
         global.log('_display called')
         this._notificationbin = new BoxLayout({ vertical: true })
-        this.button_label_box = new BoxLayout()
 
         // Setup the tray icon.
         this.menu_label = new PopupMenuItem(stringify(this.notifications.length));
@@ -282,7 +281,9 @@ export class NoticiationApplet extends TextIconApplet {
         global.log('applet_clicked')
         //this._notificationbin.remove_all_children()
 
-        const notificiaton = new Notification('Title', 'Body')
+        const lorem = `is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum.`
+
+        const notificiaton = new Notification('Title', lorem)
 
         global.log(notificiaton)
         this._notificationbin.add_child(notificiaton.actor)
@@ -346,7 +347,7 @@ function timeify(orig_time: Date) {
     return str;
 }
 
-class Notification {
+export class Notification {
 
     source: imports.ui.messageTray.SystemNotificationSource
     title: string
@@ -572,8 +573,8 @@ class Notification {
                 this._scrollArea.add_actor(content);
 
                 // body label
-                this._bodyUrlHighlighter = new URLHighlighter("", true, false);
-                content.add(this._bodyUrlHighlighter.actor);
+                //this._bodyUrlHighlighter = new URLHighlighter(text, true, false);
+                //content.add(this._bodyUrlHighlighter.actor);
             }
             this._bodyUrlHighlighter.setMarkup(text, allowMarkup);
         } else {
@@ -881,7 +882,7 @@ class URLHighlighter {
 
     _highlightUrls() {
         // text here contain markup
-        let urls = findUrls(this._text);
+        let urls = findUrls(this._text);''
         let markup = '';
         let pos = 0;
         for (let i = 0; i < urls.length; i++) {

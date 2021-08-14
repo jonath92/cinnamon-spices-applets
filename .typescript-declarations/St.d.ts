@@ -290,7 +290,7 @@ declare namespace imports.gi.St {
 	interface ScrollView extends ScrollViewOptions, Bin {
 		set_row_size(row_size: number): void;
 		get_row_size(): number;
-		set_policy(hscroll: any, vscroll: any): void;
+		set_policy(hscroll: Gtk.PolicyType, vscroll: Gtk.PolicyType): void;
 		get_vscroll_bar(): ScrollBar;
 		get_hscroll_bar(): ScrollBar;
 	}
