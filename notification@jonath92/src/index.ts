@@ -2,6 +2,7 @@ import { NoticiationApplet, Notification } from "./Applet";
 import { createPopupMenu } from 'cinnamonpopup'
 import { createApplet } from "./AppletNew";
 import { createNotification } from "./CreateNotification";
+import { createNotificationContainer } from "./CreateNotificationContainer";
 const { BoxLayout, Label, Table, Button, Bin, Icon, IconType, Align, ScrollView } = imports.gi.St
 const { NOTIFICATION } = imports.gi.Atk.Role
 
@@ -24,71 +25,30 @@ export function main(args: Arguments) {
     } = args
 
 
-    const dummyApplet = createApplet({
+    const applet = createApplet({
         orientation,
         instanceId,
         panelHeight
     })
 
-    const popupMenu = createPopupMenu({ launcher: dummyApplet.actor })
+    const popupMenu = createPopupMenu({ launcher: applet.actor })
+    const notificationContainer = createNotificationContainer()
 
-    dummyApplet.on_applet_clicked = () => {
-        // const notificiaton = new Notification('Title', 'Body')
-        // _notificationBin.add_child(notificiaton.actor)
+    popupMenu.add_actor(notificationContainer.actor)
+
+    applet.on_applet_clicked = () => {
 
         const notification = createNotification({
             title: 'My Title',
             body: 'Body'
         })
 
-        _notificationBin.add_child(notification)
+        notificationContainer.box.add_child(notification)
 
         popupMenu.toggle()
 
-        global.log(PolicyType.AUTOMATIC)
     }
 
-    popupMenu.add_child(createSimpleItem('Simple Item'))
-
-
-    const _maincontainer = new BoxLayout({
-        vertical: true,
-    })
-
-    const scrollView = new ScrollView({
-        x_fill: true,
-        y_fill: true,
-        y_align: Align.START,
-        style_class: "vfade",
-        hscrollbar_policy: PolicyType.NEVER,
-        vscrollbar_policy: PolicyType.AUTOMATIC
-    })
-
-    const _notificationBin = new BoxLayout({
-        vertical: true
-    })
-
-    _maincontainer.add_actor(scrollView)
-    scrollView.add_actor(_notificationBin)
-
-    popupMenu.add_actor(_maincontainer)
-
-    function createSimpleItem(text: string) {
-        const popupMenuItem = new BoxLayout({
-            style_class: 'popup-menu-item',
-        })
-
-        const label = new Label({
-            text
-        })
-
-        popupMenuItem.add_child(label)
-
-        return popupMenuItem
-    }
-
-    // const reminderApplet = new NoticiationApplet(orientation, panel_height, instance_id)
-
-    return dummyApplet
+    return applet
 
 }
