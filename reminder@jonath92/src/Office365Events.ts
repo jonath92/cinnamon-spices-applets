@@ -54,7 +54,8 @@ interface HTTPParams {
     [key: string]: boolean | string | number;
 }
 
-interface CalendarTime {
+// https://docs.microsoft.com/en-us/graph/api/resources/datetimetimezone?view=graph-rest-1.0
+interface DateTimeTimeZone {
     dateTime: string,
     timeZone: string
 }
@@ -64,7 +65,10 @@ export interface CalendarEvent {
     id: string,
     subject: string,
     webLink: string,
-    start: CalendarTime
+    start: DateTimeTimeZone, 
+    reminderMinutesBeforeStart: number, 
+    transactionId: string, 
+    originalStart: string
 }
 
 

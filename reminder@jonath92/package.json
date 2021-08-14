@@ -9,6 +9,7 @@
   "author": "Jonathan Heard",
   "license": "MIT",
   "devDependencies": {
+    "@types/luxon": "^2.0.0",
     "@types/node": "^16.4.12",
     "@types/query-string": "^6.3.0",
     "ts-loader": "^9.2.5",
@@ -19,6 +20,7 @@
   "dependencies": {
     "cinnamonpopup": "^1.0.1",
     "jjainexegi": "^5.0.0",
+    "luxon": "^2.0.2",
     "query-string": "^7.0.1"
   }
 }

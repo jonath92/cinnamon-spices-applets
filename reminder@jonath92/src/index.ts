@@ -1,6 +1,10 @@
 import { ReminderApplet } from "./Applet";
 import { CalendarEvent, getTodayEvents } from "./Office365Events";
 import { createPopupMenu } from 'cinnamonpopup'
+import { createCardContainer } from "./CardContainer";
+import { createCard } from "./Card";
+import { DateTime } from "luxon";
+import { initNotificationFactory as initNotificationFactory, notify } from "./NotificationFactory";
 const { BoxLayout, Label, Table, Button, Bin, Icon, IconType, Align } = imports.gi.St
 const { NOTIFICATION } = imports.gi.Atk.Role
 
@@ -22,115 +26,68 @@ export function main(args: Arguments) {
 
     const reminderApplet = new ReminderApplet(orientation, panel_height, instance_id)
 
+    const emittedReminders: string[] = []
+
+    initNotificationFactory({
+        icon: new Icon({
+            icon_type: IconType.SYMBOLIC,
+            icon_name: 'view-calendar',
+            icon_size: 25
+        })
+    })
+
     reminderApplet.on_applet_clicked = handleAppletClicked
 
     const popupMenu = createPopupMenu({ launcher: reminderApplet.actor })
+    const cardContainer = createCardContainer()
 
-
-    const container = new BoxLayout({
-        style_class: 'popup-menu-item'
-    })
-
-    popupMenu.add_actor(container)
+    popupMenu.add_actor(cardContainer.actor)
 
     function handleAppletClicked() {
-
         popupMenu.toggle()
-
     }
 
     updateMenu()
+    setInterval(updateMenu, 60000)
 
+    // TODO: what is with all day events
 
+    // https://moment.github.io/luxon/#/?id=luxon
     async function updateMenu() {
         const todayEvents = await getTodayEvents()
 
-        popupMenu.remove_all_children()
-
-        // based on messageTraj.js Line 263
-        const button = new Button({
-            accessible_role: NOTIFICATION
-        })
-
-        const table = new Table({
-            name: 'notification',
-            reactive: true
-        })
-
-        button.set_child(table)
-
-        const bannerBox = new BoxLayout({
-            vertical: true,
-            style: 'spacing: 4px'
-        })
-
-        table.add(bannerBox, {
-            row: 0,
-            col: 1,
-            col_span: 2,
-            x_expand: false,
-            y_expand: false,
-            y_fill: false
-        })
-
-        const timeLabel = new Label({
-            show_on_set_parent: false
-        })
-
-        const titleLabel = new Label()
-
-        titleLabel.clutter_text.line_wrap = true
-        titleLabel.clutter_text.line_wrap_mode = WrapMode.WORD_CHAR
-
-        bannerBox.add_actor(timeLabel)
-        bannerBox.add_actor(titleLabel)
-
-        table.add(new Bin(), {
-            row: 0,
-            col: 2,
-            y_expand: false,
-            y_fill: false
-        })
-
-        const icon = new Icon({
-            icon_name: 'window-close',
-            icon_type: IconType.SYMBOLIC,
-            icon_size: 16
-        })
-
-        const closeButton = new Button({ child: icon, opacity: 128 })
-
-        table.add(closeButton, {
-            row: 0,
-            col: 3,
-            x_expand: false,
-            y_expand: false,
-            y_fill: false,
-            y_align: Align.START
-        })
-
-
-        popupMenu.add_child(button)
+        cardContainer.box.destroy_all_children()
 
         todayEvents.forEach(event => {
-            const menuItem = createSimpleItem(event.subject)
-            popupMenu.add_child(menuItem)
+
+            const eventStart = DateTime.fromISO(event.start.dateTime + 'Z')
+            const eventStartFormated = eventStart.toLocaleString(DateTime.TIME_SIMPLE)
+
+            const card = createCard({
+                title: eventStartFormated,
+                body: event.subject
+            })
+
+            popupMenu.add_child(card)
+
+            const reminderStartTime = eventStart.minus({
+                minutes: event.reminderMinutesBeforeStart
+            })
+
+            if (reminderStartTime <= DateTime.now() && !emittedReminders.includes(event.id)) {
+
+                // What is this? Why is \n needed instead of <br> ?
+                const notificationText = `<b>${eventStartFormated}</b>\n\n${event.subject}`
+
+                notify({
+                    notificationText,
+                    transient: false
+                })
+
+                emittedReminders.push(event.id)
+            }
         })
 
-    }
-
-    function createSimpleItem(text: string) {
-        const popupMenuItem = new BoxLayout({
-            style_class: 'popup-menu-item',
-        })
-
-        const label = new Label({
-            text
-        })
-
-        popupMenuItem.add_child(label)
-
-        return popupMenuItem
     }
 
     return reminderApplet
