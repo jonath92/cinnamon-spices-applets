@@ -12,6 +12,9 @@ declare namespace imports.gi.St {
 	// CLASSES
 
 	export class Adjustment {
+		value: number;
+		lower: number;
+		upper: number;
 		set_value(value: number): void;
 		/**
 		 * @returns :
@@ -258,6 +261,7 @@ declare namespace imports.gi.St {
 
 	}
 	interface IScrollBar {
+		adjustment: Adjustment
 		get_adjustment(): Adjustment;
 		set_adjustment(adjustment: Adjustment): void;
 		connect(signal: 'scroll-start' | 'scroll-stop', callback: (actor: this) => void): number
@@ -267,15 +271,19 @@ declare namespace imports.gi.St {
 	interface ScrollBar extends ScrollBarType { }
 
 	export class ScrollBar {
+		constructor(adjustment: Adjustment)
 		get_adjustment(): Adjustment;
 		set_adjustment(adjustment: Adjustment): void;
 	}
 
 	interface ScrollViewOptions extends BinOptions {
-		overlay_scrollbars: boolean;
+		enable_mouse_scrolling: boolean;
+		hscroll: ScrollBar;
 		hscrollbar_policy: Gtk.PolicyType;
-		vscrollbar_policy: Gtk.PolicyType;
 		hscrollbar_visible: boolean;
+		overlay_scrollbars: boolean;
+		vscroll: ScrollBar;
+		vscrollbar_policy: Gtk.PolicyType;
 		vscrollbar_visible: boolean;
 	}
 
@@ -510,6 +518,7 @@ declare namespace imports.gi.St {
 
 	interface TableAddOptions {
 		row: number,
+		row_span: number,
 		col: number,
 		col_span: number,
 		x_expand: boolean,
@@ -524,6 +533,9 @@ declare namespace imports.gi.St {
 		row_count: number
 
 		add(actor: Clutter.Actor, options: Partial<TableAddOptions>): void
+		set_direction(direction: TextDirection): void
+
+		child_set(actor: Clutter.Actor, options: Partial<TableAddOptions>): void
 	}
 
 	export class Content {

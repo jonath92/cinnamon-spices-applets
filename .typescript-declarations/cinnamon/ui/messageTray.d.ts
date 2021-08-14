@@ -194,7 +194,7 @@ declare namespace imports.ui.messageTray {
 
 		public setUseActionIcons(useIcons: boolean): void;
 
-		protected _onActionInvoked(actor: gi.Clutter.Actor, mouseButtonClicked: number, id: string): void;
+		protected _onActionInvoked(actor: gi.St.Button, mouseButtonClicked: number, id: string): void;
 
 		protected _onClicked(): void;
 
@@ -290,6 +290,13 @@ declare namespace imports.ui.messageTray {
 		 * Default implementation is to destroy this source, but subclasses can override
 		 */
 		protected _lastNotificationRemoved(): void;
+
+
+		public connect(event: 'notification-added', cb: (actor: this, notification: Notification) => void): number
+		public connect(event: 'notify', cb: (actor: this, notification: Notification) => void): number
+		public connect(event: 'destroy', cb: (actor: this, reason: NotificationDestroyedReason) => void): number
+
+
 	}
 
 	type MessageTrayEmitters = "notify-applet-update";
