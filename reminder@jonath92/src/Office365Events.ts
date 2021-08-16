@@ -1,3 +1,4 @@
+import { DateTime } from 'luxon';
 import { stringify } from 'query-string'
 
 const { Message, MemoryUse, SessionAsync } = imports.gi.Soup
@@ -65,9 +66,9 @@ export interface CalendarEvent {
     id: string,
     subject: string,
     webLink: string,
-    start: DateTimeTimeZone, 
-    reminderMinutesBeforeStart: number, 
-    transactionId: string, 
+    start: DateTimeTimeZone,
+    reminderMinutesBeforeStart: number,
+    transactionId: string,
     originalStart: string
 }
 
@@ -201,9 +202,19 @@ function loadJsonAsync(args: LoadJsonArgs) {
 
 async function loadCalendarData(): Promise<CalendarEvent[]> {
 
-    // TODO only for 15 mins
-    const nowMillisecs = Date.now()
-    const nextWeekMillisecs = nowMillisecs + 604_800_000
+    //const now = DateTime.now()
+
+    const now = DateTime.now()
+
+    const startOfDay = DateTime.fromObject({
+        year: now.year, month: now.month, day: now.day, hour: 0, minute: 0
+    })
+
+    // FIXME: isn't there an easier way?
+    const endOfDay = DateTime.fromObject(
+        { year: now.year, month: now.month, day: now.day, hour: 23, minute: 59, second: 59 }
+    )
+
 
     return new Promise(async (resolve, reject) => {
         try {
@@ -214,11 +225,12 @@ async function loadCalendarData(): Promise<CalendarEvent[]> {
                     Authorization: `Bearer ${accessToken}`
                 },
                 queryParams: {
-                    startdatetime: new Date(nowMillisecs).toISOString(),
-                    endDateTime: new Date(nextWeekMillisecs).toISOString()
+                    startdatetime: startOfDay.toISO(),
+                    endDateTime: endOfDay.toISO()
                 }
             })
 
+            // FIXME: why ts-ignore? 
             // @ts-ignore
             const calendar = response.value as CalendarEvent[]
             resolve(calendar)

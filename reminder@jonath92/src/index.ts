@@ -68,7 +68,7 @@ export function main(args: Arguments) {
                 body: event.subject
             })
 
-            popupMenu.add_child(card)
+            cardContainer.box.add_child(card)
 
             const reminderStartTime = eventStart.minus({
                 minutes: event.reminderMinutesBeforeStart
