@@ -81,7 +81,7 @@ export async function getTodayEvents() {
 
     try {
         !refreshToken && await loadRefreshTokenFromSettings()
-        !accessToken && await refreshTokens()
+        await refreshTokens()
         calendarData = await loadCalendarData()
     } catch (error) {
         global.logError("couldn't get soon occuring events", error);

@@ -18,8 +18,8 @@ const LIBRARY_NAME = `${APPLET_SHORT_NAME}Applet`
 const BUILD_DIR = `${__dirname}/files/${UUID}`
 const LOCAL_TESTING_DIR = `${os.homedir()}/.local/share/cinnamon/applets/${UUID}/`
 // important that there are no spaces/tabs in the string as otherwilse 'Function main is missing` error is given   
-const APPLET_JS_CONTENT = 
-`const {${LIBRARY_NAME}} = require('./${APPLET_SHORT_NAME}-applet');
+const APPLET_JS_CONTENT =
+    `const {${LIBRARY_NAME}} = require('./${APPLET_SHORT_NAME}-applet');
     
 function main(metadata, orientation, panel_height, instance_id) {
     return new ${LIBRARY_NAME}.main({
@@ -58,14 +58,14 @@ module.exports = {
 
     plugins: [
         {
-            
+
             apply: (
               /** @type {import('webpack').Compiler}  */  compiler
             ) => {
                 compiler.hooks.afterEmit.tap('afterEmitPlugin', async (compilation) => {
                     await copyDir(BUILD_DIR, LOCAL_TESTING_DIR)
                     exec('xdotool key ctrl+alt+0xff1b', (error, stdout, stderr) => {
-                        if (stderr){
+                        if (stderr) {
                             console.log(`stderr: ${stderr}`);
                         }
                     })
@@ -82,33 +82,33 @@ function createAppletJs() {
     fs.writeFileSync(APPLET_JS_PATH, APPLET_JS_CONTENT)
 }
 
-function createMetadata(){
+function createMetadata() {
 
     const metadata = {
-        uuid: UUID, 
-        name: NAME, 
-        description: DESCRIPTION   
+        uuid: UUID,
+        name: NAME,
+        description: DESCRIPTION
     }
 
     const METADA_PATH = BUILD_DIR + '/metadata.json'
     fs.writeFileSync(METADA_PATH, JSON.stringify(metadata))
 }
 
-async function copyDir  (src, dest) {
-    fs.rmdirSync(dest, {recursive: true})
+async function copyDir(src, dest) {
+    fs.rmdirSync(dest, { recursive: true })
 
     const [entries] = await Promise.all([
-      fs.readdirSync(src, { withFileTypes: true }),
-      fs.mkdirSync(dest, { recursive: true }),
+        fs.readdirSync(src, { withFileTypes: true }),
+        fs.mkdirSync(dest, { recursive: true }),
     ])
-  
+
     await Promise.all(
-      entries.map((entry) => {
-        const srcPath = path.join(src, entry.name)
-        const destPath = path.join(dest, entry.name)
-        return entry.isDirectory()
-          ? copyDirectory(srcPath, destPath)
-          : fs.copyFileSync(srcPath, destPath)
-      })
+        entries.map((entry) => {
+            const srcPath = path.join(src, entry.name)
+            const destPath = path.join(dest, entry.name)
+            return entry.isDirectory()
+                ? copyDir(srcPath, destPath)
+                : fs.copyFileSync(srcPath, destPath)
+        })
     )
 }
