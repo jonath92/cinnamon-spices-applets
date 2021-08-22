@@ -1,7 +1,5 @@
 import { DateTime } from 'luxon';
-import { stringify } from 'query-string'
-
-const { Message, MemoryUse, SessionAsync } = imports.gi.Soup
+import { loadJsonAsync } from './HttpHandler';
 
 // TODO: replace (with new ones as these can interact with onedrive)
 const CLIENT_ID = "877b72ef-232d-424d-87c7-5b6636497a98"
@@ -11,29 +9,16 @@ const { get_home_dir } = imports.gi.GLib;
 const CONFIG_DIR = `${get_home_dir()}/.cinnamon/configs/${__meta.uuid}`;
 const { new_for_path } = imports.gi.Gio.File
 
-const ByteArray = imports.byteArray;
 
 let refreshToken: string
 let accessToken: string
 
-const httpSession = new SessionAsync()
 
 
 interface Settings {
     refresh_token?: string
 }
 
-interface HttpError {
-    code: number,
-    message: string,
-    reason_phrase: string
-}
-
-// not complete
-interface Headers {
-    'Content-Type': 'application/json' | 'application/x-www-form-urlencoded',
-    'Authorization'?: string
-}
 
 // not complete
 interface TokenResponse {
@@ -41,19 +26,6 @@ interface TokenResponse {
     refresh_token: string
 }
 
-type Method = "GET" | "POST" | "PUT" | "DELETE";
-
-interface LoadJsonArgs {
-    url: string,
-    method?: Method,
-    bodyParams?: HTTPParams,
-    queryParams?: HTTPParams,
-    headers: Headers
-}
-
-interface HTTPParams {
-    [key: string]: boolean | string | number;
-}
 
 // https://docs.microsoft.com/en-us/graph/api/resources/datetimetimezone?view=graph-rest-1.0
 interface DateTimeTimeZone {
@@ -90,7 +62,12 @@ export async function getTodayEvents() {
     return calendarData
 }
 
+export async function getRefreshTokenFromAuthorizationCode(){
+
+}
+
 async function refreshTokens() {
+
     const url = 'https://login.microsoftonline.com/common/oauth2/v2.0/token'
 
     try {
@@ -132,72 +109,6 @@ async function loadRefreshTokenFromSettings() {
     refreshToken = settings.refresh_token
 
     if (!refreshToken) throw new Error('refresh Token is undefined')
-}
-
-function checkForHttpError(message: imports.gi.Soup.Message): HttpError | false {
-
-    const code = message?.status_code | 0
-    const reason_phrase = message?.reason_phrase || 'no network response'
-
-    let errMessage: string
-
-    if (code < 100) {
-        errMessage = "no network response"
-    }
-
-    else if (code < 200 || code > 300) {
-        errMessage = "bad status code"
-    }
-
-    else if (!message.response_body?.data) {
-        errMessage = 'no response body'
-    }
-
-    return errMessage ? {
-        code,
-        reason_phrase,
-        message: errMessage
-    } : false
-
-}
-
-function loadJsonAsync(args: LoadJsonArgs) {
-
-    const {
-        url,
-        method = 'GET',
-        bodyParams,
-        queryParams,
-        headers
-    } = args
-
-    const query = queryParams ? `${url}?${stringify(queryParams)}` : url
-    const message = Message.new(method, query)
-
-    Object.entries(headers).forEach(([key, value]) => {
-        message.request_headers.append(key, value)
-    })
-
-    if (bodyParams) {
-        const bodyParamsStringified = stringify(bodyParams)
-        message.request_body.append(ByteArray.fromString(bodyParamsStringified, 'UTF-16'))
-    }
-
-    return new Promise((resolve, reject) => {
-        httpSession.queue_message(message, (session, message) => {
-
-            const error = checkForHttpError(message);
-            if (error) {
-                reject(error)
-                return
-            }
-
-            const data = JSON.parse(message.response_body.data)
-            resolve(data)
-        })
-    })
-
-
 }
 
 async function loadCalendarData(): Promise<CalendarEvent[]> {
