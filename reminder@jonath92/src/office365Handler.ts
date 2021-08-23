@@ -1,5 +1,6 @@
 import { loadJsonAsync } from "./HttpHandler"
 import { DateTime } from 'luxon';
+import { getState } from "./Store";
 
 // https://docs.microsoft.com/en-us/graph/api/resources/datetimetimezone?view=graph-rest-1.0
 interface DateTimeTimeZone {
@@ -38,19 +39,18 @@ const CLIENT_ID = "877b72ef-232d-424d-87c7-5b6636497a98"
 const CLIENT_SECRET = "SM1=3hvquy[Bj7dvNeJB/qDzAoah?6:5"
 
 
-
-export function createOffice365Handler(args: Arguments) {
+// TODO rename to getOffice365Events
+export function createOffice365Handler() {
 
     const {
-        authorizatonCode, 
-        onRefreshTokenChanged
-    } = args
+        authCode, 
+        refreshToken
+    } = getState().settings
 
-    let { refreshToken } = args
 
     let accessToken: string
 
-    if (authorizatonCode == null && refreshToken == null)
+    if (authCode == null && refreshToken == null)
         throw new Error('AuthorizationCode and refreshToken must not be both null or undefined')
     
     async function getTodayEvents() {
@@ -87,9 +87,9 @@ export function createOffice365Handler(args: Arguments) {
     
             accessToken = response.access_token
             // TODO: save RefreshToken to file as only valid for 90 days
-            refreshToken = response.refresh_token
+            //refreshToken = response.refresh_token
 
-            onRefreshTokenChanged(refreshToken)
+            //onRefreshTokenChanged(refreshToken)
     
         } catch (error) {
             global.logError(`couldn't refresh Token, error: ${JSON.stringify(error)}`)
