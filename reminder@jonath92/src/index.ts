@@ -1,14 +1,15 @@
 import { ReminderApplet } from "./Applet";
-import { CalendarEvent, getTodayEvents } from "./Office365Events";
 import { createPopupMenu } from 'cinnamonpopup'
 import { createCardContainer } from "./CardContainer";
 import { createCard } from "./Card";
 import { DateTime } from "luxon";
-import { initNotificationFactory as initNotificationFactory, notify } from "./NotificationFactory";
-const { BoxLayout, Label, Table, Button, Bin, Icon, IconType, Align } = imports.gi.St
-const { NOTIFICATION } = imports.gi.Atk.Role
+import { initNotificationFactory, notify } from "./NotificationFactory";
+import { createOffice365Handler } from "./office365Handler";
+const { Icon, IconType, Align } = imports.gi.St
 
-const { WrapMode } = imports.gi.Pango
+const { get_home_dir } = imports.gi.GLib;
+const CONFIG_DIR = `${get_home_dir()}/.cinnamon/configs/${__meta.uuid}`;
+const { new_for_path } = imports.gi.Gio.File
 
 interface Arguments {
     orientation: imports.gi.St.Side,
@@ -16,8 +17,12 @@ interface Arguments {
     instanceId: number
 }
 
-export function main(args: Arguments) {
+interface Settings {
+    refresh_token?: string, 
+    auth_code?: string
+}
 
+export function main(args: Arguments) {
     const {
         orientation,
         panelHeight: panel_height,
@@ -25,8 +30,9 @@ export function main(args: Arguments) {
     } = args
 
     const reminderApplet = new ReminderApplet(orientation, panel_height, instance_id)
-
     const emittedReminders: string[] = []
+
+
 
     initNotificationFactory({
         icon: new Icon({
@@ -36,19 +42,40 @@ export function main(args: Arguments) {
         })
     })
 
+    const refreshToken = loadRefreshTokenFromSettings()
+
+    const { 
+        getTodayEvents 
+    } = createOffice365Handler({
+        onRefreshTokenChanged: (refreshToken) => { }, // TODO, 
+        refreshToken
+    })
+
+
     reminderApplet.on_applet_clicked = handleAppletClicked
 
     const popupMenu = createPopupMenu({ launcher: reminderApplet.actor })
     const cardContainer = createCardContainer()
-
     popupMenu.add_actor(cardContainer.actor)
 
     function handleAppletClicked() {
         popupMenu.toggle()
     }
 
-    updateMenu()
-    setInterval(updateMenu, 60000)
+
+
+    loadSettings((settings) => {
+        const { 
+            getTodayEvents 
+        } = createOffice365Handler({
+            onRefreshTokenChanged: (refreshToken) => { }, // TODO, 
+            refreshToken
+        })
+
+        updateMenu()
+        setInterval(updateMenu, 60000)
+
+    })
 
     // TODO: what is with all day events
 
@@ -89,6 +116,51 @@ export function main(args: Arguments) {
         })
 
     }
+
+
+    function loadSettings(setingsLoadedCb: (settings: Settings) => void) {
+        global.log('loadSettings called')
+        const SETTINGS_PATH = CONFIG_DIR + '/settings.json'
+        let settings: Settings
+
+        const settingsFile = new_for_path(SETTINGS_PATH)
+        settingsFile.load_contents_async(null, (source_object, res) => {
+
+            global.log('load contents async cb called')
+
+            const [success, contents] = settingsFile.load_contents_finish(res)
+
+            // @ts-ignore
+            const settings: Settings = JSON.parse(contents.toString())
+
+            setingsLoadedCb(settings)
+
+        })
+
+    }
+
+
+
+    // TODO this should be async. I guess currently the event loop would be blocked when the settings file not exists
+    function loadRefreshTokenFromSettings() {
+        const SETTINGS_PATH = CONFIG_DIR + '/settings.json'
+        let settings: Settings
+
+        try {
+            const settingsFile = new_for_path(SETTINGS_PATH)
+            const [success, contents] = settingsFile.load_contents(null)
+            settings = JSON.parse(contents)
+        } catch (error) {
+            throw new Error(`couldn't load settings file`)
+        }
+
+        const refreshToken = settings.refresh_token
+
+        if (!refreshToken) throw new Error('refresh Token is undefined')
+
+        return refreshToken
+    }
+
 
     return reminderApplet
 
