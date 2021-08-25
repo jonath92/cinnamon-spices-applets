@@ -1,11 +1,12 @@
 import { configureStore } from '@reduxjs/toolkit'
 import { isEqual } from 'lodash';
 import settingsReducer from "./slices/settingsSlice";
+import calendarEventsReducer from './slices/CalendarEventsSlice'
 
-
-export const store = configureStore({
+const store = configureStore({
     reducer: {
-        settings: settingsReducer
+        settings: settingsReducer, 
+        calendarEvents: calendarEventsReducer
     }
 })
 
@@ -27,3 +28,5 @@ export function watchSelector<T>(selectProp: () => T, cb: (newValue: T, oldValue
 export function getState() {
     return store.getState()
 }
+
+export const dispatch = store.dispatch

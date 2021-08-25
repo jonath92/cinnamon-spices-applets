@@ -37,7 +37,7 @@ function checkForHttpError(message: imports.gi.Soup.Message): HttpError | false 
     const code = message?.status_code | 0
     const reason_phrase = message?.reason_phrase || 'no network response'
 
-    let errMessage: string
+    let errMessage: string | undefined
 
     if (code < 100) {
         errMessage = "no network response"

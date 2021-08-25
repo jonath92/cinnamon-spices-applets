@@ -5,6 +5,9 @@ import { createCard } from "./Card";
 import { DateTime } from "luxon";
 import { initNotificationFactory, notify } from "./NotificationFactory";
 import { createOffice365Handler } from "./office365Handler";
+import { initCalendarEventEmitter } from "./CalendarEventEmitter";
+import { createStore } from "@reduxjs/toolkit";
+import { getState, watchSelector } from "./Store";
 const { Icon, IconType, Align } = imports.gi.St
 
 const { get_home_dir } = imports.gi.GLib;
@@ -17,6 +20,9 @@ interface Arguments {
     instanceId: number
 }
 
+const selectEvents = () => getState().calendarEvents
+
+
 export function main(args: Arguments) {
     const {
         orientation,
@@ -27,6 +33,7 @@ export function main(args: Arguments) {
     const reminderApplet = new ReminderApplet(orientation, panel_height, instance_id)
     const emittedReminders: string[] = []
 
+    // make a return value and put this in lib. Then create a NotificationService which sends Notifications for calendar Events
     initNotificationFactory({
         icon: new Icon({
             icon_type: IconType.SYMBOLIC,
@@ -35,10 +42,13 @@ export function main(args: Arguments) {
         })
     })
 
-    const {
-        getTodayEvents
-    } = createOffice365Handler()
+    initCalendarEventEmitter()
 
+    watchSelector(selectEvents, (events) => {
+        global.log('events updated', JSON.stringify(events))
+    })
+    
+  
 
     reminderApplet.on_applet_clicked = handleAppletClicked
 
@@ -51,48 +61,44 @@ export function main(args: Arguments) {
     }
 
 
-    updateMenu()
-    setInterval(updateMenu, 60000)
+    // // TODO: what is with all day events
+    // // https://moment.github.io/luxon/#/?id=luxon
+    // async function updateMenu() {
+    //     const todayEvents = await getTodayEvents()
 
+    //     cardContainer.box.destroy_all_children()
 
-    // TODO: what is with all day events
-    // https://moment.github.io/luxon/#/?id=luxon
-    async function updateMenu() {
-        const todayEvents = await getTodayEvents()
+    //     todayEvents.forEach(event => {
 
-        cardContainer.box.destroy_all_children()
+    //         const eventStart = DateTime.fromISO(event.start.dateTime + 'Z')
+    //         const eventStartFormated = eventStart.toLocaleString(DateTime.TIME_SIMPLE)
 
-        todayEvents.forEach(event => {
+    //         const card = createCard({
+    //             title: eventStartFormated,
+    //             body: event.subject
+    //         })
 
-            const eventStart = DateTime.fromISO(event.start.dateTime + 'Z')
-            const eventStartFormated = eventStart.toLocaleString(DateTime.TIME_SIMPLE)
+    //         cardContainer.box.add_child(card)
 
-            const card = createCard({
-                title: eventStartFormated,
-                body: event.subject
-            })
+    //         const reminderStartTime = eventStart.minus({
+    //             minutes: event.reminderMinutesBeforeStart
+    //         })
 
-            cardContainer.box.add_child(card)
+    //         if (reminderStartTime <= DateTime.now() && !emittedReminders.includes(event.id)) {
 
-            const reminderStartTime = eventStart.minus({
-                minutes: event.reminderMinutesBeforeStart
-            })
+    //             // What is this? Why is \n needed instead of <br> ?
+    //             const notificationText = `<b>${eventStartFormated}</b>\n\n${event.subject}`
 
-            if (reminderStartTime <= DateTime.now() && !emittedReminders.includes(event.id)) {
+    //             notify({
+    //                 notificationText,
+    //                 transient: false
+    //             })
 
-                // What is this? Why is \n needed instead of <br> ?
-                const notificationText = `<b>${eventStartFormated}</b>\n\n${event.subject}`
+    //             emittedReminders.push(event.id)
+    //         }
+    //     })
 
-                notify({
-                    notificationText,
-                    transient: false
-                })
-
-                emittedReminders.push(event.id)
-            }
-        })
-
-    }
+    // }
     return reminderApplet
     
 }

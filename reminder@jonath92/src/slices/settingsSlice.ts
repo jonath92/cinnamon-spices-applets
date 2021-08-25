@@ -12,24 +12,22 @@ interface SettingsState {
     authCode?: string
 }
 
-
-
 function loadSettingsFromFile(): SettingsState{
 
-    let settings: SettingsState
+    let settings: SettingsState = {}
 
     try {
         const settingsFile = new_for_path(SETTINGS_PATH)
         const [success, contents] = settingsFile.load_contents(null)
         settings = JSON.parse(ByteArray.toString(contents))
     } catch (error) {
-        global.logError(`couldn't load settings file. The following error occured: ${JSON.stringify(error)}`)
+        global.logWarning(`couldn't load settings file. The following error occured: ${JSON.stringify(error)}`)
     }
 
     return settings
 }
 
-const initialState = loadSettingsFromFile() || {}
+const initialState: SettingsState = loadSettingsFromFile()
 
 const settingsSlice = createSlice({
     name: 'settings', 

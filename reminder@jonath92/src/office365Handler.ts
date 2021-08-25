@@ -1,6 +1,7 @@
 import { loadJsonAsync } from "./HttpHandler"
 import { DateTime } from 'luxon';
 import { getState } from "./Store";
+import { CalendarEvent } from "./slices/CalendarEventsSlice";
 
 // https://docs.microsoft.com/en-us/graph/api/resources/datetimetimezone?view=graph-rest-1.0
 interface DateTimeTimeZone {
@@ -9,7 +10,7 @@ interface DateTimeTimeZone {
 }
 
 // not complete
-interface CalendarEvent {
+export interface Office365CalendarEvent {
     id: string,
     subject: string,
     webLink: string,
@@ -40,36 +41,53 @@ const CLIENT_SECRET = "SM1=3hvquy[Bj7dvNeJB/qDzAoah?6:5"
 
 
 // TODO rename to getOffice365Events
-export function createOffice365Handler() {
+export function createOffice365Handler(args: Arguments) {
 
     const {
-        authCode, 
-        refreshToken
-    } = getState().settings
+        authorizatonCode, 
+    } = args
 
+    let {
+        refreshToken
+    } = args
 
     let accessToken: string
 
-    if (authCode == null && refreshToken == null)
+    if (authorizatonCode == null && refreshToken == null)
         throw new Error('AuthorizationCode and refreshToken must not be both null or undefined')
+
     
-    async function getTodayEvents() {
-        let calendarData: CalendarEvent[]
+    async function getTodayEvents(): Promise<CalendarEvent []>  {
+        let office365CalendarEvents: Office365CalendarEvent[] = []
+        let formatedEvents: CalendarEvent[] = []
 
         try {
             await refreshTokens() // TODO this should only be called when the access Token is not defined our outdated (which can be found out when an error occurs when querying the calendar data)
-            calendarData = await loadCalendarData()
+            office365CalendarEvents = await loadCalendarData()
+
+            formatedEvents = office365CalendarEvents.map(office365Event => {
+                return {
+                    reminderBeforeStart: office365Event.reminderMinutesBeforeStart, 
+                    subject: office365Event.subject, 
+                    startUTC: DateTime.fromISO(office365Event.start.dateTime + 'Z')
+                }
+            })
+
         } catch (error) {
             global.logError("couldn't get soon occuring events", error);
         }
     
-        return calendarData
+        return formatedEvents
     }
 
     async function refreshTokens() {
 
         const url = 'https://login.microsoftonline.com/common/oauth2/v2.0/token'
     
+        if (!refreshToken){
+            throw new Error('refresh Token must be defined')
+        }
+
         try {
             const response = await loadJsonAsync({
                 method: 'POST',
@@ -78,7 +96,7 @@ export function createOffice365Handler() {
                     client_id: CLIENT_ID,
                     client_secret: CLIENT_SECRET,
                     grant_type: "refresh_token",
-                    refresh_token: refreshToken
+                    refresh_token: refreshToken 
                 },
                 headers: {
                     "Content-Type": 'application/x-www-form-urlencoded'
@@ -96,7 +114,7 @@ export function createOffice365Handler() {
         }
     }
 
-    async function loadCalendarData(): Promise<CalendarEvent[]> {
+    async function loadCalendarData(): Promise<Office365CalendarEvent[]> {
 
         //const now = DateTime.now()
     
@@ -128,7 +146,7 @@ export function createOffice365Handler() {
     
                 // FIXME: why ts-ignore? 
                 // @ts-ignore
-                const calendar = response.value as CalendarEvent[]
+                const calendar = response.value as Office365CalendarEvent[]
                 resolve(calendar)
             } catch (error) {
                 global.logError("Couldn't get calendar data", JSON.stringify(error))
