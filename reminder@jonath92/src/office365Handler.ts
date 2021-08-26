@@ -1,7 +1,5 @@
 import { loadJsonAsync } from "./HttpHandler"
 import { DateTime } from 'luxon';
-import { getState } from "./Store";
-import { CalendarEvent } from "./slices/CalendarEventsSlice";
 
 // https://docs.microsoft.com/en-us/graph/api/resources/datetimetimezone?view=graph-rest-1.0
 interface DateTimeTimeZone {
@@ -35,6 +33,7 @@ interface Arguments {
     onRefreshTokenChanged: (newToken: string) => void
 }
 
+// TODO: pass as props - that way it is kept generic
 // TODO: replace (with new ones as these can interact with onedrive)
 const CLIENT_ID = "877b72ef-232d-424d-87c7-5b6636497a98"
 const CLIENT_SECRET = "SM1=3hvquy[Bj7dvNeJB/qDzAoah?6:5"
@@ -57,27 +56,18 @@ export function createOffice365Handler(args: Arguments) {
         throw new Error('AuthorizationCode and refreshToken must not be both null or undefined')
 
     
-    async function getTodayEvents(): Promise<CalendarEvent []>  {
+    async function getTodayEvents(): Promise<Office365CalendarEvent[]>  {
         let office365CalendarEvents: Office365CalendarEvent[] = []
-        let formatedEvents: CalendarEvent[] = []
 
         try {
             await refreshTokens() // TODO this should only be called when the access Token is not defined our outdated (which can be found out when an error occurs when querying the calendar data)
             office365CalendarEvents = await loadCalendarData()
 
-            formatedEvents = office365CalendarEvents.map(office365Event => {
-                return {
-                    reminderBeforeStart: office365Event.reminderMinutesBeforeStart, 
-                    subject: office365Event.subject, 
-                    startUTC: DateTime.fromISO(office365Event.start.dateTime + 'Z')
-                }
-            })
-
         } catch (error) {
             global.logError("couldn't get soon occuring events", error);
         }
     
-        return formatedEvents
+        return office365CalendarEvents
     }
 
     async function refreshTokens() {

@@ -2,10 +2,22 @@ import { createSlice, PayloadAction } from '@reduxjs/toolkit'
 import { DateTime } from 'luxon'
 
 
-export interface CalendarEvent {
+type Account = 'office365' | 'google'
+
+// without account. What is a better name? 
+export interface CalendarEventGeneric {
     subject: string, 
-    startUTC: DateTime, // TODO: really string?
+    startUTC: DateTime, 
     reminderBeforeStart: number // TODO: what is with mulitple reminders?
+}
+
+interface CalendarEvent extends CalendarEventGeneric {
+    account: Account
+}
+
+export interface CalendarEventUpdate {
+    account: Account, 
+    events: CalendarEventGeneric[]
 }
 
 const initialState: CalendarEvent[] = [] 
@@ -14,8 +26,19 @@ const calendarEventSlice = createSlice({
     name: 'calendarEvents', 
     initialState, 
     reducers: {
-        eventsLoaded(state, action: PayloadAction<CalendarEvent[]>){
-            state.push(...action.payload)
+        eventsLoaded(state, action: PayloadAction<CalendarEventUpdate>){
+
+            const account = action.payload.account
+
+            const newEvents: CalendarEvent[] = action.payload.events.map(event => {
+                return {...event, account}
+            })
+
+            const eventsWithoutUpdatedAccount = state.filter(event => event.account !== account)
+
+            global.log('eventsWithoutUpdatedAccount', eventsWithoutUpdatedAccount)
+
+            return [...eventsWithoutUpdatedAccount, ...newEvents]
         }
     }
 })

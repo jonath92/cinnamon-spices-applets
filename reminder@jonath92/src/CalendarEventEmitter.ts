@@ -1,5 +1,6 @@
-import { createOffice365Handler } from "./office365Handler";
-import { eventsLoaded } from "./slices/CalendarEventsSlice";
+import { DateTime } from "luxon";
+import { createOffice365Handler, Office365CalendarEvent } from "./office365Handler";
+import { CalendarEventGeneric, CalendarEventUpdate, eventsLoaded } from "./slices/CalendarEventsSlice";
 import { dispatch, getState, watchSelector } from "./Store";
 
 
@@ -15,6 +16,8 @@ export function initCalendarEventEmitter() {
         initOffice365Handler({authCode: newValue})
     })
 
+    setInterval(queryNewEvents, 10000)
+
     function initOffice365Handler(args: { authCode?: string | undefined, refreshToken?: string | undefined }) {
 
         if (!args.authCode && !args.refreshToken)
@@ -29,15 +32,30 @@ export function initCalendarEventEmitter() {
         queryNewEvents()
     }
 
+    function convertOffice365Events(office365Events: Office365CalendarEvent[]): CalendarEventUpdate {
+        const convertedEvents: CalendarEventGeneric[] = office365Events.map(office365Event => {
+            return {
+                reminderBeforeStart: office365Event.reminderMinutesBeforeStart,
+                startUTC: DateTime.fromISO(office365Event.start.dateTime + 'Z'),
+                subject: office365Event.subject
+            }
+        })
+
+        return {
+            account: 'office365', 
+            events: convertedEvents
+        }
+    }
+
     async function queryNewEvents(){
         if (!office35Handler)
             return
 
-        const newEvents = await office35Handler.getTodayEvents()
+        const newEvents = convertOffice365Events(
+            await office35Handler.getTodayEvents()
+        )
 
         dispatch(eventsLoaded(newEvents))
-        
     }
-
 
 }
