@@ -1,5 +1,8 @@
 import { createPopupMenu } from "cinnamonpopup";
+import { DateTime } from "luxon";
+import { CalendarEvent } from "../slices/CalendarEventsSlice";
 import { selectEvents, watchSelector } from "../Store";
+import { createCard } from "./Card";
 import { createCardContainer } from "./CardContainer";
 
 interface Arguments {
@@ -18,9 +21,24 @@ export function createCalendarPopupMenu(args: Arguments){
 
     popupMenu.add_actor(cardContainer.actor)
 
-    watchSelector(selectEvents, (events) => {
-        global.log('events updated', JSON.stringify(events))
-    })
+    watchSelector(selectEvents, renderEvents)
+
+
+    function renderEvents(events: CalendarEvent[]): void {
+        
+        cardContainer.box.destroy_all_children()
+        events.forEach(event => {
+            const eventStartFormated = event.startUTC.toLocaleString(DateTime.TIME_SIMPLE)
+        
+            const card = createCard({
+                title: eventStartFormated, 
+                body: event.subject
+            })
+
+            cardContainer.box.add_child(card)
+        
+        })
+    } 
 
     return {
         toggle: popupMenu.toggle

@@ -1,8 +1,7 @@
 import { DateTime } from "luxon";
-import { createOffice365Handler, Office365CalendarEvent } from "./lib/office365Handler";
-import { CalendarEventGeneric, CalendarEventUpdate, eventsLoaded } from "./slices/CalendarEventsSlice";
-import { dispatch, getState, watchSelector } from "./Store";
-
+import { createOffice365Handler, Office365CalendarEvent } from "../lib/office365Handler";
+import { CalendarEvent, CalendarEventUpdate, eventsLoaded } from "../slices/CalendarEventsSlice";
+import { dispatch, getState, watchSelector } from "../Store";
 
 const selectOffice365Auth = () => getState().settings.authCode
 
@@ -33,7 +32,7 @@ export function initCalendarEventEmitter() {
     }
 
     function convertOffice365Events(office365Events: Office365CalendarEvent[]): CalendarEventUpdate {
-        const convertedEvents: CalendarEventGeneric[] = office365Events.map(office365Event => {
+        const convertedEvents: Omit<CalendarEvent, 'account'>[] = office365Events.map(office365Event => {
             return {
                 reminderBeforeStart: office365Event.reminderMinutesBeforeStart,
                 startUTC: DateTime.fromISO(office365Event.start.dateTime + 'Z'),

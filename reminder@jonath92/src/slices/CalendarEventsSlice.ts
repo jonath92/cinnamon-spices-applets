@@ -4,20 +4,17 @@ import { DateTime } from 'luxon'
 
 type Account = 'office365' | 'google'
 
-// without account. What is a better name? 
-export interface CalendarEventGeneric {
+
+export interface CalendarEvent {
     subject: string, 
     startUTC: DateTime, 
     reminderBeforeStart: number // TODO: what is with mulitple reminders?
-}
-
-interface CalendarEvent extends CalendarEventGeneric {
     account: Account
 }
 
 export interface CalendarEventUpdate {
     account: Account, 
-    events: CalendarEventGeneric[]
+    events: Omit<CalendarEvent, 'account'>[]
 }
 
 const initialState: CalendarEvent[] = [] 

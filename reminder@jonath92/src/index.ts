@@ -1,7 +1,6 @@
 import { CalendarApplet } from "./Applet";
 import { initNotificationFactory } from "./NotificationFactory";
-import { initCalendarEventEmitter } from "./CalendarEventEmitter";
-import { getState, watchSelector } from "./Store";
+import { initCalendarEventEmitter } from "./services/CalendarEventEmitter";
 import { createCalendarPopupMenu } from "./components/popupMenu";
 const { Icon, IconType} = imports.gi.St
 
@@ -11,8 +10,6 @@ interface Arguments {
     instanceId: number
 }
 
-const selectEvents = () => getState().calendarEvents
-
 
 export function main(args: Arguments) {
     const {
@@ -20,6 +17,9 @@ export function main(args: Arguments) {
         panelHeight: panel_height,
         instanceId: instance_id
     } = args
+
+    initCalendarEventEmitter()
+
 
     const reminderApplet = new CalendarApplet(orientation, panel_height, instance_id)
 
@@ -34,10 +34,8 @@ export function main(args: Arguments) {
         })
     })
 
-    initCalendarEventEmitter()
 
-
-    reminderApplet.on_applet_clicked = () => popupMenu.toggle
+    reminderApplet.on_applet_clicked = popupMenu.toggle
 
     // // TODO: what is with all day events
     // // https://moment.github.io/luxon/#/?id=luxon

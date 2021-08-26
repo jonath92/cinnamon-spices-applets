@@ -10,7 +10,7 @@ const store = configureStore({
     }
 })
 
-
+// TODO is this also executed immediately? this would have the advantage that only a watchSelector and a rendered would needed in each component
 export function watchSelector<T>(selectProp: () => T, cb: (newValue: T, oldValue?: T) => void, checkEquality = true) {
     let currentValue = selectProp()
 
