@@ -1,5 +1,5 @@
 import { DateTime } from "luxon";
-import { createOffice365Handler, Office365CalendarEvent } from "./office365Handler";
+import { createOffice365Handler, Office365CalendarEvent } from "./lib/office365Handler";
 import { CalendarEventGeneric, CalendarEventUpdate, eventsLoaded } from "./slices/CalendarEventsSlice";
 import { dispatch, getState, watchSelector } from "./Store";
 
