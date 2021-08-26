@@ -1,6 +1,6 @@
 const { IconApplet } = imports.ui.applet
 
-export class ReminderApplet extends IconApplet {
+export class CalendarApplet extends IconApplet {
 
     constructor(orientation: imports.gi.St.Side, panel_height: number, instance_id: number) {
         super(orientation, panel_height, instance_id)

@@ -36,8 +36,6 @@ const calendarEventSlice = createSlice({
 
             const eventsWithoutUpdatedAccount = state.filter(event => event.account !== account)
 
-            global.log('eventsWithoutUpdatedAccount', eventsWithoutUpdatedAccount)
-
             return [...eventsWithoutUpdatedAccount, ...newEvents]
         }
     }

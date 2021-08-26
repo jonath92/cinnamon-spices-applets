@@ -1,18 +1,9 @@
-import { ReminderApplet } from "./Applet";
-import { createPopupMenu } from 'cinnamonpopup'
-import { createCardContainer } from "./CardContainer";
-import { createCard } from "./Card";
-import { DateTime } from "luxon";
-import { initNotificationFactory, notify } from "./NotificationFactory";
-import { createOffice365Handler } from "./office365Handler";
+import { CalendarApplet } from "./Applet";
+import { initNotificationFactory } from "./NotificationFactory";
 import { initCalendarEventEmitter } from "./CalendarEventEmitter";
-import { createStore } from "@reduxjs/toolkit";
 import { getState, watchSelector } from "./Store";
-const { Icon, IconType, Align } = imports.gi.St
-
-const { get_home_dir } = imports.gi.GLib;
-const CONFIG_DIR = `${get_home_dir()}/.cinnamon/configs/${__meta.uuid}`;
-const { new_for_path } = imports.gi.Gio.File
+import { createCalendarPopupMenu } from "./components/popupMenu";
+const { Icon, IconType} = imports.gi.St
 
 interface Arguments {
     orientation: imports.gi.St.Side,
@@ -30,10 +21,11 @@ export function main(args: Arguments) {
         instanceId: instance_id
     } = args
 
-    const reminderApplet = new ReminderApplet(orientation, panel_height, instance_id)
+    const reminderApplet = new CalendarApplet(orientation, panel_height, instance_id)
+
+    const popupMenu = createCalendarPopupMenu({launcher: reminderApplet.actor})
     const emittedReminders: string[] = []
 
-    // make a return value and put this in lib. Then create a NotificationService which sends Notifications for calendar Events
     initNotificationFactory({
         icon: new Icon({
             icon_type: IconType.SYMBOLIC,
@@ -44,22 +36,8 @@ export function main(args: Arguments) {
 
     initCalendarEventEmitter()
 
-    watchSelector(selectEvents, (events) => {
-        global.log('events updated', JSON.stringify(events))
-    })
-    
-  
 
-    reminderApplet.on_applet_clicked = handleAppletClicked
-
-    const popupMenu = createPopupMenu({ launcher: reminderApplet.actor })
-    const cardContainer = createCardContainer()
-    popupMenu.add_actor(cardContainer.actor)
-
-    function handleAppletClicked() {
-        popupMenu.toggle()
-    }
-
+    reminderApplet.on_applet_clicked = () => popupMenu.toggle
 
     // // TODO: what is with all day events
     // // https://moment.github.io/luxon/#/?id=luxon

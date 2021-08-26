@@ -30,3 +30,7 @@ export function getState() {
 }
 
 export const dispatch = store.dispatch
+
+
+// SELECTORS
+export const selectEvents = () => getState().calendarEvents
