@@ -1,5 +1,6 @@
-import { loadJsonAsync } from "./HttpHandler"
+import { HttpError, loadJsonAsync } from "./HttpHandler"
 import { DateTime } from 'luxon';
+import { isHttpError } from '../lib/HttpHandler'
 
 // https://docs.microsoft.com/en-us/graph/api/resources/datetimetimezone?view=graph-rest-1.0
 interface DateTimeTimeZone {
@@ -51,7 +52,7 @@ export function createOffice365Handler(args: Arguments) {
         refreshToken
     } = args
 
-    let accessToken: string
+    let accessToken: string | null
 
     if (authorizatonCode == null && refreshToken == null)
         throw new Error('AuthorizationCode and refreshToken must not be both null or undefined')
@@ -61,7 +62,6 @@ export function createOffice365Handler(args: Arguments) {
         let office365CalendarEvents: Office365CalendarEvent[] = []
 
         try {
-            await refreshTokens() // TODO this should only be called when the access Token is not defined our outdated (which can be found out when an error occurs when querying the calendar data)
             office365CalendarEvents = await loadCalendarData()
 
         } catch (error) {
@@ -104,20 +104,19 @@ export function createOffice365Handler(args: Arguments) {
                 onRefreshTokenChanged(newToken)
             }
 
-            //refreshToken = response.refresh_token
-
-            //onRefreshTokenChanged(refreshToken)
-
         } catch (error) {
+
             global.logError(`couldn't refresh Token, error: ${JSON.stringify(error)}`)
         }
     }
 
-    async function loadCalendarData(): Promise<Office365CalendarEvent[]> {
+    async function loadCalendarData(attempt: number = 0): Promise<Office365CalendarEvent[]> {
 
         const now = DateTime.now()
         const startOfDay = DateTime.fromObject({ day: now.day })
         const endOfDay = DateTime.fromObject({ day: now.day + 1 })
+
+        !accessToken && refreshTokens()
 
         return new Promise(async (resolve, reject) => {
             try {
@@ -133,6 +132,7 @@ export function createOffice365Handler(args: Arguments) {
                     }
                 })
 
+
                 // FIXME: why ts-ignore? 
                 // @ts-ignore
                 const calendar = response.value as Office365CalendarEvent[]
@@ -141,10 +141,35 @@ export function createOffice365Handler(args: Arguments) {
 
                 resolve(calendar)
             } catch (error) {
-                global.logError("Couldn't get calendar data", JSON.stringify(error))
+
+                if (attempt >= 3) {
+                    global.logError(`Couldn't connect to Microsoft Graph Api. Are you connected to the Internet? Don't hesitate to open a bug report when the error persists`)
+                    // TODO improve 
+                    global.logError(JSON.stringify(error))
+
+                    return
+                }
+
+                if (isHttpError(error)) {
+                    await handleHttpError(error)
+                    loadCalendarData(attempt++)
+                }
+
+
+                global.logError("Couldn't get calendar data", error)
+                global.log("Couldn't get calendar data in logs", 'error')
                 reject(error)
             }
         })
+    }
+
+
+    async function handleHttpError(error: HttpError) {
+
+        if (error.reason_phrase === 'Unauthorized') {
+            global.log('Microsft Graph Api Tokens not valid anymore ...')
+            await refreshTokens()
+        }
     }
 
 

@@ -8,11 +8,16 @@ interface HTTPParams {
     [key: string]: boolean | string | number;
 }
 
-interface HttpError {
+export interface HttpError {
     code: number,
     message: string,
     reason_phrase: string
 }
+
+export function isHttpError(x:any): x is HttpError {
+    return typeof x.reason_phrase === 'string'
+}
+
 
 type Method = "GET" | "POST" | "PUT" | "DELETE";
 
