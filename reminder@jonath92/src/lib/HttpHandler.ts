@@ -65,7 +65,7 @@ function checkForHttpError(message: imports.gi.Soup.Message): HttpError | false 
 }
 
 
-export function loadJsonAsync(args: LoadJsonArgs) {
+export function loadJsonAsync<T>(args: LoadJsonArgs): Promise<T> {
 
     const {
         url,
@@ -85,7 +85,6 @@ export function loadJsonAsync(args: LoadJsonArgs) {
 
     if (bodyParams) {
         const bodyParamsStringified = stringify(bodyParams)
-        // TODO: the confusing ByteArray really needed? I think it is also possible to just ust string (i.e the type defnition needs to be changed)
         message.request_body.append(ByteArray.fromString(bodyParamsStringified, 'UTF-16'))
     }
 
@@ -93,12 +92,13 @@ export function loadJsonAsync(args: LoadJsonArgs) {
         httpSession.queue_message(message, (session, message) => {
 
             const error = checkForHttpError(message);
+
             if (error) {
                 reject(error)
                 return
             }
 
-            const data = JSON.parse(message.response_body.data)
+            const data = JSON.parse(message.response_body.data) as T
             resolve(data)
         })
     })

@@ -8,6 +8,11 @@ interface DateTimeTimeZone {
     timeZone: string
 }
 
+interface Office365CalendarResponse {
+    '@odata.context': string, 
+    value: Office365CalendarEvent[]
+}
+
 // not complete
 export interface Office365CalendarEvent {
     id: string,
@@ -120,7 +125,7 @@ export function createOffice365Handler(args: Arguments) {
 
         return new Promise(async (resolve, reject) => {
             try {
-                const response = await loadJsonAsync({
+                const response = await loadJsonAsync<Office365CalendarResponse>({
                     url: 'https://graph.microsoft.com/v1.0/me/calendarview',
                     headers: {
                         "Content-Type": 'application/json',
@@ -131,15 +136,8 @@ export function createOffice365Handler(args: Arguments) {
                         endDateTime: endOfDay.toISO()
                     }
                 })
-
-
-                // FIXME: why ts-ignore? 
-                // @ts-ignore
-                const calendar = response.value as Office365CalendarEvent[]
-
-                global.log('office365 events updated')
-
-                resolve(calendar)
+            
+                resolve(response.value )
             } catch (error) {
 
                 if (attempt >= 3) {
@@ -170,6 +168,8 @@ export function createOffice365Handler(args: Arguments) {
             global.log('Microsft Graph Api Tokens not valid anymore ...')
             await refreshTokens()
         }
+
+        // TODO handle network errors
     }
 
 
