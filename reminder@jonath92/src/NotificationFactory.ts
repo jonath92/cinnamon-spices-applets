@@ -37,7 +37,7 @@ export function notify(args: NotifyArguments) {
     } = args
 
     if (!icon)
-        global.logError('createNotificatoinManager must be called first!')
+        global.logError('initNotificatoinManager must be called first!')
 
     const notification = new Notification(
         messageSource,

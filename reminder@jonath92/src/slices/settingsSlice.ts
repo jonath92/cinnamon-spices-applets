@@ -1,9 +1,8 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit'
+import { CONFIG_DIR } from '../Constants'
 
-const { get_home_dir } = imports.gi.GLib;
 const { new_for_path } = imports.gi.Gio.File
 
-const CONFIG_DIR = `${get_home_dir()}/.cinnamon/configs/${__meta.uuid}`;
 const SETTINGS_PATH = CONFIG_DIR + '/settings.json'
 const ByteArray = imports.byteArray
 

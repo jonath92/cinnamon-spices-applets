@@ -28,8 +28,6 @@ export function createCalendarPopupMenu(args: Arguments){
         
         cardContainer.box.destroy_all_children()
 
-        global.log(events)
-
         // TODO: not working
         // const sorted = events.sort((firstEl, secondEl) => {
         //     return firstEl.startUTC <= secondEl.startUTC ? -1 : 1 

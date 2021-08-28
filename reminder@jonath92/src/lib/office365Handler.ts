@@ -1,6 +1,7 @@
 import { HttpError, loadJsonAsync } from "./HttpHandler"
 import { DateTime } from 'luxon';
 import { isHttpError } from '../lib/HttpHandler'
+import { logInfo } from "../services/Logger";
 
 // https://docs.microsoft.com/en-us/graph/api/resources/datetimetimezone?view=graph-rest-1.0
 interface DateTimeTimeZone {
@@ -144,15 +145,17 @@ export function createOffice365Handler(args: Arguments) {
                     global.logError(`Couldn't connect to Microsoft Graph Api. Are you connected to the Internet? Don't hesitate to open a bug report when the error persists`)
                     // TODO improve 
                     global.logError(JSON.stringify(error))
-
                     return
                 }
 
                 if (isHttpError(error)) {
                     await handleHttpError(error)
                     loadCalendarData(attempt++)
+                    return
                 }
 
+
+                global.log('')
 
                 global.logError("Couldn't get calendar data", error)
                 global.log("Couldn't get calendar data in logs", 'error')
@@ -161,11 +164,10 @@ export function createOffice365Handler(args: Arguments) {
         })
     }
 
-
     async function handleHttpError(error: HttpError) {
 
         if (error.reason_phrase === 'Unauthorized') {
-            global.log('Microsft Graph Api Tokens not valid anymore ...')
+            logInfo('Microsft Graph Api Tokens not valid anymore ...')
             await refreshTokens()
         }
 
