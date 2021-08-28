@@ -28,7 +28,7 @@ interface Arguments {
     /** code received from the Login. Only one of authorizationCode and refreshToken needs to be passed */
     authorizatonCode?: string,
     /** required when no authorizatonCode passed */
-    refreshToken?: string, 
+    refreshToken?: string,
     /** called when RefreshToken changed. Should be a function which saves the token to a file*/
     onRefreshTokenChanged: (newToken: string) => void
 }
@@ -43,7 +43,8 @@ const CLIENT_SECRET = "SM1=3hvquy[Bj7dvNeJB/qDzAoah?6:5"
 export function createOffice365Handler(args: Arguments) {
 
     const {
-        authorizatonCode, 
+        authorizatonCode,
+        onRefreshTokenChanged
     } = args
 
     let {
@@ -55,8 +56,8 @@ export function createOffice365Handler(args: Arguments) {
     if (authorizatonCode == null && refreshToken == null)
         throw new Error('AuthorizationCode and refreshToken must not be both null or undefined')
 
-    
-    async function getTodayEvents(): Promise<Office365CalendarEvent[]>  {
+
+    async function getTodayEvents(): Promise<Office365CalendarEvent[]> {
         let office365CalendarEvents: Office365CalendarEvent[] = []
 
         try {
@@ -66,15 +67,15 @@ export function createOffice365Handler(args: Arguments) {
         } catch (error) {
             global.logError("couldn't get soon occuring events", error);
         }
-    
+
         return office365CalendarEvents
     }
 
     async function refreshTokens() {
 
         const url = 'https://login.microsoftonline.com/common/oauth2/v2.0/token'
-    
-        if (!refreshToken){
+
+        if (!refreshToken) {
             throw new Error('refresh Token must be defined')
         }
 
@@ -86,19 +87,27 @@ export function createOffice365Handler(args: Arguments) {
                     client_id: CLIENT_ID,
                     client_secret: CLIENT_SECRET,
                     grant_type: "refresh_token",
-                    refresh_token: refreshToken 
+                    refresh_token: refreshToken
                 },
                 headers: {
                     "Content-Type": 'application/x-www-form-urlencoded'
                 }
             }) as TokenResponse
-    
+
             accessToken = response.access_token
             // TODO: save RefreshToken to file as only valid for 90 days
+
+            const newToken = response.refresh_token
+
+            if (newToken !== refreshToken) {
+                refreshToken = newToken
+                onRefreshTokenChanged(newToken)
+            }
+
             //refreshToken = response.refresh_token
 
             //onRefreshTokenChanged(refreshToken)
-    
+
         } catch (error) {
             global.logError(`couldn't refresh Token, error: ${JSON.stringify(error)}`)
         }
@@ -106,20 +115,10 @@ export function createOffice365Handler(args: Arguments) {
 
     async function loadCalendarData(): Promise<Office365CalendarEvent[]> {
 
-        //const now = DateTime.now()
-    
         const now = DateTime.now()
-    
-        // FIXME: isn't there an easier way?
-        const startOfDay = DateTime.fromObject({
-            year: now.year, month: now.month, day: now.day, hour: 0, minute: 0
-        })
-    
-        const endOfDay = DateTime.fromObject(
-            { year: now.year, month: now.month, day: now.day, hour: 23, minute: 59, second: 59 }
-        )
-    
-    
+        const startOfDay = DateTime.fromObject({ day: now.day })
+        const endOfDay = DateTime.fromObject({ day: now.day + 1 })
+
         return new Promise(async (resolve, reject) => {
             try {
                 const response = await loadJsonAsync({
@@ -133,10 +132,13 @@ export function createOffice365Handler(args: Arguments) {
                         endDateTime: endOfDay.toISO()
                     }
                 })
-    
+
                 // FIXME: why ts-ignore? 
                 // @ts-ignore
                 const calendar = response.value as Office365CalendarEvent[]
+
+                global.log('office365 events updated')
+
                 resolve(calendar)
             } catch (error) {
                 global.logError("Couldn't get calendar data", JSON.stringify(error))
@@ -146,7 +148,7 @@ export function createOffice365Handler(args: Arguments) {
     }
 
 
-    return { 
+    return {
         getTodayEvents
     }
 }

@@ -25,7 +25,7 @@ export function initCalendarEventEmitter() {
         office35Handler = createOffice365Handler({
             authorizatonCode: args.authCode,
             refreshToken: args.refreshToken,
-            onRefreshTokenChanged: (newValue) => { } // TODO
+            onRefreshTokenChanged: (newValue) => {global.log('refreshToken changed') } // TODO
         })
 
         queryNewEvents()

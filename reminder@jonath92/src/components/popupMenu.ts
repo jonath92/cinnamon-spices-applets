@@ -27,6 +27,14 @@ export function createCalendarPopupMenu(args: Arguments){
     function renderEvents(events: CalendarEvent[]): void {
         
         cardContainer.box.destroy_all_children()
+
+        // TODO: not working
+        // const sorted = events.sort((firstEl, secondEl) => {
+        //     return firstEl.startUTC <= secondEl.startUTC ? -1 : 1 
+        // })
+
+        // global.log('sorted: ', sorted)
+
         events.forEach(event => {
             const eventStartFormated = event.startUTC.toLocaleString(DateTime.TIME_SIMPLE)
         
