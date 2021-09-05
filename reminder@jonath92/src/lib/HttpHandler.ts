@@ -89,6 +89,7 @@ export function loadJsonAsync<T>(args: LoadJsonArgs): Promise<T> {
     }
 
     return new Promise((resolve, reject) => {
+
         httpSession.queue_message(message, (session, message) => {
 
             const error = checkForHttpError(message);

@@ -154,11 +154,6 @@ export function createOffice365Handler(args: Arguments) {
                     return
                 }
 
-
-                global.log('')
-
-                global.logError("Couldn't get calendar data", error)
-                global.log("Couldn't get calendar data in logs", 'error')
                 reject(error)
             }
         })
