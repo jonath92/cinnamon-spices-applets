@@ -1,6 +1,6 @@
 import { DateTime } from "luxon";
 import { refreshTokenChanged } from "../slices/settingsSlice";
-import { createOffice365Handler, Office365CalendarEvent } from "../lib/office365Handler";
+import { createOffice365Handler, Office365CalendarEventResponse } from "../lib/office365Handler";
 import { CalendarEvent, CalendarEventUpdate, eventsLoaded } from "../slices/CalendarEventsSlice";
 import { dispatch, getState, watchSelector } from "../Store";
 
@@ -33,12 +33,13 @@ export function initCalendarEventEmitter() {
         queryNewEvents()
     }
 
-    function convertOffice365Events(office365Events: Office365CalendarEvent[]): CalendarEventUpdate {
+    function convertOffice365Events(office365Events: Office365CalendarEventResponse[]): CalendarEventUpdate {
         const convertedEvents: Omit<CalendarEvent, 'account'>[] = office365Events.map(office365Event => {
             return {
-                reminderBeforeStart: office365Event.reminderMinutesBeforeStart,
+                reminderMinutesBeforeStart: office365Event.reminderMinutesBeforeStart,
                 startUTC: DateTime.fromISO(office365Event.start.dateTime + 'Z'),
-                subject: office365Event.subject
+                subject: office365Event.subject, 
+                id: office365Event.id
             }
         })
 

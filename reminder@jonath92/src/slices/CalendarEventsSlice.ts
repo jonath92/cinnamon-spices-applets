@@ -6,8 +6,9 @@ type Account = 'office365' | 'google'
 export interface CalendarEvent {
     subject: string, 
     startUTC: DateTime, 
-    reminderBeforeStart: number // TODO: what is with mulitple reminders?
-    account: Account
+    reminderMinutesBeforeStart: number // TODO: what is with mulitple reminders?
+    account: Account, 
+    id: string
 }
 
 export interface CalendarEventUpdate {

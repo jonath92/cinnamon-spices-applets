@@ -1,6 +1,6 @@
 import { OFFICE365_CALENDAR_ENDPOINT, OFFICE365_TOKEN_ENDPOINT } from 'consts'
 import { HttpError, loadJsonAsync } from 'lib/HttpHandler'
-import { createOffice365Handler, Office365CalendarEvent } from 'lib/office365Handler'
+import { createOffice365Handler, Office365CalendarEventResponse } from 'lib/office365Handler'
 
 jest.mock('services/Logger')
 jest.mock('lib/HttpHandler')
@@ -14,7 +14,7 @@ const VALID_ACCESS_TOKEN = '12345678910'
 
 
 // simplfied
-const exampleEvents: Office365CalendarEvent[] = [
+const exampleEvents: Office365CalendarEventResponse[] = [
     {
         id: 'aksfjksfj',  // TODO: idgenerator 
         reminderMinutesBeforeStart: 15, 

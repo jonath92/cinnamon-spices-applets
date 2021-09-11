@@ -11,11 +11,11 @@ interface DateTimeTimeZone {
 
 interface Office365CalendarResponse {
     '@odata.context': string, 
-    value: Office365CalendarEvent[]
+    value: Office365CalendarEventResponse[]
 }
 
 // not complete
-export interface Office365CalendarEvent {
+export interface Office365CalendarEventResponse {
     id: string,
     subject: string,
     webLink: string,
@@ -85,7 +85,6 @@ export function createOffice365Handler(args: Arguments) {
 
             if (newRefreshToken !== refreshToken) {
                 refreshToken = newRefreshToken
-                global.log('newToken', newRefreshToken)
                 onRefreshTokenChanged(newRefreshToken)
             }
 
@@ -94,7 +93,7 @@ export function createOffice365Handler(args: Arguments) {
         }
     }
 
-    async function getTodayEvents(attempt: number = 0): Promise<Office365CalendarEvent[]> {
+    async function getTodayEvents(attempt: number = 0): Promise<Office365CalendarEventResponse[]> {
 
         const now = DateTime.now()
         const startOfDay = DateTime.fromObject({ day: now.day })
