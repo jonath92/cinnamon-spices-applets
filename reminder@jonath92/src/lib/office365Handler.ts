@@ -1,7 +1,7 @@
-import { HttpError, loadJsonAsync } from "./HttpHandler"
+import { HttpError, loadJsonAsync, isHttpError } from "./HttpHandler"
 import { DateTime } from 'luxon';
-import { isHttpError } from '../lib/HttpHandler'
 import { logInfo } from "../services/Logger";
+import { OFFICE365_CALENDAR_ENDPOINT, OFFICE365_CLIENT_ID, OFFICE365_CLIENT_SECRET, OFFICE365_TOKEN_ENDPOINT } from "../consts";
 
 // https://docs.microsoft.com/en-us/graph/api/resources/datetimetimezone?view=graph-rest-1.0
 interface DateTimeTimeZone {
@@ -40,13 +40,10 @@ interface Arguments {
     onRefreshTokenChanged: (newToken: string) => void
 }
 
-// TODO: pass as props - that way it is kept generic
-// TODO: replace (with new ones as these can interact with onedrive)
-const CLIENT_ID = "877b72ef-232d-424d-87c7-5b6636497a98"
-const CLIENT_SECRET = "SM1=3hvquy[Bj7dvNeJB/qDzAoah?6:5"
+const CLIENT_ID = OFFICE365_CLIENT_ID
+const CLIENT_SECRET = OFFICE365_CLIENT_SECRET
 
 
-// TODO rename to getOffice365Events
 export function createOffice365Handler(args: Arguments) {
 
     const {
@@ -63,23 +60,9 @@ export function createOffice365Handler(args: Arguments) {
     if (authorizatonCode == null && refreshToken == null)
         throw new Error('AuthorizationCode and refreshToken must not be both null or undefined')
 
-
-    async function getTodayEvents(): Promise<Office365CalendarEvent[]> {
-        let office365CalendarEvents: Office365CalendarEvent[] = []
-
-        try {
-            office365CalendarEvents = await loadCalendarData()
-
-        } catch (error) {
-            global.logError("couldn't get soon occuring events", error);
-        }
-
-        return office365CalendarEvents
-    }
-
     async function refreshTokens() {
 
-        const url = 'https://login.microsoftonline.com/common/oauth2/v2.0/token'
+        const url = OFFICE365_TOKEN_ENDPOINT
 
         if (!refreshToken) {
             throw new Error('refresh Token must be defined')
@@ -116,7 +99,7 @@ export function createOffice365Handler(args: Arguments) {
         }
     }
 
-    async function loadCalendarData(attempt: number = 0): Promise<Office365CalendarEvent[]> {
+    async function getTodayEvents(attempt: number = 0): Promise<Office365CalendarEvent[]> {
 
         const now = DateTime.now()
         const startOfDay = DateTime.fromObject({ day: now.day })
@@ -127,7 +110,7 @@ export function createOffice365Handler(args: Arguments) {
         return new Promise(async (resolve, reject) => {
             try {
                 const response = await loadJsonAsync<Office365CalendarResponse>({
-                    url: 'https://graph.microsoft.com/v1.0/me/calendarview',
+                    url: OFFICE365_CALENDAR_ENDPOINT,
                     headers: {
                         "Content-Type": 'application/json',
                         Authorization: `Bearer ${accessToken}`
@@ -137,8 +120,10 @@ export function createOffice365Handler(args: Arguments) {
                         endDateTime: endOfDay.toISO()
                     }
                 })
+
+                global.log(response.value)
             
-                resolve(response.value )
+                resolve(response.value)
             } catch (error) {
 
                 if (attempt >= 3) {
@@ -150,7 +135,7 @@ export function createOffice365Handler(args: Arguments) {
 
                 if (isHttpError(error)) {
                     await handleHttpError(error)
-                    loadCalendarData(attempt++)
+                    getTodayEvents(attempt++)
                     return
                 }
 

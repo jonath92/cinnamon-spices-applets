@@ -1,0 +1,191 @@
+{
+    "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#users('9276e47c-dd81-4aa9-cbea-d84bd3c2e7dd')/calendarView",
+    "value": [
+        {
+            "@odata.etag": "W/\"ehYAq1m8Fk6zyyemGCMJwQAAHu/eOQ==\"",
+            "id": "AAMkAGY1OTRkNzEyLTBmZDAtNDU5NC1hOWU3LTUxYjdmOGY5M2RiMQBGAAAAAAB5AEzSmO0IQL2zNXJl2wuQBwB6FgCrWbwWTrPLJ6YYIwnBAAAAAAENAAB6FgCrWbwWTrPLJ6YYIwnBAAAdWxVWAAA=",
+            "createdDateTime": "2021-09-06T14:41:29.1074729Z",
+            "lastModifiedDateTime": "2021-09-07T11:00:39.2414809Z",
+            "changeKey": "ehYAq1m8Fk6zyyemGCMJwQAAHu/eOQ==",
+            "categories": [],
+            "transactionId": null,
+            "originalStartTimeZone": "W. Europe Standard Time",
+            "originalEndTimeZone": "W. Europe Standard Time",
+            "iCalUId": "040000008200E00074C5B7101A82E008000000009050328C39A3D701000000000000000010000000AA129FB20728794B8746D6B354DD12EC",
+            "reminderMinutesBeforeStart": 15,
+            "isReminderOn": true,
+            "hasAttachments": false,
+            "subject": "Grillen",
+            "bodyPreview": "Hallo zusammen,kurzes Update zur Orga:Bitte bis morgen, Dienstag den 07.09. 12:00 zu oder absagen (Mit Vorbehalt / keine Antwort = Absage) wer sicher dabei ist UND ob Vegetarisch bzw. Vegan -> wichtig für den EinkaufWer zu spät zusagt, bekommt nur",
+            "importance": "high",
+            "sensitivity": "normal",
+            "isAllDay": false,
+            "isCancelled": false,
+            "isOrganizer": false,
+            "responseRequested": true,
+            "seriesMasterId": null,
+            "showAs": "busy",
+            "type": "singleInstance",
+            "webLink": "https://outlook.office365.com/owa/?itemid=AAMkAGY1OTRkNzEyLTBmZDAtNDU5NC1hOWU3LTUxYjdmOGY5M2RiMQBGAAAAAAB5AEzSmO0IQL2zNXJl2wuQBwB6FgCrWbwWTrPLJ6YYIwnBAAAAAAENAAB6FgCrWbwWTrPLJ6YYIwnBAAAdWxVWAAA%3D&exvsurl=1&path=/calendar/item",
+            "onlineMeetingUrl": null,
+            "isOnlineMeeting": false,
+            "onlineMeetingProvider": "unknown",
+            "allowNewTimeProposals": true,
+            "isDraft": false,
+            "hideAttendees": false,
+            "recurrence": null,
+            "onlineMeeting": null,
+            "responseStatus": {
+                "response": "accepted",
+                "time": "2021-09-06T15:34:42.8696463Z"
+            },
+            "body": {
+                "contentType": "html",
+                "content": "<html><head><metahttp-equiv=\"Content-Type\"content=\"text/html;charset=utf-8\"><metacontent=\"text/html;charset=utf-8\"><metaname=\"Generator\"content=\"MicrosoftWord15(filteredmedium)\"><style><!--@font-face{font-family:Wingdings}@font-face{font-family:\"CambriaMath\"}@font-face{font-family:Calibri}@font-face{font-family:\"SegoeUIEmoji\"}@font-face{font-family:\"SegoeUI\"}p.MsoNormal,li.MsoNormal,div.MsoNormal{margin:0cm;font-size:11.0pt;font-family:\"Calibri\",sans-serif}a:link,span.MsoHyperlink{color:#0563C1;text-decoration:underline}p.MsoListParagraph,li.MsoListParagraph,div.MsoListParagraph{margin-top:0cm;margin-right:0cm;margin-bottom:0cm;margin-left:36.0pt;font-size:11.0pt;font-family:\"Calibri\",sans-serif}span.E-MailFormatvorlage19{font-family:\"Calibri\",sans-serif;color:windowtext}.MsoChpDefault{font-size:10.0pt}@pageWordSection1{margin:70.85pt70.85pt2.0cm70.85pt}div.WordSection1{}ol{margin-bottom:0cm}ul{margin-bottom:0cm}--></style></head><bodylang=\"DE\"link=\"#0563C1\"vlink=\"#954F72\"style=\"word-wrap:break-word\"><divclass=\"WordSection1\"><pclass=\"MsoNormal\">Hallozusammen,</p><pclass=\"MsoNormal\">&nbsp;</p><pclass=\"MsoNormal\">kurzesUpdatezurOrga:</p><pclass=\"MsoNormal\">Bittebismorgen,<b><spanstyle=\"color:red\">Dienstagden07.09.12:00</span></b><spanstyle=\"color:red\"></span>zuoderabsagen(MitVorbehalt/keineAntwort=Absage)wersicherdabeiistUNDobVegetarischbzw.Vegan-&gt;wichtigfürdenEinkauf</p><pclass=\"MsoNormal\">Werzuspätzusagt,bekommtnurranzigesButterbrotundabgestandenesBilligbier<spanstyle=\"font-family:&quot;SegoeUIEmoji&quot;,sans-serif\">&#128523;&#128520;</span></p><pclass=\"MsoNormal\">&nbsp;</p><pclass=\"MsoNormal\">WereinenSalatbeisteuernkann/will–sehrgerne!DieDetailsdazubitteimTeamsChannel(sieheLinkunten)abstimmen<spanstyle=\"font-family:&quot;SegoeUIEmoji&quot;,sans-serif\">&#128522;</span></p><pclass=\"MsoNormal\">&nbsp;</p><pclass=\"MsoNormal\">&nbsp;</p><pclass=\"MsoNormal\">Location:</p><pclass=\"MsoNormal\">&nbsp;</p><pclass=\"MsoNormal\">&nbsp;</p><pclass=\"MsoNormal\">Zeitplan:</p><pclass=\"MsoNormal\">&nbsp;</p><pclass=\"MsoNormal\">&nbsp;</p><pclass=\"MsoNormal\">Analle,dienochnichtinTeamsreagierthabenodernichtwissenwasdasisthiernochmaldieOriginalnachricht:</p><pclass=\"MsoNormal\">„</p><pclass=\"MsoNormal\"><spanstyle=\"font-size:10.5pt;font-family:&quot;SegoeUI&quot;,sans-serif\">[01.0909:25]P</span></p><pclass=\"MsoNormal\"><spanstyle=\"font-size:10.5pt;font-family:&quot;SegoeUI&quot;,sans-serif\">Afterwork-GrillenundSonne</span></p><pclass=\"MsoNormal\"><spanstyle=\"font-size:10.5pt;font-family:&quot;SegoeUI&quot;,sans-serif\">Hey&nbsp;Berlin,</span></p><pclass=\"MsoNormal\"><spanstyle=\"font-size:10.5pt;font-family:&quot;SegoeUI&quot;,sans-serif\">wiewär's,wennwirdieletztenSommertagenochmalnutzenumgemeinsamzugrillen?&nbsp;</span></p><pclass=\"MsoNormal\"><spanstyle=\"font-size:10.5pt;font-family:&quot;SegoeUI&quot;,sans-serif\">NächstenMontagoderMittwochnachderArbeitindenPark,grillen&amp;&nbsp;chillen,mit&nbsp;Frisbee,Ball,Beef+Bier?</span></p><pclass=\"MsoNormal\"><spanstyle=\"font-size:10.5pt;font-family:&quot;SegoeUI&quot;,sans-serif\">Gernemalabstimmen,werInteressehat:</span></p><pclass=\"MsoNormal\"><spanstyle=\"font-size:10.5pt;font-family:&quot;SegoeUI&quot;,sans-serif\">Montag=Daumenhoch</span></p><pclass=\"MsoNormal\"><spanstyle=\"font-size:10.5pt;font-family:&quot;SegoeUI&quot;,sans-serif\">Mittwoch=Herz</span></p><pclass=\"MsoNormal\"><spanstyle=\"font-size:10.5pt;font-family:&quot;SegoeUI&quot;,sans-serif\">Alternativvorschlägesindnatürlichwillkommen.</span></p><pclass=\"MsoNormal\"><spanstyle=\"font-size:10.5pt;font-family:&quot;SegoeUI&quot;,sans-serif\">WelcherParkeswirdistnochoffen.Ggf.etwas,dasvomOfficefußläufigerreichbarist.SonstebenderKlassiker&quot;TempelhoferFeld&quot;</span></p><pclass=\"MsoNormal\"><spanstyle=\"font-size:10.5pt;font-family:&quot;SegoeUI&quot;,sans-serif\">P.S.NachderAnsagegesternkönnenwiresunsjasomitimNamenvongutgehenlassencool</span></p><pclass=\"MsoNormal\">“</p><pclass=\"MsoNormal\">&nbsp;</p><pclass=\"MsoNormal\">&nbsp;</p><pclass=\"MsoNormal\">Grüße,</p><pclass=\"MsoNormal\">P.</p></div></body></html>"
+            },
+            "start": {
+                "dateTime": "2021-09-08T15:00:00.0000000",
+                "timeZone": "UTC"
+            },
+            "end": {
+                "dateTime": "2021-09-08T19:00:00.0000000",
+                "timeZone": "UTC"
+            },
+            "location": {
+                "displayName": "Ein Ort",
+                "locationType": "default",
+                "uniqueId": "EinOrt",
+                "uniqueIdType": "private"
+            },
+            "locations": [
+                {
+                    "displayName": "EinOrt",
+                    "locationType": "default",
+                    "uniqueId": "3cdbfabb-8c58-45df-a1b2-296f6b9c7b53",
+                    "uniqueIdType": "locationStore"
+                }
+            ],
+            "attendees": [
+                {
+                    "type": "required",
+                    "status": {
+                        "response": "none",
+                        "time": "0001-01-01T00:00:00Z"
+                    },
+                    "emailAddress": {
+                        "name": "Dummy User",
+                        "address": "dummy.user@dummy.com"
+                    }
+                },
+                {
+                    "type": "required",
+                    "status": {
+                        "response": "none",
+                        "time": "0001-01-01T00:00:00Z"
+                    },
+                    "emailAddress": {
+                        "name": "dummy User2",
+                        "address": "dummy2@dummy.com"
+                    }
+                },
+                {
+                    "type": "optional",
+                    "status": {
+                        "response": "accepted",
+                        "time": "0001-01-01T00:00:00Z"
+                    },
+                    "emailAddress": {
+                        "name": "Optional User",
+                        "address": "optional.dummy@user.com"
+                    }
+                }
+            ],
+            "organizer": {
+                "emailAddress": {
+                    "name": "Dummy User",
+                    "address": "dummy.user@dummy.com"
+                }
+            }
+        },
+        {
+            "@odata.etag": "W/\"ehYAq1m8Fk6zyyemGCMJwQAAGPznUQ==\"",
+            "id": "AAMkAGY1OTRkNzEyLTBmZDAtNDU5NC1hOWU3LTUxYjdmOGY5M2RiMQFRAAgI2XMkxFvAAEYAAAAAeQBM0pjtCEC9szVyZdsLkAcAehYAq1m8Fk6zyyemGCMJwQAAAAABDQAAehYAq1m8Fk6zyyemGCMJwQAAFuISuwAAEA==",
+            "createdDateTime": "2021-08-26T14:00:02.4181617Z",
+            "lastModifiedDateTime": "2021-09-01T12:49:10.6270533Z",
+            "changeKey": "ehYAq1m8Fk6zyyemGCMJwQAAGPznUQ==",
+            "categories": [],
+            "transactionId": "19287d6d-3e70-2094-072b-f7f632759b79",
+            "originalStartTimeZone": "W. Europe Standard Time",
+            "originalEndTimeZone": "W. Europe Standard Time",
+            "iCalUId": "040000008200E00074C5B7101A82E00807E509092D394BAA829AD70100000000000000001000000090F5E517B580C74EB54C35D67D6E6808",
+            "reminderMinutesBeforeStart": 15,
+            "isReminderOn": true,
+            "hasAttachments": false,
+            "subject": "Weekly",
+            "bodyPreview": "Weekly Pedestrian________________________________________________________________________________Microsoft Teams-BesprechungNehmen Sie von Ihrem Computer oder der mobilen App aus teilKlicken Sie hier, um an der Besprechung teilzunehmenWeitere ",
+            "importance": "normal",
+            "sensitivity": "normal",
+            "isAllDay": false,
+            "isCancelled": false,
+            "isOrganizer": true,
+            "responseRequested": true,
+            "seriesMasterId": "AAMkAGY1OTRkNzEyLTBmZDAtNDU5NC1hOWU3LTUxYjdmOGY5M2RiMQBGAAAAAAB5AEzSmO0IQL2zNXJl2wuQBwB6FgCrWbwWTrPLJ6YYIwnBAAAAAAENAAB6FgCrWbwWTrPLJ6YYIwnBAAAW4hK7AAA=",
+            "showAs": "busy",
+            "type": "occurrence",
+            "webLink": "https://outlook.office365.com/owa/?itemid=AAMkAGY1OTRkNzEyLTBmZDAtNDU5NC1hOWU3LTUxYjdmOGY5M2RiMQFRAAgI2XMkxFvAAEYAAAAAeQBM0pjtCEC9szVyZdsLkAcAehYAq1m8Fk6zyyemGCMJwQAAAAABDQAAehYAq1m8Fk6zyyemGCMJwQAAFuISuwAAEA%3D%3D&exvsurl=1&path=/calendar/item",
+            "onlineMeetingUrl": null,
+            "isOnlineMeeting": true,
+            "onlineMeetingProvider": "teamsForBusiness",
+            "allowNewTimeProposals": true,
+            "isDraft": false,
+            "hideAttendees": false,
+            "recurrence": null,
+            "responseStatus": {
+                "response": "organizer",
+                "time": "0001-01-01T00:00:00Z"
+            },
+            "body": {
+                "contentType": "html",
+                "content": "<html><head><meta http-equiv=\"Content-Type\" content=\"text/html; charset=utf-8\"><meta content=\"text/html; charset=us-ascii\"></head><body><div style=\"font-family:Calibri,Arial,Helvetica,sans-serif; font-size:12pt; color:rgb(0,0,0); background-color:rgb(255,255,255)\">Weekly Pedestrian&nbsp;</div><br><div style=\"width:100%; height:20px\"><span style=\"white-space:nowrap; color:#5F5F5F; opacity:.36\">________________________________________________________________________________</span></div><div class=\"me-email-text\" lang=\"de-DE\" style=\"color:#252424; font-family:'Segoe UI','Helvetica Neue',Helvetica,Arial,sans-serif\"><div style=\"margin-top:24px; margin-bottom:20px\"><span style=\"font-size:24px; color:#252424\">Microsoft Teams-Besprechung</span></div><div style=\"margin-bottom:20px\"><div style=\"margin-top:0px; margin-bottom:0px; font-weight:bold\"><span style=\"font-size:14px; color:#252424\">Nehmen Sie von Ihrem Computer oder der mobilen App aus teil</span></div><a class=\"me-email-headline\" href=\"https://teams.microsoft.com/l/meetup-join/19%3ameeting_MjRhOGNmOTktMTFhMy00YjA5LTlkMTctOTU2NmU3ZDhlODE0%40thread.v2/0?context=%7b%22Tid%22%3a%22b2748d0a-856e-4184-bda8-831f9ffa8a48%22%2c%22Oid%22%3a%229276e47c-dd81-4aa8-abea-d84bd3c2e7dd%22%7d\" target=\"_blank\" rel=\"noreferrer noopener\" style=\"font-size:14px; font-family:'Segoe UI Semibold','Segoe UI','Helvetica Neue',Helvetica,Arial,sans-serif; text-decoration:underline; color:#6264a7\">Klicken Sie hier, um an der Besprechung teilzunehmen</a> </div><div style=\"margin-bottom:24px; margin-top:20px\"><a class=\"me-email-link\" target=\"_blank\" href=\"https://aka.ms/JoinTeamsMeeting\" rel=\"noreferrer noopener\" style=\"font-size:14px; text-decoration:underline; color:#6264a7; font-family:'Segoe UI','Helvetica Neue',Helvetica,Arial,sans-serif\">Weitere Infos</a> | <a class=\"me-email-link\" target=\"_blank\" href=\"https://teams.microsoft.com/meetingOptions/?organizerId=9276e47c-dd81-4aa8-abea-d84bd3c2e7dd&amp;tenantId=b2748d0a-856e-4184-bda8-831f9ffa8a48&amp;threadId=19_meeting_MjRhOGNmOTktMTFhMy00YjA5LTlkMTctOTU2NmU3ZDhlODE0@thread.v2&amp;messageId=0&amp;language=de-DE\" rel=\"noreferrer noopener\" style=\"font-size:14px; text-decoration:underline; color:#6264a7; font-family:'Segoe UI','Helvetica Neue',Helvetica,Arial,sans-serif\">Besprechungsoptionen</a> </div></div><div style=\"font-size:14px; margin-bottom:4px; font-family:'Segoe UI','Helvetica Neue',Helvetica,Arial,sans-serif\"></div><div style=\"font-size:12px\"></div><div></div><div style=\"width:100%; height:20px\"><span style=\"white-space:nowrap; color:#5F5F5F; opacity:.36\">________________________________________________________________________________</span></div></body></html>"
+            },
+            "start": {
+                "dateTime": "2021-09-09T13:00:00.0000000",
+                "timeZone": "UTC"
+            },
+            "end": {
+                "dateTime": "2021-09-09T14:00:00.0000000",
+                "timeZone": "UTC"
+            },
+            "location": {
+                "displayName": "",
+                "locationType": "default",
+                "uniqueIdType": "unknown",
+                "address": {},
+                "coordinates": {}
+            },
+            "locations": [],
+            "attendees": [
+                {
+                    "type": "required",
+                    "status": {
+                        "response": "none",
+                        "time": "0001-01-01T00:00:00Z"
+                    },
+                    "emailAddress": {
+                        "name": "Attendee",
+                        "address": "attendee@dummy.com"
+                    }
+                }
+            ],
+            "organizer": {
+                "emailAddress": {
+                    "name": "Organizer",
+                    "address": "dummy.organizer@dummy.com"
+                }
+            },
+            "onlineMeeting": {
+                "joinUrl": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_MjRhOGNmOTktMTFhMy00YjA5LTlkMTctOTU2NmU3ZDhlODE0%40thread.v2/0?context=%7b%22Tid%22%3a%22b2748d0a-856e-4584-bda8-831f9ffa8a48%22%2c%22Oid%22%3a%229276e47c-dd81-4aa8-abea-d84bd3c2e7dd%22%7d"
+            }
+        }
+    ]
+}
