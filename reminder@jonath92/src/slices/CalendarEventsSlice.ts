@@ -1,20 +1,6 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit'
-import { DateTime } from 'luxon'
+import { CalendarEvent } from 'model/CalendarEvent'
 
-type Account = 'office365' | 'google'
-
-export interface CalendarEvent {
-    subject: string, 
-    startUTC: DateTime, 
-    reminderMinutesBeforeStart: number // TODO: what is with mulitple reminders?
-    account: Account, 
-    id: string
-}
-
-export interface CalendarEventUpdate {
-    account: Account, 
-    events: Omit<CalendarEvent, 'account'>[]
-}
 
 const initialState: CalendarEvent[] = [] 
 
@@ -22,22 +8,18 @@ const calendarEventSlice = createSlice({
     name: 'calendarEvents', 
     initialState, 
     reducers: {
-        eventsLoaded(state, action: PayloadAction<CalendarEventUpdate>){
+        eventsLoaded(state, action: PayloadAction<CalendarEvent[]>){
 
-            const account = action.payload.account
+            const updatedEvents = action.payload
 
-            const newEvents: CalendarEvent[] = action.payload.events.map(event => {
-                return {...event, account}
+            const nonUpdatedEvents = state.filter(savedEvent => {
+                return !updatedEvents.find(newEvent => newEvent.id === savedEvent.id)
             })
 
-            const eventsWithoutUpdatedAccount = state.filter(event => event.account !== account)
-
-            return [...eventsWithoutUpdatedAccount, ...newEvents]
+            return [...updatedEvents, ...nonUpdatedEvents]
         }
     }
 })
-
-
 
 
 

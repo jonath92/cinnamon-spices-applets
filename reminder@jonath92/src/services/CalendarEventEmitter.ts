@@ -1,20 +1,20 @@
-import { DateTime } from "luxon";
 import { refreshTokenChanged } from "../slices/settingsSlice";
-import { createOffice365Handler, Office365CalendarEventResponse } from "../lib/office365Handler";
-import { CalendarEvent, CalendarEventUpdate, eventsLoaded } from "../slices/CalendarEventsSlice";
+import { createOffice365Handler } from "../lib/office365Handler";
+import { eventsLoaded } from "../slices/CalendarEventsSlice";
 import { dispatch, getState, watchSelector } from "../Store";
+import { CalendarEvent } from "model/CalendarEvent";
 
 const selectOffice365Auth = () => getState().settings.authCode
 
 
-// The CalendarEventEmitter acts as a layer betweeen calendar Apis (which are coded in a way that they should relatively easy be used outside of cinnamon as well).
+// The CalendarEventEmitter acts as a layer betweeen calendar Apis (which are coded in a way that they should relatively easy be used outside of cinnamon as well) and the global state.
 export function initCalendarEventEmitter() {
     let office35Handler: ReturnType<typeof createOffice365Handler> | undefined
 
     initOffice365Handler(getState().settings)
 
     watchSelector(selectOffice365Auth, (newValue) => {
-        initOffice365Handler({authCode: newValue})
+        initOffice365Handler({ authCode: newValue })
     })
 
     setInterval(queryNewEvents, 10000)
@@ -33,29 +33,14 @@ export function initCalendarEventEmitter() {
         queryNewEvents()
     }
 
-    function convertOffice365Events(office365Events: Office365CalendarEventResponse[]): CalendarEventUpdate {
-        const convertedEvents: Omit<CalendarEvent, 'account'>[] = office365Events.map(office365Event => {
-            return {
-                reminderMinutesBeforeStart: office365Event.reminderMinutesBeforeStart,
-                startUTC: DateTime.fromISO(office365Event.start.dateTime + 'Z'),
-                subject: office365Event.subject, 
-                id: office365Event.id
-            }
-        })
-
-        return {
-            account: 'office365', 
-            events: convertedEvents
-        }
-    }
-
-    async function queryNewEvents(){
+    async function queryNewEvents() {
         if (!office35Handler)
             return
 
-        const newEvents = convertOffice365Events(
-            await office35Handler.getTodayEvents()
-        )
+        const newEvents: CalendarEvent[] = (await office35Handler.getTodayEvents()).map(office365event => {
+            return CalendarEvent.newFromOffice365response(office365event)
+        })
+
 
         dispatch(eventsLoaded(newEvents))
     }

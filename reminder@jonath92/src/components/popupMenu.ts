@@ -1,6 +1,6 @@
 import { createPopupMenu } from "cinnamonpopup";
 import { DateTime } from "luxon";
-import { CalendarEvent } from "../slices/CalendarEventsSlice";
+import { CalendarEvent } from "model/CalendarEvent";
 import { selectEvents, watchSelector } from "../Store";
 import { createCard } from "./Card";
 import { createCardContainer } from "./CardContainer";
