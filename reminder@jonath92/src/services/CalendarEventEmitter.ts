@@ -1,4 +1,5 @@
 import { DateTime } from "luxon";
+import { refreshTokenChanged } from "../slices/settingsSlice";
 import { createOffice365Handler, Office365CalendarEvent } from "../lib/office365Handler";
 import { CalendarEvent, CalendarEventUpdate, eventsLoaded } from "../slices/CalendarEventsSlice";
 import { dispatch, getState, watchSelector } from "../Store";
@@ -25,7 +26,7 @@ export function initCalendarEventEmitter() {
         office35Handler = createOffice365Handler({
             authorizatonCode: args.authCode,
             refreshToken: args.refreshToken,
-            onRefreshTokenChanged: (newValue) => {global.log('refreshToken changed') } // TODO
+            onRefreshTokenChanged: (newValue) => dispatch(refreshTokenChanged(newValue))
         })
 
         queryNewEvents()

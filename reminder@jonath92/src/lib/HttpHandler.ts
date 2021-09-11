@@ -27,7 +27,7 @@ interface Headers {
     'Authorization'?: string
 }
 
-export interface LoadJsonArgs {
+interface LoadJsonArgs {
     url: string,
     method?: Method,
     bodyParams?: HTTPParams,

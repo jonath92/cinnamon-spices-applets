@@ -1,4 +1,4 @@
-import { HttpError, loadJsonAsync, isHttpError, LoadJsonArgs } from "./HttpHandler"
+import { HttpError, loadJsonAsync, isHttpError } from "./HttpHandler"
 import { DateTime } from 'luxon';
 import { logInfo } from "../services/Logger";
 import { OFFICE365_CALENDAR_ENDPOINT, OFFICE365_CLIENT_ID, OFFICE365_CLIENT_SECRET, OFFICE365_TOKEN_ENDPOINT } from "../consts";
@@ -81,17 +81,15 @@ export function createOffice365Handler(args: Arguments) {
 
             accessToken = response.access_token
 
-            // TODO: save RefreshToken to file as only valid for 90 days
+            const newRefreshToken = response.refresh_token
 
-            const newToken = response.refresh_token
-
-            if (newToken !== refreshToken) {
-                refreshToken = newToken
-                onRefreshTokenChanged(newToken)
+            if (newRefreshToken !== refreshToken) {
+                refreshToken = newRefreshToken
+                global.log('newToken', newRefreshToken)
+                onRefreshTokenChanged(newRefreshToken)
             }
 
         } catch (error) {
-
             global.logError(`couldn't refresh Token, error: ${JSON.stringify(error)}`)
         }
     }
