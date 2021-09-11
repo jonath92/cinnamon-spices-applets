@@ -39,6 +39,7 @@ module.exports = {
     mode: 'production',
     entry: './src/index.ts',
     devtool: "eval-source-map",
+    
     target: 'node', // without webpack renames 'global'
     module: {
         rules: [
@@ -50,6 +51,10 @@ module.exports = {
     },
     resolve: {
         extensions: ['.ts', '.js'],
+        modules: [
+            path.resolve(__dirname, "src"), 
+            "node_modules"
+        ]
     },
     output: {
         path: BUILD_DIR,

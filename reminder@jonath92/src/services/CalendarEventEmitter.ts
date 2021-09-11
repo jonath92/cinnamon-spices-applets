@@ -7,6 +7,7 @@ import { dispatch, getState, watchSelector } from "../Store";
 const selectOffice365Auth = () => getState().settings.authCode
 
 
+// The CalendarEventEmitter acts as a layer betweeen calendar Apis (which are coded in a way that they should relatively easy be used outside of cinnamon as well).
 export function initCalendarEventEmitter() {
     let office35Handler: ReturnType<typeof createOffice365Handler> | undefined
 
