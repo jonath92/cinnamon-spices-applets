@@ -1,5 +1,5 @@
 import { OFFICE365_CALENDAR_ENDPOINT } from 'consts'
-import { loadJsonAsync } from 'lib/HttpHandler'
+import { HttpError, loadJsonAsync } from 'lib/HttpHandler'
 import { createOffice365Handler } from 'lib/office365Handler'
 
 jest.mock('services/Logger')
@@ -28,11 +28,15 @@ async function mockCalendarEndpoint(args: Omit<LoadJsonArgs, 'url'>){
         const expectedAuthorizationHeader = `Bearer ${VALID_ACCESS_TOKEN}`
 
         if (headers.Authorization !== expectedAuthorizationHeader){
-            reject('TODO: Invalid Access token')
+            const error: HttpError = {
+                code: 401, 
+                reason_phrase: 'Unauthorized', 
+                message: 'bad status code'
+            }
+            reject(error)
         }
-        
-
-        reject('just rejected')
+    
+        // TODO: resolve
     })
 
 }

@@ -61,6 +61,7 @@ export function createOffice365Handler(args: Arguments) {
         throw new Error('AuthorizationCode and refreshToken must not be both null or undefined')
 
     async function refreshTokens() {
+        global.log('refeshToken called')
 
         const url = OFFICE365_TOKEN_ENDPOINT
 
@@ -113,17 +114,16 @@ export function createOffice365Handler(args: Arguments) {
                     url: OFFICE365_CALENDAR_ENDPOINT,
                     headers: {
                         "Content-Type": 'application/json',
-                        Authorization: `Bearer ${authorizatonCode}`
+                        Authorization: `Bearer ${accessToken}`
                     },
                     queryParams: {
                         startdatetime: startOfDay.toISO(),
                         endDateTime: endOfDay.toISO()
                     }
                 })
-
-                global.log(response.value)
-            
+        
                 resolve(response.value)
+
             } catch (error) {
 
                 if (attempt >= 3) {
@@ -135,7 +135,6 @@ export function createOffice365Handler(args: Arguments) {
 
                 if (isHttpError(error)) {
                     await handleHttpError(error)
-                    global.log('attempt', attempt)
                     getTodayEvents(++attempt)
                     return
                 }
