@@ -36,10 +36,9 @@ export function createCalendarPopupMenu(args: Arguments){
         // global.log('sorted: ', sorted)
 
         events.forEach(event => {
-            const eventStartFormated = event.startUTC.toLocaleString(DateTime.TIME_SIMPLE)
         
             const card = createCard({
-                title: eventStartFormated, 
+                title: event.startFormated, 
                 body: event.subject
             })
 

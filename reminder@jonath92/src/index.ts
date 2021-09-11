@@ -2,7 +2,7 @@ import { CalendarApplet } from "./Applet";
 import { initNotificationFactory } from "./lib/NotificationFactory";
 import { initCalendarEventEmitter } from "./services/CalendarEventEmitter";
 import { createCalendarPopupMenu } from "./components/popupMenu";
-import { createNofifier } from "services/CalendarEventsNotifier";
+import { createNotifyService } from "services/CalendarEventsNotifier";
 const { Icon, IconType} = imports.gi.St
 
 interface Arguments {
@@ -37,7 +37,7 @@ export function main(args: Arguments) {
     })
 
 
-    createNofifier()
+    createNotifyService()
 
     reminderApplet.on_applet_clicked = popupMenu.toggle
 
