@@ -6,7 +6,7 @@ export class CalendarEvent {
 
     constructor(
         readonly id: string,
-        readonly reminderStartTime: DateTime,
+        readonly remindTime: DateTime,
         readonly subject: string,
         readonly startUTC: DateTime
     ) { }

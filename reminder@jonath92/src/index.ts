@@ -1,8 +1,8 @@
 import { CalendarApplet } from "./Applet";
 import { initNotificationFactory } from "./lib/NotificationFactory";
-import { initCalendarEventEmitter } from "./services/CalendarEventEmitter";
+import { initCalendarEventEmitter } from "./services/CalendarEventPollingService";
 import { createCalendarPopupMenu } from "./components/popupMenu";
-import { createNotifyService } from "services/CalendarEventsNotifier";
+import { createNotifyService } from "services/CalendarEventsNotifyService";
 const { Icon, IconType} = imports.gi.St
 
 interface Arguments {
