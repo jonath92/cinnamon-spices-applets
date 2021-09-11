@@ -1,9 +1,7 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit'
 import { DateTime } from 'luxon'
 
-
 type Account = 'office365' | 'google'
-
 
 export interface CalendarEvent {
     subject: string, 

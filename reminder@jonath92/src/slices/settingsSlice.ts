@@ -33,6 +33,7 @@ const settingsSlice = createSlice({
     initialState: initialState, 
     reducers: {
         refreshTokenChanged(state, action: PayloadAction<string>){
+            global.log('refreshToken Change called')
             state.refreshToken = action.payload
         }
     }
