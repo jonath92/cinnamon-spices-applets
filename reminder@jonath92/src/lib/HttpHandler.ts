@@ -14,7 +14,7 @@ export interface HttpError {
     reason_phrase: string
 }
 
-export function isHttpError(x:any): x is HttpError {
+export function isHttpError(x: any): x is HttpError {
     return typeof x.reason_phrase === 'string'
 }
 
@@ -27,7 +27,7 @@ interface Headers {
     'Authorization'?: string
 }
 
-interface LoadJsonArgs {
+export interface LoadJsonArgs {
     url: string,
     method?: Method,
     bodyParams?: HTTPParams,
@@ -65,7 +65,7 @@ function checkForHttpError(message: imports.gi.Soup.Message): HttpError | false 
 }
 
 
-export function loadJsonAsync<T>(args: LoadJsonArgs): Promise<T> {
+export function loadJsonAsync<T1, T2 = LoadJsonArgs>(args: LoadJsonArgs): Promise<T1> {
 
     const {
         url,
@@ -99,7 +99,7 @@ export function loadJsonAsync<T>(args: LoadJsonArgs): Promise<T> {
                 return
             }
 
-            const data = JSON.parse(message.response_body.data) as T
+            const data = JSON.parse(message.response_body.data) as T1
             resolve(data)
         })
     })

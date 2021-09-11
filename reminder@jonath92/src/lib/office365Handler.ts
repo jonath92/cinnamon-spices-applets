@@ -1,4 +1,4 @@
-import { HttpError, loadJsonAsync, isHttpError } from "./HttpHandler"
+import { HttpError, loadJsonAsync, isHttpError, LoadJsonArgs } from "./HttpHandler"
 import { DateTime } from 'luxon';
 import { logInfo } from "../services/Logger";
 import { OFFICE365_CALENDAR_ENDPOINT, OFFICE365_CLIENT_ID, OFFICE365_CLIENT_SECRET, OFFICE365_TOKEN_ENDPOINT } from "../consts";
@@ -21,8 +21,6 @@ export interface Office365CalendarEvent {
     webLink: string,
     start: DateTimeTimeZone,
     reminderMinutesBeforeStart: number,
-    transactionId: string,
-    originalStart: string
 }
 
 // not complete
@@ -61,18 +59,15 @@ export function createOffice365Handler(args: Arguments) {
         throw new Error('AuthorizationCode and refreshToken must not be both null or undefined')
 
     async function refreshTokens() {
-        global.log('refeshToken called')
-
-        const url = OFFICE365_TOKEN_ENDPOINT
 
         if (!refreshToken) {
             throw new Error('refresh Token must be defined')
         }
 
         try {
-            const response = await loadJsonAsync({
+            const response = await loadJsonAsync<TokenResponse>({
                 method: 'POST',
-                url,
+                url: OFFICE365_TOKEN_ENDPOINT,
                 bodyParams: {
                     client_id: CLIENT_ID,
                     client_secret: CLIENT_SECRET,
@@ -82,9 +77,10 @@ export function createOffice365Handler(args: Arguments) {
                 headers: {
                     "Content-Type": 'application/x-www-form-urlencoded'
                 }
-            }) as TokenResponse
+            }) 
 
             accessToken = response.access_token
+
             // TODO: save RefreshToken to file as only valid for 90 days
 
             const newToken = response.refresh_token
@@ -106,7 +102,7 @@ export function createOffice365Handler(args: Arguments) {
         const startOfDay = DateTime.fromObject({ day: now.day })
         const endOfDay = DateTime.fromObject({ day: now.day + 1 })
 
-        !accessToken && refreshTokens()
+        !accessToken && await refreshTokens()
 
         return new Promise(async (resolve, reject) => {
             try {
