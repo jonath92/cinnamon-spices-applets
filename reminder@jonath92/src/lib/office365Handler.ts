@@ -113,7 +113,7 @@ export function createOffice365Handler(args: Arguments) {
                     url: OFFICE365_CALENDAR_ENDPOINT,
                     headers: {
                         "Content-Type": 'application/json',
-                        Authorization: `Bearer ${accessToken}`
+                        Authorization: `Bearer ${authorizatonCode}`
                     },
                     queryParams: {
                         startdatetime: startOfDay.toISO(),
@@ -135,7 +135,8 @@ export function createOffice365Handler(args: Arguments) {
 
                 if (isHttpError(error)) {
                     await handleHttpError(error)
-                    getTodayEvents(attempt++)
+                    global.log('attempt', attempt)
+                    getTodayEvents(++attempt)
                     return
                 }
 
