@@ -13,7 +13,6 @@ interface SettingsState {
     authCode?: string
 }
 
-
 function loadSettingsFromFile(): SettingsState {
 
     let settings: SettingsState = {}
