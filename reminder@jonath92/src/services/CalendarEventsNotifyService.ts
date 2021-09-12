@@ -13,12 +13,11 @@ interface Reminder {
 
 export function createNotifyService() {
 
+
     let reminders: Reminder[] = []
 
     watchSelector(selectEvents, (events) => {
 
-
-        global.log('events updated', events)
         reminders = updateExistingReminders(reminders, events)
 
         const newEvents = events.filter(event => {
@@ -83,12 +82,13 @@ function createNewReminder(event: CalendarEvent): Reminder {
     if (event.remindTime <= DateTime.now()) {
         event.sendNotification()
     } else {
-
-        const timeout = DateTime.now().diff(remindTime).milliseconds
+        const timeout = remindTime.diff(DateTime.now()).milliseconds
 
         timerId = setTimeout(() => {
             event.sendNotification()
         }, timeout)
+
+        global.log('timerId', timerId)
     }
 
     return {
