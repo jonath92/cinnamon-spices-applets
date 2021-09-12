@@ -7,9 +7,10 @@ import { isEqual } from "lodash"
 interface Reminder {
     eventId: string,
     // only when not yet send 
-    timerId?: number,
+    timerId?: ReturnType<typeof setTimeout>,
     remindTime: DateTime,
 }
+
 
 export function createNotifyService() {
 
@@ -50,6 +51,8 @@ function updateExistingReminders(reminders: Reminder[], updatedEvents: CalendarE
 
         const reminderHasChanged = isEqual(currentRemindTime, updatedRemindTime)
 
+        global.log('reminderHasChanged', reminderHasChanged, updatedEvent?.subject)
+
         if (reminderHasChanged) {
             reminder.timerId && clearTimeout(reminder.timerId)
 
@@ -77,7 +80,7 @@ function createNewReminder(event: CalendarEvent): Reminder {
 
     const remindTime = event.remindTime
 
-    let timerId: number | undefined
+    let timerId: ReturnType<typeof setTimeout> | undefined
     
     if (event.remindTime <= DateTime.now()) {
         event.sendNotification()

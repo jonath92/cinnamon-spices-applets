@@ -24,16 +24,15 @@ export function main(args: Arguments) {
     const reminderApplet = new CalendarApplet(orientation, panel_height, instance_id)
 
     const popupMenu = createCalendarPopupMenu({launcher: reminderApplet.actor})
-    const emittedReminders: string[] = []
-
-    const icon = new Icon({
-        icon_type: IconType.SYMBOLIC,
-        icon_name: 'view-calendar',
-        icon_size: 25
-    })
 
     initNotificationFactory({
-        icon
+        iconFactory: () => {
+            return new Icon({
+                icon_type: IconType.SYMBOLIC,
+                icon_name: 'view-calendar',
+                icon_size: 25
+            })
+        }
     })
 
 

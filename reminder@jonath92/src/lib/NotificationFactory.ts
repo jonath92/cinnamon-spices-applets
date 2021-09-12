@@ -2,48 +2,37 @@
 const { SystemNotificationSource, Notification } = imports.ui.messageTray;
 const { messageTray } = imports.ui.main;
 
-interface CreateNotification {
-    // TODO: this should gerneate an icon
-    icon: imports.gi.St.Icon
-}
+let iconFactory: () => imports.gi.St.Icon
 
 const messageSource = new SystemNotificationSource(__meta.name)
 messageTray.add(messageSource)
 
 
-let icon: imports.gi.St.Icon
-
-
-export function initNotificationFactory(args: CreateNotification) {
+export function initNotificationFactory(args: {iconFactory: typeof iconFactory}) {
 
     const {
-        icon: passedIcon
+        iconFactory: passedIconFactory
     } = args
 
-    icon = passedIcon
+    iconFactory = passedIconFactory
 }
 
 
-interface NotifyArguments {
-    notificationText: string,
-    transient?: boolean
-}
-
-export function notify(args: NotifyArguments) {
+export function notify(args: {notificationText: string, transient?: boolean}) {
 
     const {
         notificationText,
         transient = true
     } = args
 
-    if (!icon)
+    if (!iconFactory)
         global.logError('initNotificatoinManager must be called first!')
 
     const notification = new Notification(
         messageSource,
         __meta.name,
         notificationText,
-        { icon, bodyMarkup: true }
+        { icon: iconFactory(), bodyMarkup: true }
     )
 
     notification.setTransient(transient)
