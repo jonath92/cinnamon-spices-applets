@@ -26,7 +26,10 @@ export function createNotifyService() {
             return isNew
         })
 
-        newEvents.forEach(event => createNewReminder(event))
+        newEvents.forEach(event => {
+            const newReminder = createNewReminder(event)
+            reminders.push(newReminder)
+        })
     })
 
 
@@ -49,9 +52,7 @@ function updateExistingReminders(reminders: Reminder[], updatedEvents: CalendarE
         const currentRemindTime = reminder.remindTime
         const updatedRemindTime = updatedEvent?.remindTime
 
-        const reminderHasChanged = isEqual(currentRemindTime, updatedRemindTime)
-
-        global.log('reminderHasChanged', reminderHasChanged, updatedEvent?.subject)
+        const reminderHasChanged = !isEqual(currentRemindTime, updatedRemindTime)
 
         if (reminderHasChanged) {
             reminder.timerId && clearTimeout(reminder.timerId)
@@ -64,9 +65,7 @@ function updateExistingReminders(reminders: Reminder[], updatedEvents: CalendarE
         }
 
         return reminder
-
     })
-
 }
 
 

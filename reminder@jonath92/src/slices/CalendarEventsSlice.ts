@@ -10,13 +10,9 @@ const calendarEventSlice = createSlice({
     reducers: {
         eventsLoaded(state, action: PayloadAction<CalendarEvent[]>){
 
-            const updatedEvents = action.payload
+            const updatedEventsSorted = action.payload.sort((a,b) => a.startUTC.diff(b.startUTC).milliseconds)
 
-            // const nonUpdatedEvents = state.filter(savedEvent => {
-            //     return !updatedEvents.find(newEvent => newEvent.id === savedEvent.id)
-            // })
-
-            return [...updatedEvents]
+            return [...updatedEventsSorted]
         }
     }
 })
