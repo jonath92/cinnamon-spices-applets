@@ -2,7 +2,7 @@
     "compilerOptions": {
         "lib": [
             // important to hide default typescript libraries (such as DOM elements): https://stackoverflow.com/questions/57336918/disable-intellisense-for-default-typescript-libraries-in-vscode
-            "es2017"
+            "ESNext"
         ],
         "moduleResolution": "Node",
         "sourceMap": true,

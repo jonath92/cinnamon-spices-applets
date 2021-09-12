@@ -28,7 +28,7 @@ export class CalendarEvent {
         return this.startUTC.toLocaleString(DateTime.TIME_SIMPLE)
     }
 
-    public sendReminder() {
+    public sendNotification() {
         // TODO:  What is this? Why is \n needed instead of <br> ?
         const notificationText = `<b>${this.startFormated}</b>\n\n${this.subject}`
 

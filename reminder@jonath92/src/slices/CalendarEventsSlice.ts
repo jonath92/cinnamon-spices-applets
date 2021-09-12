@@ -12,16 +12,14 @@ const calendarEventSlice = createSlice({
 
             const updatedEvents = action.payload
 
-            const nonUpdatedEvents = state.filter(savedEvent => {
-                return !updatedEvents.find(newEvent => newEvent.id === savedEvent.id)
-            })
+            // const nonUpdatedEvents = state.filter(savedEvent => {
+            //     return !updatedEvents.find(newEvent => newEvent.id === savedEvent.id)
+            // })
 
-            return [...updatedEvents, ...nonUpdatedEvents]
+            return [...updatedEvents]
         }
     }
 })
-
-
 
 export const {
     eventsLoaded
