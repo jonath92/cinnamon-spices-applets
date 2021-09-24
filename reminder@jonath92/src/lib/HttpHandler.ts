@@ -76,8 +76,8 @@ export function loadJsonAsync<T1, T2 = LoadJsonArgs>(args: LoadJsonArgs): Promis
     } = args
 
 
-    const query = queryParams ? `${url}?${stringify(queryParams)}` : url
-    const message = Message.new(method, query)
+    const uri = queryParams ? `${url}?${stringify(queryParams)}` : url
+    const message = Message.new(method, uri)
 
     Object.entries(headers).forEach(([key, value]) => {
         message.request_headers.append(key, value)
@@ -90,16 +90,16 @@ export function loadJsonAsync<T1, T2 = LoadJsonArgs>(args: LoadJsonArgs): Promis
 
     return new Promise((resolve, reject) => {
 
-        httpSession.queue_message(message, (session, message) => {
+        httpSession.queue_message(message, (session, msgResponse) => {
 
-            const error = checkForHttpError(message);
+            const error = checkForHttpError(msgResponse);
 
             if (error) {
                 reject(error)
                 return
             }
 
-            const data = JSON.parse(message.response_body.data) as T1
+            const data = JSON.parse(msgResponse.response_body.data) as T1
             resolve(data)
         })
     })
