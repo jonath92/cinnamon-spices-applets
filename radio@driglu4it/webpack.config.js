@@ -42,8 +42,9 @@ module.exports = {
     // devtool: "eval-source-map",
     target: 'node', // without webpack renames 'global'
     optimization: {
-        minimize: false,
-        usedExports: true,
+        // TODO: not workind with chardet.. 
+        // minimize: false,
+        // usedExports: true,
     },
     module: {
         rules: [

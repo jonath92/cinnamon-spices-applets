@@ -5,6 +5,9 @@ const { getDBusProperties, getDBus, getDBusProxyWithOwner } = imports.misc.inter
 const { spawnCommandLine } = imports.misc.util;
 // see https://lazka.github.io/pgi-docs/Cvc-1.0/index.html
 const { MixerControl } = imports.gi.Cvc;
+const { Message, SessionAsync, MessageFlags } = imports.gi.Soup
+const ByteArray = imports.byteArray;
+import * as chardet from 'chardet'
 
 
 export interface Arguments {
@@ -24,6 +27,72 @@ export interface Arguments {
     getInitialVolume: { (): number }
 
 }
+
+// Important: Might throw an error!
+async function getDecodedTitle(url: string): Promise<string> {
+
+    const httpSession = new SessionAsync()
+
+    global.log('getDecodedTitle called')
+
+    return new Promise((resolve, reject) => {
+        const message = Message.new('GET', url)
+
+        let metaInt: number | undefined
+
+        // see https://stackoverflow.com/a/14819550/11603006
+        message.request_headers.append("Icy-MetaData", '1')
+
+        // @ts-ignore
+        message.connect('got-headers', (msg) => {
+            metaInt = +message.response_headers.get_one('icy-metaint')
+        })
+
+        let bytes: number[] = []
+
+        // @ts-ignore
+        const chunkSignalId = message.connect('got-chunk', (msg, chunk) => {
+
+            global.log('chunk changed')
+
+            if (!metaInt) {
+                reject('metaInt undefined')
+                message.disconnect(chunkSignalId)
+                return
+            }
+
+            const newBytes = chunk.get_as_bytes().get_data()
+            bytes = [...bytes, ...newBytes]
+
+            if (bytes.length <= metaInt)
+                return
+
+            const metaLength = bytes[metaInt] * 16
+            const metaEnd = metaInt + 1 + metaLength
+
+            if (bytes.length < metaEnd)
+                return
+
+            try {
+                const encodedMeta = new Uint8Array(bytes.slice(metaInt + 1, metaEnd))
+
+                const encoding = chardet.detect(encodedMeta) as string
+                const deceodedMeta = ByteArray.toString(encodedMeta, encoding)
+                global.log('decodedMeta', deceodedMeta)
+                resolve(deceodedMeta.slice(0, -2).split("StreamTitle='")[1])
+            } catch (error) {
+                reject(error)
+            } finally {
+                message.disconnect(chunkSignalId)
+            }
+        })
+
+        httpSession.queue_message(message, () => { 
+            global.log('inside quere-message')
+        })
+    })
+}
+
 
 export function createMpvHandler(args: Arguments) {
     const {
@@ -75,6 +144,8 @@ export function createMpvHandler(args: Arguments) {
 
     let mediaPropsListenerId: number
     let seekListenerId: number
+
+    let lastTitle: string
 
     if (initialPlaybackStatus !== "Stopped") {
         activateMprisPropsListener();
@@ -143,9 +214,29 @@ export function createMpvHandler(args: Arguments) {
 
                 playbackStatus && handleMprisPlaybackStatusChanged(playbackStatus)
                 url && newUrlValid && url !== currentUrl && handleUrlChanged(url)
-                title && onTitleChanged(title)
+                title && handleTitleChanged(title)
             }
         )
+    }
+
+    async function handleTitleChanged(newtitle: string){
+        if (lastTitle === newtitle) return
+
+        global.log('lastTitle', lastTitle)
+        global.log('newTitle', newtitle)
+        global.log('handleTitleChanged called')
+        onTitleChanged(newtitle)
+        lastTitle = newtitle
+
+        try {
+            global.log('before decoding')
+            const titleDecoded = await getDecodedTitle(currentUrl)
+            global.log('titleDecoded', titleDecoded)
+            onTitleChanged(titleDecoded)
+        } catch (error) {
+            global.logError(error)
+        }
+
     }
 
     function activeSeekListener() {
