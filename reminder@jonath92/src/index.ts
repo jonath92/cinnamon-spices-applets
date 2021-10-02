@@ -1,15 +1,18 @@
-import { CalendarApplet } from "./Applet";
 import { initNotificationFactory } from "./lib/NotificationFactory";
 import { initCalendarEventEmitter } from "./services/CalendarEventPollingService";
 import { createCalendarPopupMenu } from "./components/popupMenu";
 import { createNotifyService } from "services/CalendarEventsNotifyService";
-const { Icon, IconType} = imports.gi.St
+import { createAppletLabel } from "components/AppletLabel";
+const { Icon, IconType, BoxLayout } = imports.gi.St
+
+const { AllowedLayout } = imports.ui.applet
 
 interface Arguments {
     orientation: imports.gi.St.Side,
     panelHeight: number,
     instanceId: number
 }
+type ValueOf<T> = T[keyof T];
 
 
 export function main(args: Arguments) {
@@ -21,10 +24,6 @@ export function main(args: Arguments) {
 
     initCalendarEventEmitter()
 
-    const reminderApplet = new CalendarApplet(orientation, panel_height, instance_id)
-
-    const popupMenu = createCalendarPopupMenu({launcher: reminderApplet.actor})
-
     initNotificationFactory({
         iconFactory: () => {
             return new Icon({
@@ -35,11 +34,22 @@ export function main(args: Arguments) {
         }
     })
 
+    const actor = new BoxLayout({ style_class: 'applet-box', reactive: true, track_hover: true })
+    const popupMenu = createCalendarPopupMenu({ launcher: actor })
+
+    actor.connect('button-press-event', popupMenu.toggle) 
+
+
+    actor.add_child(createAppletLabel())
 
     createNotifyService()
 
-    reminderApplet.on_applet_clicked = popupMenu.toggle
-
-    return reminderApplet
-    
+    return {
+        actor,
+        _addStyleClass: () => { },
+        finalizeContextMenu: () => { },
+        on_applet_added_to_panel_internal: () => { },
+        getAllowedLayout: ():   ValueOf<typeof AllowedLayout> => AllowedLayout.BOTH
+        
+    }
 }

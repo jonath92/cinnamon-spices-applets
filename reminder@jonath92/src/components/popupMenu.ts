@@ -1,5 +1,4 @@
 import { createPopupMenu } from "cinnamonpopup";
-import { DateTime } from "luxon";
 import { CalendarEvent } from "model/CalendarEvent";
 import { selectEvents, watchSelector } from "../Store";
 import { createCard } from "./Card";
