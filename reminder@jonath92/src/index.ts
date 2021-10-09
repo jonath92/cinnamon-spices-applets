@@ -44,6 +44,7 @@ export function main(args: Arguments) {
 
     createNotifyService()
 
+
     return {
         actor,
         _addStyleClass: () => { },
