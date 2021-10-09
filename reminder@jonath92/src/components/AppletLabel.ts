@@ -20,7 +20,7 @@ export function createAppletLabel() {
 
     setIntervalAccurate(() => {
         const time = DateTime.now()
-        label.set_text(time.toFormat(`EEEE, MMMM d, HH:mm`))
+        label.set_text(time.toFormat(`EEEE, MMMM d, HH:mm`, { locale: 'de'}))
     }, 1000, true)
 
     return label
