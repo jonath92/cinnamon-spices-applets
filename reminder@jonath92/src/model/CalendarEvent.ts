@@ -8,12 +8,13 @@ export class CalendarEvent {
         readonly id: string,
         readonly remindTime: DateTime,
         readonly subject: string,
-        readonly startUTC: DateTime
+        readonly startUTC: DateTime, 
+        readonly onlineMeetingUrl: string | null
     ) { }
 
     static newFromOffice365response(office365Response: Office365CalendarEventResponse) {
 
-        const { id, reminderMinutesBeforeStart, subject, webLink, start } = office365Response
+        const { id, reminderMinutesBeforeStart, subject, webLink, start, onlineMeeting } = office365Response
 
         const startUTC = DateTime.fromISO(start.dateTime + 'Z')
 
@@ -21,7 +22,7 @@ export class CalendarEvent {
             minutes: reminderMinutesBeforeStart
         })
 
-        return new CalendarEvent(id, reminderStartTime, subject, startUTC)
+        return new CalendarEvent(id, reminderStartTime, subject, startUTC, onlineMeeting?.joinUrl || null)
     }
 
     get startFormated() {

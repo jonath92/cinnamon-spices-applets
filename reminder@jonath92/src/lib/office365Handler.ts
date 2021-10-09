@@ -14,6 +14,10 @@ interface Office365CalendarResponse {
     value: Office365CalendarEventResponse[]
 }
 
+interface OnlineMeeting {
+    joinUrl: string
+}
+
 // not complete
 export interface Office365CalendarEventResponse {
     id: string,
@@ -21,6 +25,7 @@ export interface Office365CalendarEventResponse {
     webLink: string,
     start: DateTimeTimeZone,
     reminderMinutesBeforeStart: number,
+    onlineMeeting: OnlineMeeting | null
 }
 
 // not complete
