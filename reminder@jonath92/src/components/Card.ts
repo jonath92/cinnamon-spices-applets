@@ -19,6 +19,7 @@ export function createCard(args: Arguments) {
 
     const table = new Table({
         name: 'notification',
+        width: 250,
         reactive: true
     })
 
@@ -42,7 +43,8 @@ export function createCard(args: Arguments) {
 
     table.add(contentLabel, {
         row: 1,
-        col: 1
+        col: 1, 
+        col_span: 1
     })
 
     return button
