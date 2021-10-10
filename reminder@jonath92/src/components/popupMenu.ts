@@ -45,26 +45,6 @@ export function getCalendarPopupMenu(args: Arguments): { toggle: ReturnType<type
 
     // popupMenu.set_style_class_name('calendar-background')
 
-    // TODO: add this in cardContainer!!
-    watchSelector(selectEvents, renderEvents)
-
-    function renderEvents(events: CalendarEvent[]): void {
-
-        cardContainer.box.destroy_all_children()
-
-        events.forEach(event => {
-
-            const card = createCard({
-                title: event.startFormated,
-                body: event.subject,
-                onlineMeetingUrl: event.onlineMeetingUrl
-            })
-
-            cardContainer.box.add_child(card)
-
-        })
-    }
-
     addCleanupFunction(() => {
         popupMenu?.destroy_all_children()
         popupMenu = null

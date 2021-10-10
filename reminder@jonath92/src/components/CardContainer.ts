@@ -1,7 +1,10 @@
+import { CalendarEvent } from "model/CalendarEvent"
+import { selectEvents, watchSelector } from "Store"
+import { createCard } from "./Card"
+
 const { BoxLayout, ScrollView, Align } = imports.gi.St
 const { PolicyType } = imports.gi.Gtk
 
-// TODO: rename. It is actually just a scrollbox or what the hell??
 export function createCardContainer() {
     const container = new BoxLayout({
         vertical: true
@@ -22,6 +25,25 @@ export function createCardContainer() {
 
     container.add_actor(scrollView)
     scrollView.add_actor(box)
+
+    // TODO: also the watchSelectors musst be cleaned up or?
+    watchSelector(selectEvents, renderEvents)
+
+    function renderEvents(events: CalendarEvent[]): void {
+
+        box.destroy_all_children()
+
+        events.forEach(event => {
+
+            const card = createCard({
+                title: event.startFormated,
+                body: event.subject,
+                onlineMeetingUrl: event.onlineMeetingUrl
+            })
+
+            box.add_child(card)
+        })
+    }
 
     return {
         /** the container which should be used to add it as child to a parent Actor */
