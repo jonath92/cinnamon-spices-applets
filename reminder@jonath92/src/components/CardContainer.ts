@@ -5,7 +5,7 @@ import { createCard } from "./Card"
 const { BoxLayout, ScrollView, Align } = imports.gi.St
 const { PolicyType } = imports.gi.Gtk
 
-export function createCardContainer() {
+export function createCardContainer(): InstanceType<typeof BoxLayout> {
     const container = new BoxLayout({
         vertical: true
     })
@@ -45,10 +45,5 @@ export function createCardContainer() {
         })
     }
 
-    return {
-        /** the container which should be used to add it as child to a parent Actor */
-        actor: container,
-        /** the container which should be used to add children  */
-        box
-    }
+    return container
 }

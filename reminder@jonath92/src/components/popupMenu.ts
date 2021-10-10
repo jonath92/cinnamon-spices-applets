@@ -1,9 +1,6 @@
 import { createPopupMenu } from "cinnamonpopup";
-import { CalendarEvent } from "model/CalendarEvent";
-import { selectEvents, watchSelector } from "../Store";
 import { addCleanupFunction } from "./AppletContainer";
 import { createCalendar } from "./Calendar";
-import { createCard } from "./Card";
 import { createCardContainer } from "./CardContainer";
 
 const { BoxLayout, Bin } = imports.gi.St
@@ -26,12 +23,11 @@ export function getCalendarPopupMenu(args: Arguments): { toggle: ReturnType<type
 
     popupMenu = createPopupMenu({ launcher })
 
-    const cardContainer = createCardContainer()
     const calendar = createCalendar()
 
     const container = new BoxLayout()
 
-    container.add_child(cardContainer.actor)
+    container.add_child(createCardContainer())
 
     const calendarContainer = new Bin({
         child: calendar,
