@@ -3,12 +3,21 @@ import { createOffice365Handler } from "../lib/office365Handler";
 import { eventsLoaded } from "../slices/CalendarEventsSlice";
 import { dispatch, getState, watchSelector } from "../Store";
 import { CalendarEvent } from "model/CalendarEvent";
+import { addCleanupFunction } from "components/AppletContainer";
 
 const selectOffice365Auth = () => getState().settings.authCode
 
 
+let eventEmitterInitiallized = false
+
 // The CalendarEventEmitter acts as a layer betweeen calendar Apis (which are coded in a way that they should relatively easy be used outside of cinnamon as well) and the global state.
-export function initCalendarEventEmitter() {
+export function initCalendarEventEmitter(): void {
+
+    if (eventEmitterInitiallized) {
+        global.logWarning('calenderEventEmitter already initiallized')
+        return
+    }
+
     let office35Handler: ReturnType<typeof createOffice365Handler> | undefined
 
     initOffice365Handler(getState().settings)
@@ -17,7 +26,7 @@ export function initCalendarEventEmitter() {
         initOffice365Handler({ authCode: newValue })
     })
 
-    setInterval(queryNewEvents, 10000)
+    const intervalId = setInterval(queryNewEvents, 10000)
 
     function initOffice365Handler(args: { authCode?: string | undefined, refreshToken?: string | undefined }) {
 
@@ -33,7 +42,7 @@ export function initCalendarEventEmitter() {
         queryNewEvents()
     }
 
-    async function queryNewEvents() {
+    async function queryNewEvents(): Promise<void> {
         if (!office35Handler)
             return
 
@@ -45,4 +54,7 @@ export function initCalendarEventEmitter() {
         dispatch(eventsLoaded(newEvents))
     }
 
+    addCleanupFunction(() => {
+        clearInterval(intervalId)
+    })
 }

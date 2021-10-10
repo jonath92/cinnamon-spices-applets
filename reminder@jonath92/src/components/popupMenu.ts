@@ -1,6 +1,7 @@
 import { createPopupMenu } from "cinnamonpopup";
 import { CalendarEvent } from "model/CalendarEvent";
 import { selectEvents, watchSelector } from "../Store";
+import { addCleanupFunction } from "./AppletContainer";
 import { createCalendar } from "./Calendar";
 import { createCard } from "./Card";
 import { createCardContainer } from "./CardContainer";
@@ -59,6 +60,8 @@ export function getCalendarPopupMenu(args: Arguments): {toggle: ReturnType<typeo
 
         })
     }
+
+    addCleanupFunction(() => popupMenu?.destroy_all_children())
 
     return {
         toggle: popupMenu.toggle

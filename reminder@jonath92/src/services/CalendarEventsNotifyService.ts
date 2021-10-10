@@ -12,6 +12,7 @@ interface Reminder {
 }
 
 
+// TODO: refactoring :-(. Add reminders to cleanup!!
 export function createNotifyService() {
 
 
@@ -89,8 +90,6 @@ function createNewReminder(event: CalendarEvent): Reminder {
         timerId = setTimeout(() => {
             event.sendNotification()
         }, timeout)
-
-        global.log('timerId', timerId)
     }
 
     return {
