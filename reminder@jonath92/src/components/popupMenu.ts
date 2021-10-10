@@ -14,14 +14,14 @@ interface Arguments {
 
 let popupMenu: ReturnType<typeof createPopupMenu> | undefined
 
-export function getCalendarPopupMenu(args: Arguments): {toggle: ReturnType<typeof createPopupMenu>["toggle"]} {
+export function getCalendarPopupMenu(args: Arguments): { toggle: ReturnType<typeof createPopupMenu>["toggle"] } {
 
     const {
         launcher
     } = args
 
-    if (popupMenu){
-        return {toggle: popupMenu.toggle}
+    if (popupMenu) {
+        return { toggle: popupMenu.toggle }
     }
 
     popupMenu = createPopupMenu({ launcher })
@@ -33,15 +33,19 @@ export function getCalendarPopupMenu(args: Arguments): {toggle: ReturnType<typeo
 
     container.add_child(cardContainer.actor)
 
-    const calendarContainer = new Bin({child: calendar, x_expand: false, y_expand: false})
+    const calendarContainer = new Bin({
+        child: calendar,
+        x_expand: false,
+        y_expand: false
+    })
 
     container.add_child(calendarContainer)
 
     popupMenu.add_child(container)
 
-   // popupMenu.set_style_class_name('calendar-background')
+    // popupMenu.set_style_class_name('calendar-background')
 
-   // TODO: add this in cardContainer!!
+    // TODO: add this in cardContainer!!
     watchSelector(selectEvents, renderEvents)
 
     function renderEvents(events: CalendarEvent[]): void {
@@ -52,7 +56,7 @@ export function getCalendarPopupMenu(args: Arguments): {toggle: ReturnType<typeo
 
             const card = createCard({
                 title: event.startFormated,
-                body: event.subject, 
+                body: event.subject,
                 onlineMeetingUrl: event.onlineMeetingUrl
             })
 
