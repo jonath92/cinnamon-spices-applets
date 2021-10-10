@@ -30,9 +30,12 @@ export function createAppletBox(args: AppletArguments): InstanceType<typeof Appl
     appletBox.on_applet_removed_from_panel = () => {
         cleanupFunctions.forEach(cleanupFunc => cleanupFunc())
         cleanupFunctions = []
+    }
+
+    cleanupFunctions.push(() => {
         appletBox?.actor.destroy()
         appletBox = null
-    }
+    })
 
     return appletBox
 }

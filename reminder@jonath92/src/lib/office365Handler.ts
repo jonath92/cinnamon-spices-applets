@@ -145,7 +145,7 @@ export function createOffice365Handler(args: Arguments) {
     async function handleHttpError(error: HttpError) {
 
         if (error.reason_phrase === 'Unauthorized') {
-            logInfo('Microsft Graph Api Tokens not valid anymore ...')
+            logInfo('Unauthorized Error. Microsft Graph Api Tokens probably not valid anymore ...')
             await refreshTokens()
         }
 

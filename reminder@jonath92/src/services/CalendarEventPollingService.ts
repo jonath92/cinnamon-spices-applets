@@ -7,7 +7,6 @@ import { addCleanupFunction } from "components/AppletContainer";
 
 const selectOffice365Auth = () => getState().settings.authCode
 
-
 let eventEmitterInitiallized = false
 
 // The CalendarEventEmitter acts as a layer betweeen calendar Apis (which are coded in a way that they should relatively easy be used outside of cinnamon as well) and the global state.
@@ -56,5 +55,6 @@ export function initCalendarEventEmitter(): void {
 
     addCleanupFunction(() => {
         clearInterval(intervalId)
+        eventEmitterInitiallized = false
     })
 }

@@ -56,13 +56,8 @@ export function createCalendar() {
 
             const button = new Button({ label: date.day.toString(), reactive: true, style_class })
 
-            global.log('style_class', button.style_class)
-
             table.add(button, { row: week + 2, col: dayOfWeek + 1})
         }
-
-
-
     }
 
 

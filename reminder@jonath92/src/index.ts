@@ -13,9 +13,6 @@ export interface AppletArguments {
 
 export function main(args: AppletArguments): imports.ui.applet.Applet {
 
-    global.log('main called')
-
-
     initCalendarEventEmitter()
 
     initNotificationFactory({

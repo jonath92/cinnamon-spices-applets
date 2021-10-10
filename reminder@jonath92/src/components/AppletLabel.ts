@@ -5,7 +5,7 @@ const { Label } = imports.gi.St
 const { ActorAlign } = imports.gi.Clutter
 const { EllipsizeMode } = imports.gi.Pango
 
-let label: InstanceType<typeof Label>
+let label: InstanceType<typeof Label> | null = null
 
 export function getAppletLabel() {
 
@@ -26,10 +26,13 @@ export function getAppletLabel() {
 
     const clearInterval = setIntervalAccurate(() => {
         const time = DateTime.now()
-        label.set_text(time.toFormat(`EEEE, MMMM d, HH:mm`, { locale: 'de'}))
+        label?.set_text(time.toFormat(`EEEE, MMMM d, HH:mm`, { locale: 'de'}))
     }, 1000, true)
 
-    addCleanupFunction(clearInterval)
+    addCleanupFunction(() => {
+        clearInterval()
+        label = null
+    })
 
     return label
 
@@ -50,8 +53,6 @@ export function getAppletLabel() {
 function setIntervalAccurate(callback: () => void, interval: number, callImmediately = false): () => void{
 
     let expected = Date.now() + interval
-    let clear = false
-
     callImmediately && callback()
 
     const step = () => {
@@ -59,11 +60,11 @@ function setIntervalAccurate(callback: () => void, interval: number, callImmedia
         expected += interval
         callback()
 
-        !clear && setTimeout(step, Math.max(0, interval - dt))
+        timerID = setTimeout(step, Math.max(0, interval - dt))
     }
 
-    setTimeout(step, interval)
+    let timerID = setTimeout(step, interval)
 
-    return () => {clear = true}
+    return () => clearTimeout(timerID)
 
 }

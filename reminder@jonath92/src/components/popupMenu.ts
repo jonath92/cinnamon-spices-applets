@@ -12,7 +12,7 @@ interface Arguments {
     launcher: imports.gi.St.BoxLayout
 }
 
-let popupMenu: ReturnType<typeof createPopupMenu> | undefined
+let popupMenu: ReturnType<typeof createPopupMenu> | null = null
 
 export function getCalendarPopupMenu(args: Arguments): { toggle: ReturnType<typeof createPopupMenu>["toggle"] } {
 
@@ -65,7 +65,10 @@ export function getCalendarPopupMenu(args: Arguments): { toggle: ReturnType<type
         })
     }
 
-    addCleanupFunction(() => popupMenu?.destroy_all_children())
+    addCleanupFunction(() => {
+        popupMenu?.destroy_all_children()
+        popupMenu = null
+    })
 
     return {
         toggle: popupMenu.toggle
