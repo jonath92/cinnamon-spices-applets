@@ -1,4 +1,5 @@
 import { DateTime } from "luxon";
+import { addCleanupFunction } from "./AppletContainer";
 
 const { Label } = imports.gi.St
 const { ActorAlign } = imports.gi.Clutter
@@ -23,12 +24,15 @@ export function getAppletLabel() {
     // No idea why needed but without the label is not shown 
     label.clutter_text.ellipsize = EllipsizeMode.NONE
 
-    setIntervalAccurate(() => {
+    const clearInterval = setIntervalAccurate(() => {
         const time = DateTime.now()
         label.set_text(time.toFormat(`EEEE, MMMM d, HH:mm`, { locale: 'de'}))
     }, 1000, true)
 
+    addCleanupFunction(clearInterval)
+
     return label
+
 }
 
 

@@ -1,7 +1,7 @@
 import { initNotificationFactory } from "./lib/NotificationFactory";
 import { initCalendarEventEmitter } from "./services/CalendarEventPollingService";
 import { createNotifyService } from "services/CalendarEventsNotifyService";
-import { getAppletBox } from "components/AppletContainer";
+import { createAppletBox } from "components/AppletContainer";
 
 const { Icon, IconType } = imports.gi.St
 
@@ -12,6 +12,9 @@ export interface AppletArguments {
 }
 
 export function main(args: AppletArguments): imports.ui.applet.Applet {
+
+    global.log('main called')
+
 
     initCalendarEventEmitter()
 
@@ -25,7 +28,7 @@ export function main(args: AppletArguments): imports.ui.applet.Applet {
         }
     })
 
-    const appletBox = getAppletBox(args)
+    const appletBox = createAppletBox(args)
 
     createNotifyService()
 

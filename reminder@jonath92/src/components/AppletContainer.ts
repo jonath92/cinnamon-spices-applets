@@ -4,21 +4,22 @@ import { getCalendarPopupMenu } from "./popupMenu"
 
 const { Applet } = imports.ui.applet
 
-let appletBox: InstanceType<typeof Applet> | undefined
+let appletBox: InstanceType<typeof Applet> | null = null
 
 let cleanupFunctions: (() => void)[] = []
 
-export function getAppletBox(args: AppletArguments): InstanceType<typeof Applet> {
+export function createAppletBox(args: AppletArguments): InstanceType<typeof Applet> {
+
+    if (appletBox) {
+        global.logWarning('appletBox already defined')
+        return appletBox
+    }
 
     const {
         instanceId,
         orientation,
         panelHeight
     } = args
-
-    if (appletBox) {
-        return appletBox
-    }
 
     appletBox = new Applet(orientation, panelHeight, instanceId)
     appletBox.actor.add_child(getAppletLabel())
@@ -29,6 +30,8 @@ export function getAppletBox(args: AppletArguments): InstanceType<typeof Applet>
     appletBox.on_applet_removed_from_panel = () => {
         cleanupFunctions.forEach(cleanupFunc => cleanupFunc())
         cleanupFunctions = []
+        appletBox?.actor.destroy()
+        appletBox = null
     }
 
     return appletBox
