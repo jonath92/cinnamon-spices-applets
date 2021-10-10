@@ -11,13 +11,19 @@ interface Arguments {
     launcher: imports.gi.St.BoxLayout
 }
 
-export function createCalendarPopupMenu(args: Arguments) {
+let popupMenu: ReturnType<typeof createPopupMenu> | undefined
+
+export function getCalendarPopupMenu(args: Arguments): {toggle: ReturnType<typeof createPopupMenu>["toggle"]} {
 
     const {
         launcher
     } = args
 
-    const popupMenu = createPopupMenu({ launcher })
+    if (popupMenu){
+        return {toggle: popupMenu.toggle}
+    }
+
+    popupMenu = createPopupMenu({ launcher })
 
     const cardContainer = createCardContainer()
     const calendar = createCalendar()
@@ -53,10 +59,6 @@ export function createCalendarPopupMenu(args: Arguments) {
 
         })
     }
-
-
-
-
 
     return {
         toggle: popupMenu.toggle

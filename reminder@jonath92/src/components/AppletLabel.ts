@@ -4,15 +4,20 @@ const { Label } = imports.gi.St
 const { ActorAlign } = imports.gi.Clutter
 const { EllipsizeMode } = imports.gi.Pango
 
-export function createAppletLabel() {
+let label: InstanceType<typeof Label>
 
-    const label = new Label({
+export function getAppletLabel() {
+
+    if (label){
+        return label
+    }
+    
+    label = new Label({
         reactive: true,
         track_hover: true,
         style_class: 'applet-label',
         y_align: ActorAlign.CENTER,
         y_expand: false,
-        text: 'hi'
     })
 
     // No idea why needed but without the label is not shown 
