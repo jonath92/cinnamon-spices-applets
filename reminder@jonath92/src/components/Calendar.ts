@@ -5,30 +5,38 @@ const { Table, Label, Align, BoxLayout, Button } = imports.gi.St
 
 const WEEKDAY_ABBREVATIONS = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su']
 
+
+// I guess this will only work inside a table. 
+function createPaginator(args: { text: string }) {
+    const { text } = args
+
+    const backBtn = new Button({ style_class: 'calendar-change-month-back' })
+    const label = new Label({ style_class: 'calendar-month-label', text })
+    const forwardBtn = new Button({ style_class: 'calendar-change-month-forward' })
+
+    const box = new BoxLayout()
+    box.add(backBtn)
+    box.add(label, { expand: true, x_fill: false, x_align: Align.MIDDLE })
+    box.add(forwardBtn)
+
+    return box
+}
+
+
 export function createCalendar() {
 
     const now = DateTime.now()
     const currentMonth = now.monthLong
     const currentYear = now.year
 
-
     const table = new Table({ style_class: 'calendar', reactive: true, homogeneous: false });
 
-    const topBoxMonth = new BoxLayout()
-    const topBoxYear = new BoxLayout()
+    const monthPaginator = createPaginator({ text: currentMonth })
+    const yearPaginator = createPaginator({ text: currentYear.toString() })
 
-    table.add(topBoxMonth, { row: 0, col: 0, col_span: 5 })
-    table.add(topBoxYear, { row: 0, col: 5, col_span: 3 })
+    table.add(monthPaginator, { row: 0, col: 0, col_span: 5 })
+    table.add(yearPaginator, { row: 0, col: 5, col_span: 5 })
 
-    const monthBackBtn = new Button({ style_class: 'calendar-change-month-back' })
-    const monthLabel = new Label({ style_class: 'calendar-month-label', text: currentMonth })
-    const monthForwardBtn = new Button({ style_class: 'calendar-change-month-forward' });
-    [monthBackBtn, monthLabel, monthForwardBtn].forEach(actor => topBoxMonth.add(actor))
-
-    const yearBackBtn = new Button({ style_class: 'calendar-change-month-back' })
-    const yearLabel = new Label({ style_class: 'calendar-month-label', text: currentYear.toString() })
-    const yearForwardBtn = new Button({ style_class: 'calendar-change-month-forward' });
-    [yearBackBtn, yearLabel, yearForwardBtn].forEach(actor => topBoxYear.add(actor))
 
     WEEKDAY_ABBREVATIONS.forEach((weekday, index) => {
         let style_class = 'calendar-day-base calendar-day-heading';
@@ -50,13 +58,13 @@ export function createCalendar() {
             const isLeft = dayOfWeek === 0
             const isTop = week == 0
 
-            const date = beginDay.plus({week, days: dayOfWeek})
+            const date = beginDay.plus({ week, days: dayOfWeek })
 
-            const style_class = `calendar-day-base calendar-day ${isWorkDay ? ' calendar-work-day' : 'calendar-nonwork-day'}${isLeft ? ' calendar-day-left' : ''}${isTop ? ` calendar-day-top` :''}${date.monthLong === currentMonth ? '' : ' calendar-other-month-day'}${now.month === date.month && now.day=== date.day ? ' calendar-today' : ''}`;
+            const style_class = `calendar-day-base calendar-day ${isWorkDay ? ' calendar-work-day' : 'calendar-nonwork-day'}${isLeft ? ' calendar-day-left' : ''}${isTop ? ` calendar-day-top` : ''}${date.monthLong === currentMonth ? '' : ' calendar-other-month-day'}${now.month === date.month && now.day === date.day ? ' calendar-today' : ''}`;
 
             const button = new Button({ label: date.day.toString(), reactive: true, style_class })
 
-            table.add(button, { row: week + 2, col: dayOfWeek + 1})
+            table.add(button, { row: week + 2, col: dayOfWeek + 1 })
         }
     }
 
