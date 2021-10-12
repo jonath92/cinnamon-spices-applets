@@ -7,7 +7,9 @@ const { Table, Label, Align, BoxLayout, Button } = imports.gi.St
 const WEEKDAY_ABBREVATIONS = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su']
 
 const now = DateTime.now()
-const today = DateTime.fromObject({year: now.year, day: now.day})
+const today = DateTime.fromObject({year: now.year, month: now.month, day: now.day})
+
+const table = new Table({ style_class: 'calendar', reactive: true, homogeneous: false });
 
 // I guess this will only work inside a table. 
 function createPaginator(args: { text: string, onBack: () => void, onNext: () => void }) {
@@ -34,9 +36,22 @@ function createPaginator(args: { text: string, onBack: () => void, onNext: () =>
 function createHeader(month: number, year: number) {
 
     const date = DateTime.fromObject({ year, month })
+    const prevMonth = date.minus({month:1})
+    const nextMonth = date.plus({month: 1})
+    const prevYear = date.minus({year: 1})
+    const nextYear = date.plus({year: 1})
 
-    const monthPaginator = createPaginator({ text: date.monthLong, onBack: () => monthPaginator.setText('new'), onNext: function () { } })
-    const yearPaginator = createPaginator({ text: date.year.toString(), onBack: function () { }, onNext: function () { } })
+    const monthPaginator = createPaginator({ 
+        text: date.monthLong, 
+        onBack: () => createCalendar(prevMonth.month, prevMonth.year), 
+        onNext: () => createCalendar(nextMonth.month, nextMonth.year)
+    })
+
+    const yearPaginator = createPaginator({ 
+        text: date.year.toString(), 
+        onBack: () => createCalendar(prevYear.month, prevYear.year), 
+        onNext: () => createCalendar(nextYear.month, nextYear.year)
+    })
 
     const layout = new BoxLayout({ x_expand: true })
 
@@ -50,15 +65,17 @@ function createHeader(month: number, year: number) {
 
 export function createCalendar(month = today.month, year = today.year) {
 
-    const table = new Table({ style_class: 'calendar', reactive: true, homogeneous: false });
+    table.destroy_all_children()
 
     const header = createHeader(month, year)
 
     table.add(header, { row: 0, col: 0, col_span: 10 })
 
     WEEKDAY_ABBREVATIONS.forEach((weekday, index) => {
-        let style_class = 'calendar-day-base calendar-day-heading';
-        const label = new Label({ style_class, text: weekday })
+        const label = new Label({ 
+            style_class: clsx('calendar-day-base', 'calendar-day-heading'), 
+            text: weekday 
+        })
 
         table.add(label, {
             row: 1,
@@ -78,9 +95,8 @@ export function createCalendar(month = today.month, year = today.year) {
             const isTop = week == 0
             const date = mondayBefore1st.plus({ week, days: dayOfWeek })
             const isToday = date.equals(today)
-
             // some days before/and after the month in the list are shown
-            const isOtherMonth = date.month !== today.month
+            const isOtherMonth = date.month !== month
 
             const style_class = clsx([
                 'calendar-day-base', 
