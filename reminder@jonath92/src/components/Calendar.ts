@@ -4,39 +4,56 @@ const Cinnamon = imports.gi.Cinnamon;
 const { Table, Label, Align, BoxLayout, Button } = imports.gi.St
 
 const WEEKDAY_ABBREVATIONS = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su']
-
-
+const now = DateTime.now()
 // I guess this will only work inside a table. 
-function createPaginator(args: { text: string }) {
-    const { text } = args
+function createPaginator(args: { text: string, onBack: () => void, onNext: () => void }) {
+    const { text, onBack, onNext } = args
 
     const backBtn = new Button({ style_class: 'calendar-change-month-back' })
+    backBtn.connect('button-press-event', onBack)
     const label = new Label({ style_class: 'calendar-month-label', text })
     const forwardBtn = new Button({ style_class: 'calendar-change-month-forward' })
+    forwardBtn.connect('button-press-event', onNext)
 
-    const box = new BoxLayout()
+    const box = new BoxLayout({ x_expand: true })
     box.add(backBtn)
     box.add(label, { expand: true, x_fill: false, x_align: Align.MIDDLE })
     box.add(forwardBtn)
 
-    return box
+    return {
+        actor: box,
+        setText: (newText: string) => label.text = newText
+    }
+}
+
+// month 1 = Januar, 12 = december
+function createHeader(month: number, year: number) {
+
+    const date = DateTime.fromObject({ year, month })
+
+    const monthPaginator = createPaginator({ text: date.monthLong, onBack: () => monthPaginator.setText('new'), onNext: function () { } })
+    const yearPaginator = createPaginator({ text: date.year.toString(), onBack: function () { }, onNext: function () { } })
+
+    const layout = new BoxLayout({ x_expand: true })
+
+    layout.add_child(monthPaginator.actor)
+    layout.add_child(yearPaginator.actor)
+
+    return layout
 }
 
 
-export function createCalendar() {
 
-    const now = DateTime.now()
+export function createCalendar(month = now.month, year = now.year) {
+
+    
     const currentMonth = now.monthLong
-    const currentYear = now.year
 
     const table = new Table({ style_class: 'calendar', reactive: true, homogeneous: false });
 
-    const monthPaginator = createPaginator({ text: currentMonth })
-    const yearPaginator = createPaginator({ text: currentYear.toString() })
+    const header = createHeader(month, year)
 
-    table.add(monthPaginator, { row: 0, col: 0, col_span: 5 })
-    table.add(yearPaginator, { row: 0, col: 5, col_span: 5 })
-
+    table.add(header, { row: 0, col: 0, col_span: 10 })
 
     WEEKDAY_ABBREVATIONS.forEach((weekday, index) => {
         let style_class = 'calendar-day-base calendar-day-heading';
