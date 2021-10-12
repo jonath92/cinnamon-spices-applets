@@ -1,10 +1,14 @@
 import { DateTime } from "luxon";
+import clsx from 'clsx';
 
 const Cinnamon = imports.gi.Cinnamon;
 const { Table, Label, Align, BoxLayout, Button } = imports.gi.St
 
 const WEEKDAY_ABBREVATIONS = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su']
+
 const now = DateTime.now()
+const today = DateTime.fromObject({year: now.year, day: now.day})
+
 // I guess this will only work inside a table. 
 function createPaginator(args: { text: string, onBack: () => void, onNext: () => void }) {
     const { text, onBack, onNext } = args
@@ -44,10 +48,7 @@ function createHeader(month: number, year: number) {
 
 
 
-export function createCalendar(month = now.month, year = now.year) {
-
-    
-    const currentMonth = now.monthLong
+export function createCalendar(month = today.month, year = today.year) {
 
     const table = new Table({ style_class: 'calendar', reactive: true, homogeneous: false });
 
@@ -67,17 +68,28 @@ export function createCalendar(month = now.month, year = now.year) {
         })
     })
 
-    const beginDay = getBeginDate()
+    const mondayBefore1st = DateTime.fromObject({ year, month, day: 1 }).startOf('week')
+
 
     for (let week = 0; week <= 5; week++) {
         for (let dayOfWeek = 0; dayOfWeek <= 6; dayOfWeek++) {
             const isWorkDay = (dayOfWeek !== 5 && dayOfWeek !== 6)
             const isLeft = dayOfWeek === 0
             const isTop = week == 0
+            const date = mondayBefore1st.plus({ week, days: dayOfWeek })
+            const isToday = date.equals(today)
 
-            const date = beginDay.plus({ week, days: dayOfWeek })
+            // some days before/and after the month in the list are shown
+            const isOtherMonth = date.month !== today.month
 
-            const style_class = `calendar-day-base calendar-day ${isWorkDay ? ' calendar-work-day' : 'calendar-nonwork-day'}${isLeft ? ' calendar-day-left' : ''}${isTop ? ` calendar-day-top` : ''}${date.monthLong === currentMonth ? '' : ' calendar-other-month-day'}${now.month === date.month && now.day === date.day ? ' calendar-today' : ''}`;
+            const style_class = clsx([
+                'calendar-day-base', 
+                isWorkDay ? 'calendar-work-day' : 'calendar-nonwork-day', 
+                isLeft && 'calendar-day-left', 
+                isTop && 'calendar-day-top', 
+                isToday && 'calendar-today', 
+                isOtherMonth && 'calendar-other-month-day'
+            ])
 
             const button = new Button({ label: date.day.toString(), reactive: true, style_class })
 
@@ -91,14 +103,3 @@ export function createCalendar(month = now.month, year = now.year) {
 
 
 
-/**
- * returns the first weekday (i.e. Monday) before or equal to the first of the current Month, 
-*/
-function getBeginDate(): DateTime {
-    const now = DateTime.now()
-
-    const firstDayOfMonth = DateTime.fromObject({ year: now.year, month: now.month, day: 1 }).startOf('week')
-
-    return firstDayOfMonth
-
-}
