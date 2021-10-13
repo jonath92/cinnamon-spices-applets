@@ -11,7 +11,6 @@ const today = DateTime.fromObject({year: now.year, month: now.month, day: now.da
 
 const table = new Table({ style_class: 'calendar', reactive: true, homogeneous: false });
 
-// I guess this will only work inside a table. 
 function createPaginator(args: { text: string, onBack: () => void, onNext: () => void }) {
     const { text, onBack, onNext } = args
 
@@ -61,8 +60,6 @@ function createHeader(month: number, year: number) {
     return layout
 }
 
-
-
 export function createCalendar(month = today.month, year = today.year) {
 
     table.destroy_all_children()
@@ -87,7 +84,6 @@ export function createCalendar(month = today.month, year = today.year) {
 
     const mondayBefore1st = DateTime.fromObject({ year, month, day: 1 }).startOf('week')
 
-
     for (let week = 0; week <= 5; week++) {
         for (let dayOfWeek = 0; dayOfWeek <= 6; dayOfWeek++) {
             const isWorkDay = (dayOfWeek !== 5 && dayOfWeek !== 6)
@@ -107,7 +103,11 @@ export function createCalendar(month = today.month, year = today.year) {
                 isOtherMonth && 'calendar-other-month-day'
             ])
 
-            const button = new Button({ label: date.day.toString(), reactive: true, style_class })
+            const button = new Button({ 
+                label: date.day.toString(), 
+                reactive: true, 
+                style_class 
+            })
 
             table.add(button, { row: week + 2, col: dayOfWeek + 1 })
         }

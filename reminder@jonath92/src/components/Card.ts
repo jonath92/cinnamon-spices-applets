@@ -26,7 +26,6 @@ export function createCard(args: Arguments) {
 
     const table = new Table({
         name: 'notification',
-        width: 250,
         reactive: true
     })
 

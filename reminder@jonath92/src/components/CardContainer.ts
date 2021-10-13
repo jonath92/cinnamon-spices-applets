@@ -7,7 +7,8 @@ const { PolicyType } = imports.gi.Gtk
 
 export function createCardContainer(): InstanceType<typeof BoxLayout> {
     const container = new BoxLayout({
-        vertical: true
+        vertical: true, 
+        width: 250,
     })
 
     const scrollView = new ScrollView({
