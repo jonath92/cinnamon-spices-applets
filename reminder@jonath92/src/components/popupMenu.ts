@@ -4,7 +4,7 @@ import { createCalendar } from "./Calendar";
 import { createCardContainer } from "./CardContainer";
 import { DummyButton } from "./DummyButton";
 
-const { BoxLayout, Bin, Button } = imports.gi.St
+const { BoxLayout, Bin, Button, Align, Label } = imports.gi.St
 
 interface Arguments {
     launcher: imports.gi.St.BoxLayout
@@ -28,19 +28,16 @@ export function getCalendarPopupMenu(args: Arguments): { toggle: ReturnType<type
 
     const container = new BoxLayout()
 
-    const dummy = new DummyButton()
-
     container.add_child(createCardContainer())
 
-    const calendarContainer = new Bin({
+    // const dummy = new DummyButton()
+    // container.add_child(dummy)
+
+    container.add_child(new Bin({
         child: calendar,
         x_expand: false,
         y_expand: false
-    })
-
-    container.add_child(dummy)
-
-    container.add_child(calendarContainer)
+    }))
 
     popupMenu.add_child(container)
 
