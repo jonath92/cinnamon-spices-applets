@@ -1,4 +1,5 @@
 import { createPopupMenu } from "cinnamonpopup";
+import { createSeparatorMenuItem } from "lib/PopupSeperator";
 import { addCleanupFunction } from "./AppletContainer";
 import { createCalendar } from "./Calendar";
 import { createCardContainer } from "./CardContainer";
@@ -12,6 +13,22 @@ interface Arguments {
 
 let popupMenu: ReturnType<typeof createPopupMenu> | null = null
 
+function createSimpleItem(text: string){
+    const popupMenuItem = new BoxLayout({
+        style_class: 'popup-menu-item',
+    })
+
+    const label = new Label({
+        text
+    })
+
+    popupMenuItem.add_child(label)
+
+    return popupMenuItem
+}
+
+
+
 export function getCalendarPopupMenu(args: Arguments): { toggle: ReturnType<typeof createPopupMenu>["toggle"] } {
 
     const {
@@ -24,11 +41,20 @@ export function getCalendarPopupMenu(args: Arguments): { toggle: ReturnType<type
 
     popupMenu = createPopupMenu({ launcher })
 
-    const calendar = createCalendar()
-    const container = new BoxLayout()
-    container.add_child(createCardContainer())
-    container.add_child(calendar)
-    popupMenu.add_child(container)
+    const mainContainer = new BoxLayout()
+    mainContainer.add_child(createCardContainer())
+    mainContainer.add_child(createCalendar())
+
+    popupMenu.add_child(mainContainer)
+
+    popupMenu.add_child(createSeparatorMenuItem())
+
+    popupMenu.add_child(
+        new Bin({
+            x_align: Align.START, 
+            child: createSimpleItem('Last Sync:')
+        })
+    )
 
     // popupMenu.set_style_class_name('calendar-background')
 
