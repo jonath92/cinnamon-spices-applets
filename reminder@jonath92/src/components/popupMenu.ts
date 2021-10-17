@@ -25,20 +25,9 @@ export function getCalendarPopupMenu(args: Arguments): { toggle: ReturnType<type
     popupMenu = createPopupMenu({ launcher })
 
     const calendar = createCalendar()
-
     const container = new BoxLayout()
-
     container.add_child(createCardContainer())
-
-    // const dummy = new DummyButton()
-    // container.add_child(dummy)
-
-    container.add_child(new Bin({
-        child: calendar,
-        x_expand: false,
-        y_expand: false
-    }))
-
+    container.add_child(calendar)
     popupMenu.add_child(container)
 
     // popupMenu.set_style_class_name('calendar-background')

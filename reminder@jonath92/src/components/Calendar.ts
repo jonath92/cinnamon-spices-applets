@@ -2,14 +2,28 @@ import { DateTime } from "luxon";
 import clsx from 'clsx';
 
 const Cinnamon = imports.gi.Cinnamon;
-const { Table, Label, Align, BoxLayout, Button } = imports.gi.St
+const { Table, Label, Align, BoxLayout, Button, Bin } = imports.gi.St
 
 const WEEKDAY_ABBREVATIONS = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su']
 
 const now = DateTime.now()
 const today = DateTime.fromObject({year: now.year, month: now.month, day: now.day})
 
-const table = new Table({ style_class: 'calendar', reactive: true, homogeneous: false });
+const table = new Table({ 
+    style_class: 'calendar', 
+    reactive: true, 
+    homogeneous: false, 
+    y_expand: false, 
+    x_expand: false 
+});
+
+
+// wihtout the calendar days expand when the popupmenu increases (e.g when new events are added)
+const container = new Bin({
+    child: table,
+    x_expand: false,
+    y_expand: false
+})
 
 function createPaginator(args: { text: string, onBack: () => void, onNext: () => void }) {
     const { text, onBack, onNext } = args
@@ -60,7 +74,7 @@ function createHeader(month: number, year: number) {
     return layout
 }
 
-export function createCalendar(month = today.month, year = today.year) {
+export function createCalendar(month = today.month, year = today.year): InstanceType<typeof Bin> {
 
     table.destroy_all_children()
 
@@ -113,8 +127,7 @@ export function createCalendar(month = today.month, year = today.year) {
         }
     }
 
-
-    return table
+    return container
 }
 
 
