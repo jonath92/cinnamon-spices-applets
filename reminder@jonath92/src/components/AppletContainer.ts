@@ -3,6 +3,8 @@ import { getAppletLabel } from "./AppletLabel"
 import { getCalendarPopupMenu } from "./popupMenu"
 
 const { Applet } = imports.ui.applet
+const { uiGroup } = imports.ui.main
+const { EventType } = imports.gi.Clutter
 
 let appletBox: InstanceType<typeof Applet> | null = null
 
@@ -23,6 +25,17 @@ export function createAppletBox(args: AppletArguments): InstanceType<typeof Appl
 
     appletBox = new Applet(orientation, panelHeight, instanceId)
     appletBox.actor.add_child(getAppletLabel())
+
+    appletBox["_applet_context_menu"].actor.hide()
+
+    appletBox.actor.connect('event', (actor, event) => {
+        if (event.type() === EventType.BUTTON_PRESS && event.get_button() === 3) {
+            global.log('this is called')
+            return true
+        }
+
+        return false
+    })
 
     const popupMenu = getCalendarPopupMenu({ launcher: appletBox.actor })
     appletBox.on_applet_clicked = popupMenu.toggle

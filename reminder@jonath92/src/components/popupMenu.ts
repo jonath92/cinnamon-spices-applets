@@ -52,7 +52,7 @@ export function getCalendarPopupMenu(args: Arguments): { toggle: ReturnType<type
     popupMenu.add_child(
         new Bin({
             x_align: Align.START, 
-            child: createSimpleItem('Last Sync:')
+            child: createSimpleItem('As of:')
         })
     )
 
