@@ -1,6 +1,7 @@
 import { AppletArguments } from "index"
 import { getAppletLabel } from "./AppletLabel"
-import { getCalendarPopupMenu } from "./popupMenu"
+import { getContextMenu } from "./ContextMenu"
+import { getCalendarPopupMenu } from "./PopupMenu"
 
 const { Applet } = imports.ui.applet
 const { uiGroup } = imports.ui.main
@@ -26,19 +27,20 @@ export function createAppletBox(args: AppletArguments): InstanceType<typeof Appl
     appletBox = new Applet(orientation, panelHeight, instanceId)
     appletBox.actor.add_child(getAppletLabel())
 
-    appletBox["_applet_context_menu"].actor.hide()
+    const popupMenu = getCalendarPopupMenu({ launcher: appletBox.actor })
+    const contextMenu = getContextMenu({ launcher: appletBox.actor })
+
+    appletBox.on_applet_clicked = popupMenu.toggle
 
     appletBox.actor.connect('event', (actor, event) => {
         if (event.type() === EventType.BUTTON_PRESS && event.get_button() === 3) {
-            global.log('this is called')
+            contextMenu.toggle()
             return true
         }
 
         return false
     })
 
-    const popupMenu = getCalendarPopupMenu({ launcher: appletBox.actor })
-    appletBox.on_applet_clicked = popupMenu.toggle
 
     appletBox.on_applet_removed_from_panel = () => {
         cleanupFunctions.forEach(cleanupFunc => cleanupFunc())
