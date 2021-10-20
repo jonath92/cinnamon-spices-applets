@@ -1,11 +1,15 @@
 import { createPopupMenu } from "cinnamonpopup";
 const { BoxLayout, Label, Icon, IconType } = imports.gi.St
 const { spawnCommandLine } = imports.misc.util
+const { KEY_space, KEY_KP_Enter, KEY_Return } = imports.gi.Clutter
+const { ConfirmDialog } = imports.ui.modalDialog
+const { _removeAppletFromPanel } = imports.ui.appletManager
 
 let contextMenu: ReturnType<typeof createPopupMenu> | null = null
 
 interface ContextMenuArguments {
-    launcher: imports.gi.St.BoxLayout
+    launcher: imports.gi.St.BoxLayout,
+    instanceId: number
 }
 
 interface ContextMenuItemArguments {
@@ -21,7 +25,24 @@ function createContextMenuItem(args: ContextMenuItemArguments) {
 
     const popupMenuItem = new BoxLayout({
         style_class: 'popup-menu-item',
+        can_focus: true,
+        track_hover: true,
         reactive: true
+    })
+
+    popupMenuItem.connect('button-press-event', onClick)
+
+    popupMenuItem.connect('notify::hover', () => {
+        popupMenuItem.change_style_pseudo_class('active', popupMenuItem.hover)
+        popupMenuItem.hover && popupMenuItem.grab_key_focus()
+    })
+
+    popupMenuItem.connect('key-press-event', (actor, event) => {
+        const symbol = event.get_key_symbol();
+        const relevantKeys = [KEY_space, KEY_KP_Enter, KEY_Return]
+
+        if (relevantKeys.includes(symbol) && popupMenuItem.hover)
+            onClick()
     })
 
     const label = new Label({ text })
@@ -34,14 +55,14 @@ function createContextMenuItem(args: ContextMenuItemArguments) {
     popupMenuItem.add_child(icon)
     popupMenuItem.add_child(label)
 
-    popupMenuItem.connect('button-press-event', onClick)
 
     return popupMenuItem
 }
 
 export function getContextMenu(args: ContextMenuArguments): { toggle: ReturnType<typeof createPopupMenu>["toggle"] } {
     const {
-        launcher
+        launcher,
+        instanceId
     } = args
 
     if (contextMenu) {
@@ -58,7 +79,21 @@ export function getContextMenu(args: ContextMenuArguments): { toggle: ReturnType
         }
     })
 
+
+    const removeItem = createContextMenuItem({
+        text: `Remove ${__meta.name}`,
+        iconName: 'edit-delete',
+        onClick: () => {
+            const dialog = new ConfirmDialog(
+                `Are you sure you want to remove ${__meta.name}?`,
+                () => _removeAppletFromPanel(__meta.uuid, instanceId)
+            )
+            dialog.open()
+        }
+    })
+
     contextMenu.add_child(aboutItem)
+    contextMenu.add_child(removeItem)
 
     return { toggle: contextMenu.toggle }
 

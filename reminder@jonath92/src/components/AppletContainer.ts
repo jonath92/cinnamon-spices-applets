@@ -28,7 +28,7 @@ export function createAppletBox(args: AppletArguments): InstanceType<typeof Appl
     appletBox.actor.add_child(getAppletLabel())
 
     const popupMenu = getCalendarPopupMenu({ launcher: appletBox.actor })
-    const contextMenu = getContextMenu({ launcher: appletBox.actor })
+    const contextMenu = getContextMenu({ launcher: appletBox.actor, instanceId })
 
     appletBox.on_applet_clicked = popupMenu.toggle
 
