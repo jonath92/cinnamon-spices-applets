@@ -1,6 +1,6 @@
-import { selectEvents, watchSelector } from "Store"
+import { selectEvents, watchSelector } from "../Store"
 import { DateTime } from 'luxon'
-import { CalendarEvent } from "model/CalendarEvent"
+import { CalendarEvent } from "../model/CalendarEvent"
 import { isEqual } from "lodash"
 
 

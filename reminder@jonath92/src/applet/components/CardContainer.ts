@@ -1,5 +1,5 @@
-import { CalendarEvent } from "model/CalendarEvent"
-import { selectEvents, watchSelector } from "Store"
+import { CalendarEvent } from "../model/CalendarEvent"
+import { selectEvents, watchSelector } from "../Store"
 import { createCard } from "./Card"
 
 const { BoxLayout, ScrollView, Align, Bin, Label, Widget } = imports.gi.St

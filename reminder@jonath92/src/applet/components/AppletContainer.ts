@@ -1,4 +1,4 @@
-import { AppletArguments } from "index"
+import { AppletArguments } from "../index"
 import { getAppletLabel } from "./AppletLabel"
 import { getContextMenu } from "./ContextMenu"
 import { getCalendarPopupMenu } from "./PopupMenu"

@@ -2,8 +2,8 @@ import { refreshTokenChanged } from "../slices/settingsSlice";
 import { createOffice365Handler } from "../lib/office365Handler";
 import { eventsLoaded } from "../slices/CalendarEventsSlice";
 import { dispatch, getState, watchSelector } from "../Store";
-import { CalendarEvent } from "model/CalendarEvent";
-import { addCleanupFunction } from "components/AppletContainer";
+import { CalendarEvent } from "../model/CalendarEvent";
+import { addCleanupFunction } from "../components/AppletContainer";
 
 const selectOffice365Auth = () => getState().settings.authCode
 

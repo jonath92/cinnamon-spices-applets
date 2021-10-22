@@ -1,7 +1,7 @@
 import { initNotificationFactory } from "./lib/NotificationFactory";
 import { initCalendarEventEmitter } from "./services/CalendarEventPollingService";
-import { createNotifyService } from "services/CalendarEventsNotifyService";
-import { createAppletBox } from "components/AppletContainer";
+import { createNotifyService } from "./services/CalendarEventsNotifyService";
+import { createAppletBox } from "./components/AppletContainer";
 
 const { Icon, IconType } = imports.gi.St
 

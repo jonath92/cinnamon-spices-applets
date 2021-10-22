@@ -1,5 +1,5 @@
 import { createPopupMenu } from "cinnamonpopup";
-import { createSeparatorMenuItem } from "lib/PopupSeperator";
+import { createSeparatorMenuItem } from "../lib/PopupSeperator";
 import { addCleanupFunction } from "./AppletContainer";
 import { createCalendar } from "./Calendar";
 import { createCardContainer } from "./CardContainer";

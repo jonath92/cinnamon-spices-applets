@@ -79,7 +79,6 @@ export function getContextMenu(args: ContextMenuArguments): { toggle: ReturnType
         }
     })
 
-
     const removeItem = createContextMenuItem({
         text: `Remove ${__meta.name}`,
         iconName: 'edit-delete',
