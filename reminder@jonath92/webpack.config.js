@@ -4,6 +4,8 @@ const fs = require('fs')
 const os = require('os')
 const { exec } = require("child_process");
 
+const TerserPlugin = require("terser-webpack-plugin");
+
 // Constants which might need to be changed when using this file for other apples
 const DESCRIPTION = "Get Reminder for Office 365 accounts"
 const NAME = "Office 365 Reminder"
@@ -42,10 +44,6 @@ module.exports = {
         [BUNDLED_SETTINGS_FILE_NAME]: './src/settings/index.ts'
     },
     target: 'node', // without webpack renames 'global'
-    // optimization: {
-    //     minimize: false,
-    //     usedExports: true,
-    // },
     module: {
         rules: [
             {

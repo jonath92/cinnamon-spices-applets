@@ -1,3 +1,4 @@
+import { APPLET_SHORT_NAME } from "applet/consts";
 import { createPopupMenu } from "cinnamonpopup";
 const { BoxLayout, Label, Icon, IconType } = imports.gi.St
 const { spawnCommandLine } = imports.misc.util
@@ -91,8 +92,16 @@ export function getContextMenu(args: ContextMenuArguments): { toggle: ReturnType
         }
     })
 
-    contextMenu.add_child(aboutItem)
-    contextMenu.add_child(removeItem)
+    const configureItem = createContextMenuItem({
+        text: 'Configure ...',
+        iconName: 'system-run',
+        onClick: () => {
+            global.log(`cjs ${__dirname}/${APPLET_SHORT_NAME}-settings.js`)
+            spawnCommandLine(`cjs ${__dirname}/${APPLET_SHORT_NAME}-settings.js`)
+        }
+    });
+
+    [aboutItem, removeItem, configureItem].forEach(item => contextMenu?.add_child(item))
 
     return { toggle: contextMenu.toggle }
 
