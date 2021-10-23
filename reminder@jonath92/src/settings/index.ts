@@ -18,7 +18,7 @@ const queryParams = stringify({
 
 const loginUrl = `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?${queryParams}`;
 
-const { Window, WindowType, Box, Orientation, Toolbar, ToolItem, Button, IconSize } = Gtk
+const { Window, WindowType, Box, Orientation, Toolbar, ToolItem, Button, IconSize, StackSwitcher, MenuButton, Image, Menu, Align, MenuItem } = Gtk
 // TODO: find free ports first
 const server = new Server({ port: 8080 })
 
@@ -36,14 +36,37 @@ mainBox.add(toolbar)
 const toolitem = new ToolItem()
 toolitem.set_expand(true)
 toolbar.add(toolitem)
-//const toolbutton_box = new Box({orientation: Orientation.HORIZONTAL})
-// toolitem.add(toolbutton_box)
-// const instance_button_box = new Box({orientation: Orientation.HORIZONTAL})
-// instance_button_box.get_style_context().add_class('linked')
-// toolbutton_box.pack_start(instance_button_box, false, false, 0)
-// const prev_button = Button.new_from_icon_name('go-previous-symbolic', IconSize.BUTTON )
-// prev_button.set_tooltip_text("Previous instance")
-// instance_button_box.add(prev_button)
+const toolbutton_box = new Box({ orientation: Orientation.HORIZONTAL })
+toolitem.add(toolbutton_box)
+
+const instance_button_box = new Box({ orientation: Orientation.HORIZONTAL })
+instance_button_box.get_style_context().add_class('linked')
+toolbutton_box.pack_start(instance_button_box, false, false, 0)
+
+const prev_button = Button.new_from_icon_name('go-previous-symbolic', IconSize.BUTTON)
+prev_button.set_tooltip_text("Previous instance")
+instance_button_box.add(prev_button)
+
+const next_button = Button.new_from_icon_name('go-next-symbolic', IconSize.BUTTON)
+next_button.set_tooltip_text('Next instance')
+instance_button_box.add(next_button)
+
+const stack_switcher = new StackSwitcher()
+toolbutton_box.set_center_widget(stack_switcher)
+
+const menu_button = new MenuButton()
+const image = Image.new_from_icon_name('open-menu-symbolic', IconSize.BUTTON)
+menu_button.add(image)
+menu_button.set_tooltip_text('More options')
+toolbutton_box.pack_end(menu_button, false, false, 0)
+
+const menu = new Menu()
+menu.set_halign(Align.END)
+
+const restore_option = new MenuItem({ label: 'Import from a file' })
+menu.append(restore_option)
+restore_option.connect('activate', () => log('todo'))
+restore_option.show()
 
 const label = new Gtk.Label({
     label: 'dummy'
