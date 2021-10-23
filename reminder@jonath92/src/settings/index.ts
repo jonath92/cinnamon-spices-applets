@@ -19,6 +19,8 @@ const queryParams = stringify({
 const loginUrl = `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?${queryParams}`;
 
 const { Window, WindowType } = Gtk
+// TODO: find free ports first
+const server = new Server({ port: 8080 })
 
 startServer()
 
@@ -45,14 +47,34 @@ win.show_all();
 
 Gtk.main();
 
+win.connect('delete-event', () => {
+    log('delete event')
+})
+
+win.connect('destroy', () => {
+    server.disconnect()
+    Gtk.main_quit()
+    log('window destroyed')
+})
+
+win.connect('realize', () => {
+    log('realize called')
+})
+
+win.connect('event', () => {
+    log('any event')
+})
+
+win.connect('remove', () => {
+    log('win removed')
+})
 
 function startServer() {
-    // TODO: find free ports first
-    const server = new Server({ port: 8080 })
+
 
     server.connect('request-finished', (serv, message: imports.gi.Soup.Message, client) => {
         log('request finished')
-        
+
         server.disconnect()
 
     })
