@@ -1,8 +1,7 @@
 const { Gtk } = imports.gi;
 const Webkit2 = imports.gi.WebKit2;
-
 const { Server, MemoryUse } = imports.gi.Soup
-
+const { GtkWindow } = imports.gi.XApp
 const { spawn_command_line_async } = imports.gi.GLib
 import { stringify } from 'query-string'
 
@@ -18,14 +17,20 @@ const queryParams = stringify({
 
 const loginUrl = `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?${queryParams}`;
 
-const { Window, WindowType } = Gtk
+const { Window, WindowType, Box, Orientation, Toolbar } = Gtk
 // TODO: find free ports first
 const server = new Server({ port: 8080 })
 
 startServer()
 
-const win = new Window({ type: WindowType.TOPLEVEL });
+const win = new GtkWindow()
+win.set_default_size(800, 600)
+// const mainBox = new Box({ orientation: Orientation.VERTICAL })
+// win.add(mainBox)
 
+// const toolbar = new Toolbar()
+// toolbar.get_style_context().add_class("primary-toolbar")
+// mainBox.add(toolbar)
 
 const label = new Gtk.Label({
     label: 'dummy'
@@ -37,8 +42,10 @@ const button = new Gtk.Button({
 })
 
 button.connect('clicked', () => {
-    spawn_command_line_async(`xdg-open ${loginUrl}`)
-    log('button clicked')
+    // @ts-ignore
+    log(imports.gi.XApp)
+    // spawn_command_line_async(`xdg-open ${loginUrl}`)
+    // log('button clicked')
 })
 
 win.add(button)
