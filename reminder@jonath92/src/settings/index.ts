@@ -5,6 +5,7 @@ const { GtkWindow } = imports.gi.XApp
 const { spawn_command_line_async } = imports.gi.GLib
 import { stringify } from 'query-string'
 
+imports.gi.versions.Gtk = '3.0'
 
 Gtk.init(null);
 
@@ -17,7 +18,7 @@ const queryParams = stringify({
 
 const loginUrl = `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?${queryParams}`;
 
-const { Window, WindowType, Box, Orientation, Toolbar } = Gtk
+const { Window, WindowType, Box, Orientation, Toolbar, ToolItem, Button, IconSize } = Gtk
 // TODO: find free ports first
 const server = new Server({ port: 8080 })
 
@@ -25,12 +26,24 @@ startServer()
 
 const win = new GtkWindow()
 win.set_default_size(800, 600)
-// const mainBox = new Box({ orientation: Orientation.VERTICAL })
-// win.add(mainBox)
+const mainBox = new Box({ orientation: Orientation.VERTICAL })
+win.add(mainBox)
 
-// const toolbar = new Toolbar()
-// toolbar.get_style_context().add_class("primary-toolbar")
-// mainBox.add(toolbar)
+const toolbar = new Toolbar()
+toolbar.get_style_context().add_class("primary-toolbar")
+mainBox.add(toolbar)
+
+const toolitem = new ToolItem()
+toolitem.set_expand(true)
+toolbar.add(toolitem)
+//const toolbutton_box = new Box({orientation: Orientation.HORIZONTAL})
+// toolitem.add(toolbutton_box)
+// const instance_button_box = new Box({orientation: Orientation.HORIZONTAL})
+// instance_button_box.get_style_context().add_class('linked')
+// toolbutton_box.pack_start(instance_button_box, false, false, 0)
+// const prev_button = Button.new_from_icon_name('go-previous-symbolic', IconSize.BUTTON )
+// prev_button.set_tooltip_text("Previous instance")
+// instance_button_box.add(prev_button)
 
 const label = new Gtk.Label({
     label: 'dummy'

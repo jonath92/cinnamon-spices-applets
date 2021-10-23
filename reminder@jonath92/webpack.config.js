@@ -37,6 +37,7 @@ createMetadata()
 /** @type {import('webpack').Configuration} */
 module.exports = {
     mode: 'production',
+    devtool: "eval-source-map",
     entry: {
         [BUNDLED_APPLET_FILE_NAME]: './src/applet/index.ts',
         [BUNDLED_SETTINGS_FILE_NAME]: './src/settings/index.ts'
