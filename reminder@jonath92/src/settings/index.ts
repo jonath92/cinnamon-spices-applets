@@ -18,11 +18,11 @@ const queryParams = stringify({
 
 const loginUrl = `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?${queryParams}`;
 
-const { Window, WindowType, Box, Orientation, Toolbar, ToolItem, Button, IconSize, StackSwitcher, MenuButton, Image, Menu, Align, MenuItem } = Gtk
+const { Window, WindowType, Box, Orientation, Toolbar, ToolItem, Button, IconSize, StackSwitcher, MenuButton, Image, Menu, Align, MenuItem, SeparatorMenuItem } = Gtk
 // TODO: find free ports first
-const server = new Server({ port: 8080 })
+//const server = new Server({ port: 8080 })
 
-startServer()
+//startServer()
 
 const win = new GtkWindow()
 win.set_default_size(800, 600)
@@ -68,6 +68,22 @@ menu.append(restore_option)
 restore_option.connect('activate', () => log('todo'))
 restore_option.show()
 
+const backup_option = new MenuItem({label: 'Export to a file'})
+menu.append(backup_option)
+backup_option.connect('activate', () => log('todo'))
+backup_option.show()
+
+const reset_option = new MenuItem({label: 'Reset to defaults'})
+menu.append(restore_option)
+restore_option.connect('activate', () => log('todo'))
+restore_option.show()
+
+const seperator = new SeparatorMenuItem()
+menu.append(seperator)
+seperator.show()
+
+const reload_option = new MenuItem({label: 'Reload'})
+
 const label = new Gtk.Label({
     label: 'dummy'
 })
@@ -95,7 +111,7 @@ win.connect('delete-event', () => {
 })
 
 win.connect('destroy', () => {
-    server.disconnect()
+   // server.disconnect()
     Gtk.main_quit()
     log('window destroyed')
 })
@@ -112,39 +128,39 @@ win.connect('remove', () => {
     log('win removed')
 })
 
-function startServer() {
+// function startServer() {
 
 
-    server.connect('request-finished', (serv, message: imports.gi.Soup.Message, client) => {
-        log('request finished')
+//     server.connect('request-finished', (serv, message: imports.gi.Soup.Message, client) => {
+//         log('request finished')
 
-        server.disconnect()
+//         server.disconnect()
 
-    })
+//     })
 
-    server.add_handler(null, (server, msg, path, query) => {
-        log(JSON.stringify(query))
+//     server.add_handler(null, (server, msg, path, query) => {
+//         log(JSON.stringify(query))
 
-        msg.set_response(
-            'text/html',
-            MemoryUse.COPY,
-            `<!DOCTYPE html>
-                <html lang="en">
-                <head>
-                    <meta charset="UTF-8">
-                    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                    <title>Document</title>
-                </head>
-                <body>
-                    <h2>Logged in sucessfully. You may now close the tab<h2/>
-                </body>
-                </html>`
-        )
+//         msg.set_response(
+//             'text/html',
+//             MemoryUse.COPY,
+//             `<!DOCTYPE html>
+//                 <html lang="en">
+//                 <head>
+//                     <meta charset="UTF-8">
+//                     <meta http-equiv="X-UA-Compatible" content="IE=edge">
+//                     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+//                     <title>Document</title>
+//                 </head>
+//                 <body>
+//                     <h2>Logged in sucessfully. You may now close the tab<h2/>
+//                 </body>
+//                 </html>`
+//         )
 
-    })
+//     })
 
 
-    server.run_async()
+//     server.run_async()
 
-}
+// }
