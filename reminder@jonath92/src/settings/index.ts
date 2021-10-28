@@ -18,71 +18,95 @@ const queryParams = stringify({
 
 const loginUrl = `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?${queryParams}`;
 
-const { Window, WindowType, Box, Orientation, Toolbar, ToolItem, Button, IconSize, StackSwitcher, MenuButton, Image, Menu, Align, MenuItem, SeparatorMenuItem } = Gtk
+const { Window, WindowType, Box, Orientation, Toolbar, ToolItem, Button, IconSize, StackSwitcher, MenuButton, Image, Menu, Align, MenuItem, SeparatorMenuItem, ScrolledWindow, PolicyType, Stack, Builder } = Gtk
 // TODO: find free ports first
 //const server = new Server({ port: 8080 })
+log(ARGV)
+
+
 
 //startServer()
 
-const win = new GtkWindow()
-win.set_default_size(800, 600)
-const mainBox = new Box({ orientation: Orientation.VERTICAL })
-win.add(mainBox)
+const window = new GtkWindow()
+window.set_default_size(800, 600)
+window.set_icon_name('view-calendar')
+window.set_title('Calendar Applet')
 
-const toolbar = new Toolbar()
-toolbar.get_style_context().add_class("primary-toolbar")
-mainBox.add(toolbar)
 
-const toolitem = new ToolItem()
-toolitem.set_expand(true)
-toolbar.add(toolitem)
-const toolbutton_box = new Box({ orientation: Orientation.HORIZONTAL })
-toolitem.add(toolbutton_box)
+const builder = new Builder()
+builder.add_from_file('/home/jonathan/.local/share/cinnamon/applets/reminder@jonath92/settings-view.ui')
+const main_box = builder.get_object('main_box')
 
-const instance_button_box = new Box({ orientation: Orientation.HORIZONTAL })
-instance_button_box.get_style_context().add_class('linked')
-toolbutton_box.pack_start(instance_button_box, false, false, 0)
+log(main_box)
 
-const prev_button = Button.new_from_icon_name('go-previous-symbolic', IconSize.BUTTON)
-prev_button.set_tooltip_text("Previous instance")
-instance_button_box.add(prev_button)
 
-const next_button = Button.new_from_icon_name('go-next-symbolic', IconSize.BUTTON)
-next_button.set_tooltip_text('Next instance')
-instance_button_box.add(next_button)
+// const main_box = new Box({ orientation: Orientation.VERTICAL })
+// @ts-ignore
+window.add(main_box)
 
-const stack_switcher = new StackSwitcher()
-toolbutton_box.set_center_widget(stack_switcher)
+// const toolbar = new Toolbar()
+// toolbar.get_style_context().add_class("primary-toolbar")
+// main_box.add(toolbar)
 
-const menu_button = new MenuButton()
-const image = Image.new_from_icon_name('open-menu-symbolic', IconSize.BUTTON)
-menu_button.add(image)
-menu_button.set_tooltip_text('More options')
-toolbutton_box.pack_end(menu_button, false, false, 0)
+// const toolitem = new ToolItem()
+// toolitem.set_expand(true)
+// toolbar.add(toolitem)
+// const toolbutton_box = new Box({ orientation: Orientation.HORIZONTAL })
+// toolitem.add(toolbutton_box)
 
-const menu = new Menu()
-menu.set_halign(Align.END)
+// const instance_button_box = new Box({ orientation: Orientation.HORIZONTAL })
+// instance_button_box.get_style_context().add_class('linked')
+// toolbutton_box.pack_start(instance_button_box, false, false, 0)
 
-const restore_option = new MenuItem({ label: 'Import from a file' })
-menu.append(restore_option)
-restore_option.connect('activate', () => log('todo'))
-restore_option.show()
+// const prev_button = Button.new_from_icon_name('go-previous-symbolic', IconSize.BUTTON)
+// prev_button.set_tooltip_text("Previous instance")
+// instance_button_box.add(prev_button)
 
-const backup_option = new MenuItem({label: 'Export to a file'})
-menu.append(backup_option)
-backup_option.connect('activate', () => log('todo'))
-backup_option.show()
+// const next_button = Button.new_from_icon_name('go-next-symbolic', IconSize.BUTTON)
+// next_button.set_tooltip_text('Next instance')
+// instance_button_box.add(next_button)
 
-const reset_option = new MenuItem({label: 'Reset to defaults'})
-menu.append(restore_option)
-restore_option.connect('activate', () => log('todo'))
-restore_option.show()
+// const stack_switcher = new StackSwitcher()
+// toolbutton_box.set_center_widget(stack_switcher)
 
-const seperator = new SeparatorMenuItem()
-menu.append(seperator)
-seperator.show()
+// const menu_button = new MenuButton()
+// const image = Image.new_from_icon_name('open-menu-symbolic', IconSize.BUTTON)
+// menu_button.add(image)
+// menu_button.set_tooltip_text('More options')
+// toolbutton_box.pack_end(menu_button, false, false, 0)
 
-const reload_option = new MenuItem({label: 'Reload'})
+// const menu = new Menu()
+// menu.set_halign(Align.END)
+
+// const restore_option = new MenuItem({ label: 'Import from a file' })
+// menu.append(restore_option)
+// restore_option.connect('activate', () => log('todo'))
+// restore_option.show()
+
+// const backup_option = new MenuItem({ label: 'Export to a file' })
+// menu.append(backup_option)
+// backup_option.connect('activate', () => log('todo'))
+// backup_option.show()
+
+// const reset_option = new MenuItem({ label: 'Reset to defaults' })
+// menu.append(restore_option)
+// restore_option.connect('activate', () => log('todo'))
+// restore_option.show()
+
+// const seperator = new SeparatorMenuItem()
+// menu.append(seperator)
+// seperator.show()
+
+// menu_button.set_popup(menu)
+// const scw = new ScrolledWindow()
+// scw.set_policy(PolicyType.NEVER, PolicyType.NEVER)
+// main_box.pack_start(scw, true, true, 0)
+// const instance_stack = new Stack()
+// scw.add(instance_stack)
+
+
+
+
 
 const label = new Gtk.Label({
     label: 'dummy'
@@ -100,31 +124,31 @@ button.connect('clicked', () => {
     // log('button clicked')
 })
 
-win.add(button)
+window.add(button)
 
-win.show_all();
+window.show_all();
 
 Gtk.main();
 
-win.connect('delete-event', () => {
+window.connect('delete-event', () => {
     log('delete event')
 })
 
-win.connect('destroy', () => {
-   // server.disconnect()
+window.connect('destroy', () => {
+    // server.disconnect()
     Gtk.main_quit()
     log('window destroyed')
 })
 
-win.connect('realize', () => {
+window.connect('realize', () => {
     log('realize called')
 })
 
-win.connect('event', () => {
+window.connect('event', () => {
     log('any event')
 })
 
-win.connect('remove', () => {
+window.connect('remove', () => {
     log('win removed')
 })
 

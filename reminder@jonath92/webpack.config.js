@@ -3,6 +3,7 @@ const webpack = require('webpack');
 const fs = require('fs')
 const os = require('os')
 const { exec } = require("child_process");
+const TerserPlugin = require("terser-webpack-plugin")
 
 // Constants which might need to be changed when using this file for other apples
 const DESCRIPTION = "Get Reminder for Office 365 accounts"
@@ -37,10 +38,27 @@ createMetadata()
 /** @type {import('webpack').Configuration} */
 module.exports = {
     mode: 'production',
-    devtool: "eval-source-map",
     entry: {
         [BUNDLED_APPLET_FILE_NAME]: './src/applet/index.ts',
         [BUNDLED_SETTINGS_FILE_NAME]: './src/settings/index.ts'
+    },
+    optimization: {
+        minimizer: [
+            new TerserPlugin({
+                parallel: true,
+                extractComments: false,
+                terserOptions: {
+                    compress: {
+                        defaults: false,
+                        unused: true,
+                    },
+                    output: {
+                        beautify: true
+                    },
+                    mangle: false
+                }
+            })
+        ]
     },
     target: 'node', // without webpack renames 'global'
     module: {
