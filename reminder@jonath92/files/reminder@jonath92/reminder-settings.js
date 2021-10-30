@@ -400,45 +400,55 @@ var reminderApplet;
             margin_start: innerMagin,
             spacing: innerMagin
         });
-        const listBox = new ListBox({
+        const addedAccountsList = new ListBox({
             visible: true,
             can_focus: true
         });
-        const listboxRow = new ListBoxRow({
-            visible: true,
-            can_focus: true,
-            width_request: 100,
-            height_request: 80
-        });
-        listBox.add(listboxRow);
-        const googleBox = new Box({
-            visible: true,
-            can_focus: true,
-            spacing: 6
-        });
-        const googleImg = new Image({
-            pixel_size: 40,
-            icon_name: "goa-account-google",
-            icon_size: 3
-        });
-        const labelBox = new Box({
-            halign: Align.START,
-            valign: Align.CENTER,
-            orientation: Orientation.VERTICAL
-        });
-        labelBox.add(new Label({
-            label: "Google",
-            halign: Align.START
-        }));
-        labelBox.add(new Label({
-            label: "<i>JonathanHeard92@gmail.com</i>",
+        const addedGoogleAccount = createAddedAccountEntry();
+        addedAccountsList.add(addedGoogleAccount);
+        mainBox.add(addedAccountsList);
+        const addAcountLabel = new Label({
             use_markup: true,
-            margin_top: 2
-        }));
-        googleBox.add(googleImg);
-        googleBox.add(labelBox);
-        listboxRow.add(googleBox);
-        mainBox.add(listBox);
+            label: "<b>Add an account</b>",
+            halign: Align.START
+        });
+        mainBox.add(addAcountLabel);
+        function createAddedAccountEntry() {
+            const listboxRow = new ListBoxRow({
+                visible: true,
+                can_focus: true,
+                width_request: 100,
+                height_request: 80
+            });
+            const googleBox = new Box({
+                visible: true,
+                can_focus: true,
+                spacing: 6
+            });
+            const googleImg = new Image({
+                pixel_size: 40,
+                icon_name: "goa-account-google",
+                icon_size: 3
+            });
+            const labelBox = new Box({
+                halign: Align.START,
+                valign: Align.CENTER,
+                orientation: Orientation.VERTICAL
+            });
+            labelBox.add(new Label({
+                label: "Google",
+                halign: Align.START
+            }));
+            labelBox.add(new Label({
+                label: "<i>JonathanHeard92@gmail.com</i>",
+                use_markup: true,
+                margin_top: 2
+            }));
+            googleBox.add(googleImg);
+            googleBox.add(labelBox);
+            listboxRow.add(googleBox);
+            return listboxRow;
+        }
         const builder = new Builder;
         builder.add_from_file("/home/jonathan/.local/share/cinnamon/applets/reminder@jonath92/settings-view.ui");
         const main_box = builder.get_object("main_box");

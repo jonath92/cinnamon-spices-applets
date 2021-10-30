@@ -28,9 +28,9 @@ log(ARGV)
 //startServer()
 
 const window = new GtkWindow({
-    default_width: 800, 
-    default_height: 600, 
-    icon_name: 'view-calendar', 
+    default_width: 800,
+    default_height: 600,
+    icon_name: 'view-calendar',
     title: 'Calendar Applet'
 })
 
@@ -46,51 +46,78 @@ const mainBox = new Box({
     spacing: innerMagin
 })
 
-const listBox = new ListBox({
+
+
+const addedAccountsList = new ListBox({
     visible: true,
     can_focus: true
 })
 
-const listboxRow = new ListBoxRow({
-    visible: true,
-    can_focus: true,
-    width_request: 100,
-    height_request: 80
-})
+const addedGoogleAccount = createAddedAccountEntry()
+addedAccountsList.add(addedGoogleAccount)
 
-listBox.add(listboxRow)
+mainBox.add(addedAccountsList)
 
-const googleBox = new Box({
-    visible: true,
-    can_focus: true,
-    spacing: 6
-})
 
-const googleImg = new Image({
-    pixel_size: 40,
-    icon_name: 'goa-account-google',
-    icon_size: 3
-})
-
-const labelBox = new Box({
-    halign: Align.START,
-    valign: Align.CENTER,
-    orientation: Orientation.VERTICAL,
-})
-
-labelBox.add(new Label({ label: 'Google', halign: Align.START }))
-labelBox.add(new Label({
-    label: '<i>JonathanHeard92@gmail.com</i>',
+const addAcountLabel = new Label({
     use_markup: true,
-    margin_top: 2
-}))
+    label: '<b>Add an account</b>',
+    halign: Align.START
+})
+
+mainBox.add(addAcountLabel)
 
 
-googleBox.add(googleImg)
-googleBox.add(labelBox)
-listboxRow.add(googleBox)
 
-mainBox.add(listBox)
+
+
+
+function createAddedAccountEntry() {
+
+    const listboxRow = new ListBoxRow({
+        visible: true,
+        can_focus: true,
+        width_request: 100,
+        height_request: 80
+    })
+
+    const googleBox = new Box({
+        visible: true,
+        can_focus: true,
+        spacing: 6,
+    })
+
+    const googleImg = new Image({
+        pixel_size: 40,
+        icon_name: 'goa-account-google',
+        icon_size: 3
+    })
+
+    const labelBox = new Box({
+        halign: Align.START,
+        valign: Align.CENTER,
+        orientation: Orientation.VERTICAL,
+    })
+
+    labelBox.add(new Label({ label: 'Google', halign: Align.START }))
+    labelBox.add(new Label({
+        label: '<i>JonathanHeard92@gmail.com</i>',
+        use_markup: true,
+        margin_top: 2
+    }))
+
+
+    googleBox.add(googleImg)
+    googleBox.add(labelBox)
+    listboxRow.add(googleBox)
+
+    return listboxRow
+
+}
+
+
+
+
 
 const builder = new Builder()
 builder.add_from_file('/home/jonathan/.local/share/cinnamon/applets/reminder@jonath92/settings-view.ui')
