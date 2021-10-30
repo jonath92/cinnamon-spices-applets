@@ -374,23 +374,76 @@ var reminderApplet;
         const {spawn_command_line_async} = imports.gi.GLib;
         imports.gi.versions.Gtk = "3.0";
         Gtk.init(null);
+        const innerMagin = 30;
         (0, query_string__WEBPACK_IMPORTED_MODULE_0__.stringify)({
             client_id: "877b72ef-232d-424d-87c7-5b6636497a98",
             scope: "offline_access files.readwrite.all sites.readwrite.all",
             response_type: "code",
             redirect_uri: "http://localhost:8080"
         });
-        const {Window, WindowType, Box, Orientation, Toolbar, ToolItem, Button, IconSize, StackSwitcher, MenuButton, Image, Menu, Align, MenuItem, SeparatorMenuItem, ScrolledWindow, PolicyType, Stack, Builder} = Gtk;
+        const {Window, WindowType, Box, Orientation, Toolbar, ToolItem, Button, IconSize, StackSwitcher, MenuButton, Image, Menu, Align, MenuItem, SeparatorMenuItem, ScrolledWindow, PolicyType, Stack, Builder, ListBox, ListBoxRow, Label, StyleContext} = Gtk;
         log(ARGV);
-        const window = new GtkWindow;
-        window.set_default_size(800, 600);
-        window.set_icon_name("view-calendar");
-        window.set_title("Calendar Applet");
+        const window = new GtkWindow({
+            default_width: 800,
+            default_height: 600,
+            icon_name: "view-calendar",
+            title: "Calendar Applet"
+        });
+        const mainBox = new Box({
+            visible: true,
+            can_focus: true,
+            border_width: 12,
+            orientation: Orientation.VERTICAL,
+            margin_top: innerMagin,
+            margin_bottom: innerMagin,
+            margin_end: innerMagin,
+            margin_start: innerMagin,
+            spacing: innerMagin
+        });
+        const listBox = new ListBox({
+            visible: true,
+            can_focus: true
+        });
+        const listboxRow = new ListBoxRow({
+            visible: true,
+            can_focus: true,
+            width_request: 100,
+            height_request: 80
+        });
+        listBox.add(listboxRow);
+        const googleBox = new Box({
+            visible: true,
+            can_focus: true,
+            spacing: 6
+        });
+        const googleImg = new Image({
+            pixel_size: 40,
+            icon_name: "goa-account-google",
+            icon_size: 3
+        });
+        const labelBox = new Box({
+            halign: Align.START,
+            valign: Align.CENTER,
+            orientation: Orientation.VERTICAL
+        });
+        labelBox.add(new Label({
+            label: "Google",
+            halign: Align.START
+        }));
+        labelBox.add(new Label({
+            label: "<i>JonathanHeard92@gmail.com</i>",
+            use_markup: true,
+            margin_top: 2
+        }));
+        googleBox.add(googleImg);
+        googleBox.add(labelBox);
+        listboxRow.add(googleBox);
+        mainBox.add(listBox);
         const builder = new Builder;
         builder.add_from_file("/home/jonathan/.local/share/cinnamon/applets/reminder@jonath92/settings-view.ui");
         const main_box = builder.get_object("main_box");
         log(main_box);
-        window.add(main_box);
+        window.add(mainBox);
         new Gtk.Label({
             label: "dummy"
         });
