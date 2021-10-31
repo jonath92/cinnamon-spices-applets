@@ -4,6 +4,8 @@ const { Server, MemoryUse } = imports.gi.Soup
 const { GtkWindow } = imports.gi.XApp
 const { spawn_command_line_async } = imports.gi.GLib
 import { stringify } from 'query-string'
+import { createAddedAccountListRow } from './AddedAccountListRow';
+import { createNewAccountListRow } from './CreateNewAccountListRow';
 
 imports.gi.versions.Gtk = '3.0'
 
@@ -12,8 +14,8 @@ Gtk.init(null);
 const innerMagin = 30
 
 const queryParams = stringify({
-    client_id: '877b72ef-232d-424d-87c7-5b6636497a98',
-    scope: "offline_access files.readwrite.all sites.readwrite.all",
+    client_id: '9542590d-b6f8-4c09-8fb7-75ba7c2f8147',
+    scope: "offline_access calendars.read",
     response_type: "code",
     redirect_uri: 'http://localhost:8080',
 })
@@ -25,10 +27,11 @@ const { Window, WindowType, Box, Orientation, Toolbar, ToolItem, Button, IconSiz
 const { EventMask } = imports.gi.Gdk
 
 // TODO: find free ports first
-//const server = new Server({ port: 8080 })
+const server = new Server({ port: 8080 })
+startServer()
+
 log(ARGV)
 
-//startServer()
 
 const window = new GtkWindow({
     default_width: 800,
@@ -51,7 +54,7 @@ const mainBox = new Box({
 
 const addedAccountsList = new ListBox()
 
-const addedGoogleAccount = createAddedAccountEntry()
+const addedGoogleAccount = createAddedAccountListRow()
 addedAccountsList.add(addedGoogleAccount)
 
 mainBox.add(addedAccountsList)
@@ -69,11 +72,14 @@ const availableAccountList = new ListBox()
 
 
 
-availableAccountList.add(createNewAccountEntry())
+availableAccountList.add(createNewAccountListRow())
 availableAccountList.connect('row-activated', (actor: any, row: any) => {
-    log(`row activated, ${row}`)
-    const dialog = createAddAccountDialog()
-    dialog.show_all()
+
+    spawn_command_line_async(`xdg-open ${loginUrl}`)
+
+    // log(`row activated, ${row}`)
+    // const dialog = createAddAccountDialog()
+    // dialog.show_all()
     // @ts-ignore
     //const colorChooserDialog = new ColorChooserDialog({title: 'Select a Color'})
     //colorChooserDialog.show_all()
@@ -104,96 +110,8 @@ function createAddAccountDialog(){
     return dialog
 }
 
-function createAddedAccountEntry() {
-
-    const listboxRow = new ListBoxRow({
-        visible: true,
-        can_focus: true,
-        width_request: 100,
-        height_request: 80
-    })
-
-    const googleBox = new Box({
-        visible: true,
-        can_focus: true,
-        spacing: 6,
-    })
-
-    const googleImg = new Image({
-        pixel_size: 40,
-        icon_name: 'goa-account-google',
-        icon_size: 3
-    })
-
-    const labelBox = new Box({
-        halign: Align.START,
-        valign: Align.CENTER,
-        orientation: Orientation.VERTICAL,
-    })
-
-    labelBox.add(new Label({ label: 'Google', halign: Align.START }))
-    labelBox.add(new Label({
-        label: '<i>JonathanHeard92@gmail.com</i>',
-        use_markup: true,
-        margin_top: 2
-    }))
 
 
-    googleBox.add(googleImg)
-    googleBox.add(labelBox)
-    listboxRow.add(googleBox)
-
-    return listboxRow
-
-}
-
-function createNewAccountEntry() {
-
-    const listboxRow = new ListBoxRow({
-        visible: true,
-        can_focus: true,
-        width_request: 100,
-        height_request: 80
-    })
-
-    const googleBox = new Box({
-        visible: true,
-        can_focus: true,
-        spacing: 6,
-    })
-
-    const googleImg = new Image({
-        pixel_size: 40,
-        icon_name: 'goa-account-google',
-        icon_size: 3
-    })
-
-    const labelBox = new Box({
-        halign: Align.START,
-        valign: Align.CENTER,
-        orientation: Orientation.VERTICAL,
-    })
-
-    labelBox.add(new Label({ label: 'Google', halign: Align.START }))
-
-
-    googleBox.add(googleImg)
-    googleBox.add(labelBox)
-
-    // googleBox.connect('event', (actor: any, event: any) => {
-    //     log(`googleBoxEvent ${event.get_event_type()}`)
-    // })
-
-    listboxRow.add(googleBox)
-    listboxRow.set_events(EventMask.BUTTON_PRESS_MAKS)
-
-    listboxRow.connect('event', (actor: any, event: any) => {
-        log(`listBoxRowEvent ${event.get_event_type()}`)
-    })
-
-    return listboxRow
-
-}
 
 
 
@@ -296,61 +214,47 @@ window.show_all();
 
 Gtk.main();
 
-window.connect('delete-event', () => {
-    log('delete event')
-})
 
 window.connect('destroy', () => {
-    // server.disconnect()
+    server.disconnect()
     Gtk.main_quit()
     log('window destroyed')
 })
 
-window.connect('realize', () => {
-    log('realize called')
-})
 
-window.connect('event', () => {
-    log('any event')
-})
-
-window.connect('remove', () => {
-    log('win removed')
-})
-
-// function startServer() {
+function startServer() {
 
 
-//     server.connect('request-finished', (serv, message: imports.gi.Soup.Message, client) => {
-//         log('request finished')
+    server.connect('request-finished', (serv, message: imports.gi.Soup.Message, client) => {
+        log('request finished')
 
-//         server.disconnect()
+        server.disconnect()
 
-//     })
+    })
 
-//     server.add_handler(null, (server, msg, path, query) => {
-//         log(JSON.stringify(query))
+    server.add_handler(null, (server, msg, path, query) => {
+        log(JSON.stringify(query))
 
-//         msg.set_response(
-//             'text/html',
-//             MemoryUse.COPY,
-//             `<!DOCTYPE html>
-//                 <html lang="en">
-//                 <head>
-//                     <meta charset="UTF-8">
-//                     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-//                     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-//                     <title>Document</title>
-//                 </head>
-//                 <body>
-//                     <h2>Logged in sucessfully. You may now close the tab<h2/>
-//                 </body>
-//                 </html>`
-//         )
+        msg.set_response(
+            'text/html',
+            MemoryUse.COPY,
+            `<!DOCTYPE html>
+                <html lang="en">
+                <head>
+                    <meta charset="UTF-8">
+                    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                    <title>Document</title>
+                </head>
+                <body>
+                    <h2>Logged in sucessfully. You may now close the tab<h2/>
+                </body>
+                </html>`
+        )
 
-//     })
+    })
 
 
-//     server.run_async()
+    server.run_async()
 
-// }
+}
