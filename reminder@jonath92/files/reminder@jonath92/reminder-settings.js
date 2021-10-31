@@ -381,7 +381,8 @@ var reminderApplet;
             response_type: "code",
             redirect_uri: "http://localhost:8080"
         });
-        const {Window, WindowType, Box, Orientation, Toolbar, ToolItem, Button, IconSize, StackSwitcher, MenuButton, Image, Menu, Align, MenuItem, SeparatorMenuItem, ScrolledWindow, PolicyType, Stack, Builder, ListBox, ListBoxRow, Label, StyleContext} = Gtk;
+        const {Window, WindowType, Box, Orientation, Toolbar, ToolItem, Button, IconSize, StackSwitcher, MenuButton, Image, Menu, Align, MenuItem, SeparatorMenuItem, ScrolledWindow, PolicyType, Stack, Builder, ListBox, ListBoxRow, Label, StyleContext, ColorChooserDialog, Dialog} = Gtk;
+        const {EventMask} = imports.gi.Gdk;
         log(ARGV);
         const window = new GtkWindow({
             default_width: 800,
@@ -400,10 +401,7 @@ var reminderApplet;
             margin_start: innerMagin,
             spacing: innerMagin
         });
-        const addedAccountsList = new ListBox({
-            visible: true,
-            can_focus: true
-        });
+        const addedAccountsList = new ListBox;
         const addedGoogleAccount = createAddedAccountEntry();
         addedAccountsList.add(addedGoogleAccount);
         mainBox.add(addedAccountsList);
@@ -413,6 +411,29 @@ var reminderApplet;
             halign: Align.START
         });
         mainBox.add(addAcountLabel);
+        const availableAccountList = new ListBox;
+        availableAccountList.add(createNewAccountEntry());
+        availableAccountList.connect("row-activated", ((actor, row) => {
+            log(`row activated, ${row}`);
+            const dialog = createAddAccountDialog();
+            dialog.show_all();
+        }));
+        mainBox.add(availableAccountList);
+        function createAddAccountDialog() {
+            const dialog = new Dialog({
+                title: "Google Account",
+                default_width: 500,
+                default_height: 800
+            });
+            const dialogMainBox = new Box({
+                orientation: Orientation.HORIZONTAL
+            });
+            dialogMainBox.add(new Button({
+                label: "Connect"
+            }));
+            dialog.add_action_widget(dialogMainBox, 1);
+            return dialog;
+        }
         function createAddedAccountEntry() {
             const listboxRow = new ListBoxRow({
                 visible: true,
@@ -447,6 +468,41 @@ var reminderApplet;
             googleBox.add(googleImg);
             googleBox.add(labelBox);
             listboxRow.add(googleBox);
+            return listboxRow;
+        }
+        function createNewAccountEntry() {
+            const listboxRow = new ListBoxRow({
+                visible: true,
+                can_focus: true,
+                width_request: 100,
+                height_request: 80
+            });
+            const googleBox = new Box({
+                visible: true,
+                can_focus: true,
+                spacing: 6
+            });
+            const googleImg = new Image({
+                pixel_size: 40,
+                icon_name: "goa-account-google",
+                icon_size: 3
+            });
+            const labelBox = new Box({
+                halign: Align.START,
+                valign: Align.CENTER,
+                orientation: Orientation.VERTICAL
+            });
+            labelBox.add(new Label({
+                label: "Google",
+                halign: Align.START
+            }));
+            googleBox.add(googleImg);
+            googleBox.add(labelBox);
+            listboxRow.add(googleBox);
+            listboxRow.set_events(EventMask.BUTTON_PRESS_MAKS);
+            listboxRow.connect("event", ((actor, event) => {
+                log(`listBoxRowEvent ${event.get_event_type()}`);
+            }));
             return listboxRow;
         }
         const builder = new Builder;
