@@ -1,5 +1,5 @@
 import { notify } from "../lib/NotificationFactory";
-import { Office365CalendarEventResponse } from "../lib/office365Handler";
+import { Office365CalendarEventResponse } from "../lib/office365Api";
 import { DateTime } from "luxon";
 
 export class CalendarEvent {
@@ -14,7 +14,7 @@ export class CalendarEvent {
 
     static newFromOffice365response(office365Response: Office365CalendarEventResponse) {
 
-        const { id, reminderMinutesBeforeStart, subject, webLink, start, onlineMeeting } = office365Response
+        const { id, reminderMinutesBeforeStart, subject, start, onlineMeeting } = office365Response
 
         const startUTC = DateTime.fromISO(start.dateTime + 'Z')
 

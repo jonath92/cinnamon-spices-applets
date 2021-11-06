@@ -366,6 +366,20 @@ var reminderApplet;
     var __webpack_exports__ = {};
     (() => {
         __webpack_require__.r(__webpack_exports__);
+        const {get_home_dir} = imports.gi.GLib;
+        const CONFIG_DIR = `${get_home_dir()}/.cinnamon/configs/${{
+            uuid: "reminder@jonath92",
+            path: "/home/jonathan/Projekte/cinnamon-spices-applets/reminder@jonath92/files/reminder@jonath92"
+        }.uuid}`;
+        ({
+            uuid: "reminder@jonath92",
+            path: "/home/jonathan/Projekte/cinnamon-spices-applets/reminder@jonath92/files/reminder@jonath92"
+        }).path;
+        ({
+            uuid: "reminder@jonath92",
+            path: "/home/jonathan/Projekte/cinnamon-spices-applets/reminder@jonath92/files/reminder@jonath92"
+        }).uuid.split("@")[0];
+        const OFFICE365_CLIENT_ID = "cbabb902-d276-4ea4-aa88-062a5889d6dc";
         var query_string = __webpack_require__(563);
         const {ListBoxRow, Box, Image, Align, Orientation, Label} = imports.gi.Gtk;
         function createAddedAccountListRow() {
@@ -402,7 +416,39 @@ var reminderApplet;
             listboxRow.add(googleBox);
             return listboxRow;
         }
-        function addAccountToSettings(account) {}
+        const {new_for_path} = imports.gi.Gio.File;
+        const SETTINGS_PATH = CONFIG_DIR + "/settings.json";
+        const ByteArray = imports.byteArray;
+        const settingsFile = new_for_path(SETTINGS_PATH);
+        const {FileCreateFlags} = imports.gi.Gio;
+        function loadSettingsFromFile() {
+            let settings = {
+                accounts: []
+            };
+            try {
+                const [success, contents] = settingsFile.load_contents(null);
+                settings = JSON.parse(ByteArray.toString(contents));
+            } catch (error) {}
+            return settings;
+        }
+        function saveSettingsToFile(settings) {
+            log(`query exists: ${settingsFile.query_exists(null)}`);
+            if (!settingsFile.query_exists(null)) {
+                log("this is called");
+                settingsFile.create(FileCreateFlags.REPLACE_DESTINATION, null);
+            }
+            try {
+                settingsFile.replace_contents(JSON.stringify(settings, null, 3), null, false, FileCreateFlags.REPLACE_DESTINATION, null);
+            } catch (error) {}
+        }
+        function addAccountToSettings(account) {
+            var _a;
+            const settings = loadSettingsFromFile();
+            const dummy = null === (_a = settings.accounts) || void 0 === _a ? void 0 : _a.push(account);
+            log(`dummy, ${JSON.stringify(dummy)}`);
+            log;
+            saveSettingsToFile(settings);
+        }
         const {ListBoxRow: CreateNewAccountListRow_ListBoxRow, Image: CreateNewAccountListRow_Image, Box: CreateNewAccountListRow_Box, Align: CreateNewAccountListRow_Align, Label: CreateNewAccountListRow_Label, Orientation: CreateNewAccountListRow_Orientation} = imports.gi.Gtk;
         function createNewAccountListRow() {
             const listboxRow = new CreateNewAccountListRow_ListBoxRow({
@@ -442,13 +488,13 @@ var reminderApplet;
         Gtk.init(null);
         const innerMagin = 30;
         const queryParams = (0, query_string.stringify)({
-            client_id: "cbabb902-d276-4ea4-aa88-062a5889d6dc",
+            client_id: OFFICE365_CLIENT_ID,
             scope: "offline_access calendars.read",
             response_type: "code",
             redirect_uri: "http://localhost:8080"
         });
         const loginUrl = `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?${queryParams}`;
-        const {Box: settings_Box, Orientation: settings_Orientation, Button, IconSize, StackSwitcher, MenuButton, Image: settings_Image, Menu, Align: settings_Align, MenuItem, SeparatorMenuItem, ScrolledWindow, PolicyType, Stack, Builder, ListBox, ListBoxRow: settings_ListBoxRow, Label: settings_Label, StyleContext, ColorChooserDialog, Dialog} = Gtk;
+        const {Box: settings_Box, Orientation: settings_Orientation, Align: settings_Align, ListBox, Label: settings_Label} = Gtk;
         const server = new Server({
             port: 8080
         });
@@ -504,8 +550,9 @@ var reminderApplet;
                 const code = query.code;
                 if (!code) return;
                 addAccountToSettings({
-                    accountType: "office365",
-                    code
+                    mail: "dummy2",
+                    provider: "Office365",
+                    authCode: code
                 });
                 log(query.code);
             }));

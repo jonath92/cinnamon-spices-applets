@@ -124,80 +124,6 @@ var reminderApplet;
             }
             exports.S = createPopupMenu;
         },
-        20: module => {
-            "use strict";
-            var token = "%[a-f0-9]{2}";
-            var singleMatcher = new RegExp(token, "gi");
-            var multiMatcher = new RegExp("(" + token + ")+", "gi");
-            function decodeComponents(components, split) {
-                try {
-                    return decodeURIComponent(components.join(""));
-                } catch (err) {}
-                if (1 === components.length) return components;
-                split = split || 1;
-                var left = components.slice(0, split);
-                var right = components.slice(split);
-                return Array.prototype.concat.call([], decodeComponents(left), decodeComponents(right));
-            }
-            function decode(input) {
-                try {
-                    return decodeURIComponent(input);
-                } catch (err) {
-                    var tokens = input.match(singleMatcher);
-                    for (var i = 1; i < tokens.length; i++) {
-                        input = decodeComponents(tokens, i).join("");
-                        tokens = input.match(singleMatcher);
-                    }
-                    return input;
-                }
-            }
-            function customDecodeURIComponent(input) {
-                var replaceMap = {
-                    "%FE%FF": "��",
-                    "%FF%FE": "��"
-                };
-                var match = multiMatcher.exec(input);
-                while (match) {
-                    try {
-                        replaceMap[match[0]] = decodeURIComponent(match[0]);
-                    } catch (err) {
-                        var result = decode(match[0]);
-                        if (result !== match[0]) replaceMap[match[0]] = result;
-                    }
-                    match = multiMatcher.exec(input);
-                }
-                replaceMap["%C2"] = "�";
-                var entries = Object.keys(replaceMap);
-                for (var i = 0; i < entries.length; i++) {
-                    var key = entries[i];
-                    input = input.replace(new RegExp(key, "g"), replaceMap[key]);
-                }
-                return input;
-            }
-            module.exports = function(encodedURI) {
-                if ("string" !== typeof encodedURI) throw new TypeError("Expected `encodedURI` to be of type `string`, got `" + typeof encodedURI + "`");
-                try {
-                    encodedURI = encodedURI.replace(/\+/g, " ");
-                    return decodeURIComponent(encodedURI);
-                } catch (err) {
-                    return customDecodeURIComponent(encodedURI);
-                }
-            };
-        },
-        806: module => {
-            "use strict";
-            module.exports = function(obj, predicate) {
-                var ret = {};
-                var keys = Object.keys(obj);
-                var isArr = Array.isArray(predicate);
-                for (var i = 0; i < keys.length; i++) {
-                    var key = keys[i];
-                    var val = obj[key];
-                    if (isArr ? -1 !== predicate.indexOf(key) : predicate(key, val, obj)) ret[key] = val;
-                }
-                return ret;
-            };
-        },
         486: function(module, exports, __webpack_require__) {
             module = __webpack_require__.nmd(module);
             var __WEBPACK_AMD_DEFINE_RESULT__;
@@ -4709,276 +4635,6 @@ var reminderApplet;
                     }.call(exports, __webpack_require__, exports, module), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
                 }
             }).call(this);
-        },
-        563: (__unused_webpack_module, exports, __webpack_require__) => {
-            "use strict";
-            const strictUriEncode = __webpack_require__(610);
-            const decodeComponent = __webpack_require__(20);
-            const splitOnFirst = __webpack_require__(500);
-            const filterObject = __webpack_require__(806);
-            const isNullOrUndefined = value => null === value || void 0 === value;
-            const encodeFragmentIdentifier = Symbol("encodeFragmentIdentifier");
-            function encoderForArrayFormat(options) {
-                switch (options.arrayFormat) {
-                  case "index":
-                    return key => (result, value) => {
-                        const index = result.length;
-                        if (void 0 === value || options.skipNull && null === value || options.skipEmptyString && "" === value) return result;
-                        if (null === value) return [ ...result, [ encode(key, options), "[", index, "]" ].join("") ];
-                        return [ ...result, [ encode(key, options), "[", encode(index, options), "]=", encode(value, options) ].join("") ];
-                    };
-
-                  case "bracket":
-                    return key => (result, value) => {
-                        if (void 0 === value || options.skipNull && null === value || options.skipEmptyString && "" === value) return result;
-                        if (null === value) return [ ...result, [ encode(key, options), "[]" ].join("") ];
-                        return [ ...result, [ encode(key, options), "[]=", encode(value, options) ].join("") ];
-                    };
-
-                  case "comma":
-                  case "separator":
-                  case "bracket-separator":
-                    {
-                        const keyValueSep = "bracket-separator" === options.arrayFormat ? "[]=" : "=";
-                        return key => (result, value) => {
-                            if (void 0 === value || options.skipNull && null === value || options.skipEmptyString && "" === value) return result;
-                            value = null === value ? "" : value;
-                            if (0 === result.length) return [ [ encode(key, options), keyValueSep, encode(value, options) ].join("") ];
-                            return [ [ result, encode(value, options) ].join(options.arrayFormatSeparator) ];
-                        };
-                    }
-
-                  default:
-                    return key => (result, value) => {
-                        if (void 0 === value || options.skipNull && null === value || options.skipEmptyString && "" === value) return result;
-                        if (null === value) return [ ...result, encode(key, options) ];
-                        return [ ...result, [ encode(key, options), "=", encode(value, options) ].join("") ];
-                    };
-                }
-            }
-            function parserForArrayFormat(options) {
-                let result;
-                switch (options.arrayFormat) {
-                  case "index":
-                    return (key, value, accumulator) => {
-                        result = /\[(\d*)\]$/.exec(key);
-                        key = key.replace(/\[\d*\]$/, "");
-                        if (!result) {
-                            accumulator[key] = value;
-                            return;
-                        }
-                        if (void 0 === accumulator[key]) accumulator[key] = {};
-                        accumulator[key][result[1]] = value;
-                    };
-
-                  case "bracket":
-                    return (key, value, accumulator) => {
-                        result = /(\[\])$/.exec(key);
-                        key = key.replace(/\[\]$/, "");
-                        if (!result) {
-                            accumulator[key] = value;
-                            return;
-                        }
-                        if (void 0 === accumulator[key]) {
-                            accumulator[key] = [ value ];
-                            return;
-                        }
-                        accumulator[key] = [].concat(accumulator[key], value);
-                    };
-
-                  case "comma":
-                  case "separator":
-                    return (key, value, accumulator) => {
-                        const isArray = "string" === typeof value && value.includes(options.arrayFormatSeparator);
-                        const isEncodedArray = "string" === typeof value && !isArray && decode(value, options).includes(options.arrayFormatSeparator);
-                        value = isEncodedArray ? decode(value, options) : value;
-                        const newValue = isArray || isEncodedArray ? value.split(options.arrayFormatSeparator).map((item => decode(item, options))) : null === value ? value : decode(value, options);
-                        accumulator[key] = newValue;
-                    };
-
-                  case "bracket-separator":
-                    return (key, value, accumulator) => {
-                        const isArray = /(\[\])$/.test(key);
-                        key = key.replace(/\[\]$/, "");
-                        if (!isArray) {
-                            accumulator[key] = value ? decode(value, options) : value;
-                            return;
-                        }
-                        const arrayValue = null === value ? [] : value.split(options.arrayFormatSeparator).map((item => decode(item, options)));
-                        if (void 0 === accumulator[key]) {
-                            accumulator[key] = arrayValue;
-                            return;
-                        }
-                        accumulator[key] = [].concat(accumulator[key], arrayValue);
-                    };
-
-                  default:
-                    return (key, value, accumulator) => {
-                        if (void 0 === accumulator[key]) {
-                            accumulator[key] = value;
-                            return;
-                        }
-                        accumulator[key] = [].concat(accumulator[key], value);
-                    };
-                }
-            }
-            function validateArrayFormatSeparator(value) {
-                if ("string" !== typeof value || 1 !== value.length) throw new TypeError("arrayFormatSeparator must be single character string");
-            }
-            function encode(value, options) {
-                if (options.encode) return options.strict ? strictUriEncode(value) : encodeURIComponent(value);
-                return value;
-            }
-            function decode(value, options) {
-                if (options.decode) return decodeComponent(value);
-                return value;
-            }
-            function keysSorter(input) {
-                if (Array.isArray(input)) return input.sort();
-                if ("object" === typeof input) return keysSorter(Object.keys(input)).sort(((a, b) => Number(a) - Number(b))).map((key => input[key]));
-                return input;
-            }
-            function removeHash(input) {
-                const hashStart = input.indexOf("#");
-                if (-1 !== hashStart) input = input.slice(0, hashStart);
-                return input;
-            }
-            function getHash(url) {
-                let hash = "";
-                const hashStart = url.indexOf("#");
-                if (-1 !== hashStart) hash = url.slice(hashStart);
-                return hash;
-            }
-            function extract(input) {
-                input = removeHash(input);
-                const queryStart = input.indexOf("?");
-                if (-1 === queryStart) return "";
-                return input.slice(queryStart + 1);
-            }
-            function parseValue(value, options) {
-                if (options.parseNumbers && !Number.isNaN(Number(value)) && "string" === typeof value && "" !== value.trim()) value = Number(value); else if (options.parseBooleans && null !== value && ("true" === value.toLowerCase() || "false" === value.toLowerCase())) value = "true" === value.toLowerCase();
-                return value;
-            }
-            function parse(query, options) {
-                options = Object.assign({
-                    decode: true,
-                    sort: true,
-                    arrayFormat: "none",
-                    arrayFormatSeparator: ",",
-                    parseNumbers: false,
-                    parseBooleans: false
-                }, options);
-                validateArrayFormatSeparator(options.arrayFormatSeparator);
-                const formatter = parserForArrayFormat(options);
-                const ret = Object.create(null);
-                if ("string" !== typeof query) return ret;
-                query = query.trim().replace(/^[?#&]/, "");
-                if (!query) return ret;
-                for (const param of query.split("&")) {
-                    if ("" === param) continue;
-                    let [key, value] = splitOnFirst(options.decode ? param.replace(/\+/g, " ") : param, "=");
-                    value = void 0 === value ? null : [ "comma", "separator", "bracket-separator" ].includes(options.arrayFormat) ? value : decode(value, options);
-                    formatter(decode(key, options), value, ret);
-                }
-                for (const key of Object.keys(ret)) {
-                    const value = ret[key];
-                    if ("object" === typeof value && null !== value) for (const k of Object.keys(value)) value[k] = parseValue(value[k], options); else ret[key] = parseValue(value, options);
-                }
-                if (false === options.sort) return ret;
-                return (true === options.sort ? Object.keys(ret).sort() : Object.keys(ret).sort(options.sort)).reduce(((result, key) => {
-                    const value = ret[key];
-                    if (Boolean(value) && "object" === typeof value && !Array.isArray(value)) result[key] = keysSorter(value); else result[key] = value;
-                    return result;
-                }), Object.create(null));
-            }
-            exports.extract = extract;
-            exports.parse = parse;
-            exports.stringify = (object, options) => {
-                if (!object) return "";
-                options = Object.assign({
-                    encode: true,
-                    strict: true,
-                    arrayFormat: "none",
-                    arrayFormatSeparator: ","
-                }, options);
-                validateArrayFormatSeparator(options.arrayFormatSeparator);
-                const shouldFilter = key => options.skipNull && isNullOrUndefined(object[key]) || options.skipEmptyString && "" === object[key];
-                const formatter = encoderForArrayFormat(options);
-                const objectCopy = {};
-                for (const key of Object.keys(object)) if (!shouldFilter(key)) objectCopy[key] = object[key];
-                const keys = Object.keys(objectCopy);
-                if (false !== options.sort) keys.sort(options.sort);
-                return keys.map((key => {
-                    const value = object[key];
-                    if (void 0 === value) return "";
-                    if (null === value) return encode(key, options);
-                    if (Array.isArray(value)) {
-                        if (0 === value.length && "bracket-separator" === options.arrayFormat) return encode(key, options) + "[]";
-                        return value.reduce(formatter(key), []).join("&");
-                    }
-                    return encode(key, options) + "=" + encode(value, options);
-                })).filter((x => x.length > 0)).join("&");
-            };
-            exports.parseUrl = (url, options) => {
-                options = Object.assign({
-                    decode: true
-                }, options);
-                const [url_, hash] = splitOnFirst(url, "#");
-                return Object.assign({
-                    url: url_.split("?")[0] || "",
-                    query: parse(extract(url), options)
-                }, options && options.parseFragmentIdentifier && hash ? {
-                    fragmentIdentifier: decode(hash, options)
-                } : {});
-            };
-            exports.stringifyUrl = (object, options) => {
-                options = Object.assign({
-                    encode: true,
-                    strict: true,
-                    [encodeFragmentIdentifier]: true
-                }, options);
-                const url = removeHash(object.url).split("?")[0] || "";
-                const queryFromUrl = exports.extract(object.url);
-                const parsedQueryFromUrl = exports.parse(queryFromUrl, {
-                    sort: false
-                });
-                const query = Object.assign(parsedQueryFromUrl, object.query);
-                let queryString = exports.stringify(query, options);
-                if (queryString) queryString = `?${queryString}`;
-                let hash = getHash(object.url);
-                if (object.fragmentIdentifier) hash = `#${options[encodeFragmentIdentifier] ? encode(object.fragmentIdentifier, options) : object.fragmentIdentifier}`;
-                return `${url}${queryString}${hash}`;
-            };
-            exports.pick = (input, filter, options) => {
-                options = Object.assign({
-                    parseFragmentIdentifier: true,
-                    [encodeFragmentIdentifier]: false
-                }, options);
-                const {url, query, fragmentIdentifier} = exports.parseUrl(input, options);
-                return exports.stringifyUrl({
-                    url,
-                    query: filterObject(query, filter),
-                    fragmentIdentifier
-                }, options);
-            };
-            exports.exclude = (input, filter, options) => {
-                const exclusionFilter = Array.isArray(filter) ? key => !filter.includes(key) : (key, value) => !filter(key, value);
-                return exports.pick(input, exclusionFilter, options);
-            };
-        },
-        500: module => {
-            "use strict";
-            module.exports = (string, separator) => {
-                if (!("string" === typeof string && "string" === typeof separator)) throw new TypeError("Expected the arguments to be of type `string`");
-                if ("" === separator) return [ string ];
-                const separatorIndex = string.indexOf(separator);
-                if (-1 === separatorIndex) return [ string ];
-                return [ string.slice(0, separatorIndex), string.slice(separatorIndex + separator.length) ];
-            };
-        },
-        610: module => {
-            "use strict";
-            module.exports = str => encodeURIComponent(str).replace(/[!'()*]/g, (x => `%${x.charCodeAt(0).toString(16).toUpperCase()}`));
         }
     };
     var __webpack_module_cache__ = {};
@@ -5037,16 +4693,6 @@ var reminderApplet;
         function initNotificationFactory(args) {
             const {iconFactory: passedIconFactory} = args;
             iconFactory = passedIconFactory;
-        }
-        function notify(args) {
-            const {notificationText, transient = true} = args;
-            if (!iconFactory) global.logError("initNotificatoinManager must be called first!");
-            const notification = new Notification(messageSource, __meta.name, notificationText, {
-                icon: iconFactory(),
-                bodyMarkup: true
-            });
-            notification.setTransient(transient);
-            messageSource.notify(notification);
         }
         function n(n) {
             for (var t = arguments.length, r = Array(t > 1 ? t - 1 : 0), e = 1; e < t; e++) r[e - 1] = arguments[e];
@@ -6093,6 +5739,7 @@ var reminderApplet;
             }
         })();
         N();
+        var lodash = __webpack_require__(486);
         const {get_home_dir} = imports.gi.GLib;
         const CONFIG_DIR = `${get_home_dir()}/.cinnamon/configs/${{
             uuid: "reminder@jonath92",
@@ -6106,86 +5753,86 @@ var reminderApplet;
             uuid: "reminder@jonath92",
             path: "/home/jonathan/Projekte/cinnamon-spices-applets/reminder@jonath92/files/reminder@jonath92"
         }.uuid.split("@")[0];
-        const OFFICE365_CLIENT_ID = "cbabb902-d276-4ea4-aa88-062a5889d6dc";
-        const OFFICE365_CLIENT_SECRET = "YSvrgQMqw9NzVqgiLfuEky1";
-        const OFFICE365_TOKEN_ENDPOINT = "https://login.microsoftonline.com/common/oauth2/v2.0/token";
-        const OFFICE365_CALENDAR_ENDPOINT = "https://graph.microsoft.com/v1.0/me/calendarview";
         const {new_for_path} = imports.gi.Gio.File;
-        const {FileCreateFlags} = imports.gi.Gio;
         const SETTINGS_PATH = CONFIG_DIR + "/settings.json";
         const ByteArray = imports.byteArray;
         const settingsFile = new_for_path(SETTINGS_PATH);
+        const {FileCreateFlags} = imports.gi.Gio;
         function loadSettingsFromFile() {
-            let settings = {};
+            let settings = {
+                accounts: []
+            };
             try {
                 const [success, contents] = settingsFile.load_contents(null);
                 settings = JSON.parse(ByteArray.toString(contents));
-            } catch (error) {
-                global.logWarning(`couldn't load settings file. The following error occured: ${JSON.stringify(error)}`);
-            }
+            } catch (error) {}
             return settings;
         }
-        function saveSettingsToFile(state) {
-            try {
-                settingsFile.replace_contents(JSON.stringify(state, null, 3), null, false, FileCreateFlags.REPLACE_DESTINATION, null);
-            } catch (error) {
-                global.logWarning(`couldn't save new Settings. The following error occured: ${JSON.stringify(error)}`);
+        function saveSettingsToFile(settings) {
+            log(`query exists: ${settingsFile.query_exists(null)}`);
+            if (!settingsFile.query_exists(null)) {
+                log("this is called");
+                settingsFile.create(FileCreateFlags.REPLACE_DESTINATION, null);
             }
+            try {
+                settingsFile.replace_contents(JSON.stringify(settings, null, 3), null, false, FileCreateFlags.REPLACE_DESTINATION, null);
+            } catch (error) {}
         }
         const settingsSlice = createSlice({
             name: "settings",
             initialState: loadSettingsFromFile(),
             reducers: {
                 refreshTokenChanged(state, action) {
+                    var _a;
                     global.log("refreshToken Change called");
-                    state.refreshToken = action.payload;
+                    const {mail, refreshToken} = action.payload;
+                    state.accounts = null === (_a = state.accounts) || void 0 === _a ? void 0 : _a.map((acc => mail === acc.mail ? Object.assign(Object.assign({}, acc), {
+                        refreshToken
+                    }) : acc));
                     saveSettingsToFile(state);
                 }
             }
         });
         const {refreshTokenChanged} = settingsSlice.actions;
         const slices_settingsSlice = settingsSlice.reducer;
-        var query_string = __webpack_require__(563);
-        const {Message, SessionAsync} = imports.gi.Soup;
-        const httpSession = new SessionAsync;
-        function isHttpError(x) {
-            return "string" === typeof x.reason_phrase;
-        }
-        const HttpHandler_ByteArray = imports.byteArray;
-        function checkForHttpError(message) {
-            var _a;
-            const code = 0 | (null === message || void 0 === message ? void 0 : message.status_code);
-            const reason_phrase = (null === message || void 0 === message ? void 0 : message.reason_phrase) || "no network response";
-            let errMessage;
-            if (code < 100) errMessage = "no network response"; else if (code < 200 || code > 300) errMessage = "bad status code"; else if (!(null === (_a = message.response_body) || void 0 === _a ? void 0 : _a.data)) errMessage = "no response body";
-            return errMessage ? {
-                code,
-                reason_phrase,
-                message: errMessage
-            } : false;
-        }
-        function loadJsonAsync(args) {
-            const {url, method = "GET", bodyParams, queryParams, headers} = args;
-            const uri = queryParams ? `${url}?${(0, query_string.stringify)(queryParams)}` : url;
-            const message = Message.new(method, uri);
-            Object.entries(headers).forEach((([key, value]) => {
-                message.request_headers.append(key, value);
-            }));
-            if (bodyParams) {
-                const bodyParamsStringified = (0, query_string.stringify)(bodyParams);
-                message.request_body.append(HttpHandler_ByteArray.fromString(bodyParamsStringified, "UTF-16"));
+        const initialState = [];
+        const calendarEventSlice = createSlice({
+            name: "calendarEvents",
+            initialState,
+            reducers: {
+                eventsLoaded(state, action) {
+                    const updatedEventsSorted = action.payload.sort(((a, b) => a.startUTC.diff(b.startUTC).milliseconds));
+                    return [ ...updatedEventsSorted ];
+                }
             }
-            return new Promise(((resolve, reject) => {
-                httpSession.queue_message(message, ((session, msgResponse) => {
-                    const error = checkForHttpError(msgResponse);
-                    if (error) {
-                        reject(error);
-                        return;
-                    }
-                    const data = JSON.parse(msgResponse.response_body.data);
-                    resolve(data);
-                }));
+        });
+        const {eventsLoaded} = calendarEventSlice.actions;
+        const CalendarEventsSlice = calendarEventSlice.reducer;
+        const store = configureStore({
+            reducer: {
+                settings: slices_settingsSlice,
+                calendarEvents: CalendarEventsSlice
+            }
+        });
+        function watchSelector(selectProp, cb, checkEquality = true) {
+            let currentValue = selectProp();
+            store.subscribe((() => {
+                const newValue = selectProp();
+                if (checkEquality && (0, lodash.isEqual)(currentValue, newValue)) return;
+                cb(newValue, currentValue);
+                currentValue = newValue;
             }));
+        }
+        function getState() {
+            return store.getState();
+        }
+        store.dispatch;
+        const selectEvents = () => getState().calendarEvents;
+        const selectCalendarAccounts = () => getState().settings.accounts;
+        function initCalendarEventEmitter() {
+            watchSelector(selectCalendarAccounts, (newValue => {
+                global.log("new Calendar Accounts", JSON.stringify(newValue));
+            }), false);
         }
         class LuxonError extends Error {}
         class InvalidDateTimeError extends LuxonError {
@@ -9738,152 +9385,48 @@ var reminderApplet;
         function friendlyDateTime(dateTimeish) {
             if (DateTime.isDateTime(dateTimeish)) return dateTimeish; else if (dateTimeish && dateTimeish.valueOf && isNumber(dateTimeish.valueOf())) return DateTime.fromJSDate(dateTimeish); else if (dateTimeish && "object" === typeof dateTimeish) return DateTime.fromObject(dateTimeish); else throw new InvalidArgumentError(`Unknown datetime argument: ${dateTimeish}, of type ${typeof dateTimeish}`);
         }
-        const LOG_PREFIX = `[${__meta.uuid}]:`;
-        function logInfo(...obj) {
-            const args = Array.from(arguments).map((arg => JSON.stringify(arg, null, "\t")));
-            global.log(LOG_PREFIX, ...args);
-        }
-        const CLIENT_ID = OFFICE365_CLIENT_ID;
-        const CLIENT_SECRET = OFFICE365_CLIENT_SECRET;
-        function createOffice365Handler(args) {
-            const {authorizatonCode, onRefreshTokenChanged} = args;
-            let {refreshToken} = args;
-            let accessToken;
-            if (null == authorizatonCode && null == refreshToken) throw new Error("AuthorizationCode and refreshToken must not be both null or undefined");
-            async function refreshTokens() {
-                if (!refreshToken) throw new Error("refresh Token must be defined");
-                try {
-                    const response = await loadJsonAsync({
-                        method: "POST",
-                        url: OFFICE365_TOKEN_ENDPOINT,
-                        bodyParams: {
-                            client_id: CLIENT_ID,
-                            client_secret: CLIENT_SECRET,
-                            grant_type: "refresh_token",
-                            refresh_token: refreshToken
-                        },
-                        headers: {
-                            "Content-Type": "application/x-www-form-urlencoded"
-                        }
-                    });
-                    accessToken = response.access_token;
-                    const newRefreshToken = response.refresh_token;
-                    if (newRefreshToken !== refreshToken) {
-                        refreshToken = newRefreshToken;
-                        onRefreshTokenChanged(newRefreshToken);
-                    }
-                } catch (error) {
-                    global.logError(`couldn't refresh Token, error: ${JSON.stringify(error)}`);
-                }
-            }
-            async function getTodayEvents(attempt = 0) {
-                const now = DateTime.now();
-                const startOfDay = DateTime.fromObject({
-                    day: now.day
-                });
-                const endOfDay = DateTime.fromObject({
-                    day: now.day + 1
-                });
-                !accessToken && await refreshTokens();
-                return new Promise((async (resolve, reject) => {
-                    try {
-                        const response = await loadJsonAsync({
-                            url: OFFICE365_CALENDAR_ENDPOINT,
-                            headers: {
-                                "Content-Type": "application/json",
-                                Authorization: `Bearer ${accessToken}`
-                            },
-                            queryParams: {
-                                startdatetime: startOfDay.toISO(),
-                                endDateTime: endOfDay.toISO()
-                            }
-                        });
-                        resolve(response.value);
-                    } catch (error) {
-                        if (attempt >= 3) {
-                            global.logError(`Couldn't connect to Microsoft Graph Api. Are you connected to the Internet? Don't hesitate to open a bug report when the error persists`);
-                            global.logError(JSON.stringify(error));
-                            return;
-                        }
-                        if (isHttpError(error)) {
-                            await handleHttpError(error);
-                            getTodayEvents(++attempt);
-                            return;
-                        }
-                        reject(error);
-                    }
+        function createNotifyService() {
+            let reminders = [];
+            watchSelector(selectEvents, (events => {
+                reminders = updateExistingReminders(reminders, events);
+                const newEvents = events.filter((event => {
+                    const isNew = !reminders.find((reminder => reminder.eventId === event.id));
+                    return isNew;
                 }));
-            }
-            async function handleHttpError(error) {
-                if ("Unauthorized" === error.reason_phrase) {
-                    logInfo("Unauthorized Error. Microsft Graph Api Tokens probably not valid anymore ...");
-                    await refreshTokens();
-                }
-            }
-            return {
-                getTodayEvents
-            };
-        }
-        const initialState = [];
-        const calendarEventSlice = createSlice({
-            name: "calendarEvents",
-            initialState,
-            reducers: {
-                eventsLoaded(state, action) {
-                    const updatedEventsSorted = action.payload.sort(((a, b) => a.startUTC.diff(b.startUTC).milliseconds));
-                    return [ ...updatedEventsSorted ];
-                }
-            }
-        });
-        const {eventsLoaded} = calendarEventSlice.actions;
-        const CalendarEventsSlice = calendarEventSlice.reducer;
-        var lodash = __webpack_require__(486);
-        const store = configureStore({
-            reducer: {
-                settings: slices_settingsSlice,
-                calendarEvents: CalendarEventsSlice
-            }
-        });
-        function watchSelector(selectProp, cb, checkEquality = true) {
-            let currentValue = selectProp();
-            store.subscribe((() => {
-                const newValue = selectProp();
-                if (checkEquality && (0, lodash.isEqual)(currentValue, newValue)) return;
-                cb(newValue, currentValue);
-                currentValue = newValue;
+                newEvents.forEach((event => {
+                    const newReminder = createNewReminder(event);
+                    reminders.push(newReminder);
+                }));
             }));
         }
-        function getState() {
-            return store.getState();
+        function updateExistingReminders(reminders, updatedEvents) {
+            return reminders.flatMap((reminder => {
+                const updatedEvent = updatedEvents.find((event => reminder.eventId === event.id));
+                const currentRemindTime = reminder.remindTime;
+                const updatedRemindTime = null === updatedEvent || void 0 === updatedEvent ? void 0 : updatedEvent.remindTime;
+                const reminderHasChanged = !(0, lodash.isEqual)(currentRemindTime, updatedRemindTime);
+                if (reminderHasChanged) {
+                    reminder.timerId && clearTimeout(reminder.timerId);
+                    if (!updatedEvent) return [];
+                    return createNewReminder(updatedEvent);
+                }
+                return reminder;
+            }));
         }
-        const dispatch = store.dispatch;
-        const selectEvents = () => getState().calendarEvents;
-        class CalendarEvent {
-            constructor(id, remindTime, subject, startUTC, onlineMeetingUrl) {
-                this.id = id;
-                this.remindTime = remindTime;
-                this.subject = subject;
-                this.startUTC = startUTC;
-                this.onlineMeetingUrl = onlineMeetingUrl;
+        function createNewReminder(event) {
+            const remindTime = event.remindTime;
+            let timerId;
+            if (event.remindTime <= DateTime.now()) event.sendNotification(); else {
+                const timeout = remindTime.diff(DateTime.now()).milliseconds;
+                timerId = setTimeout((() => {
+                    event.sendNotification();
+                }), timeout);
             }
-            static newFromOffice365response(office365Response) {
-                const {id, reminderMinutesBeforeStart, subject, webLink, start, onlineMeeting} = office365Response;
-                const startUTC = DateTime.fromISO(start.dateTime + "Z");
-                const reminderStartTime = startUTC.minus({
-                    minutes: reminderMinutesBeforeStart
-                });
-                return new CalendarEvent(id, reminderStartTime, subject, startUTC, (null === onlineMeeting || void 0 === onlineMeeting ? void 0 : onlineMeeting.joinUrl) || null);
-            }
-            get startFormated() {
-                return this.startUTC.toLocaleString(DateTime.TIME_SIMPLE);
-            }
-            sendNotification() {
-                const notificationText = `<b>${this.startFormated}</b>\n\n${this.subject}`;
-                notify({
-                    notificationText,
-                    transient: false
-                });
-            }
+            return {
+                eventId: event.id,
+                remindTime,
+                timerId
+            };
         }
         const {Label} = imports.gi.St;
         const {ActorAlign} = imports.gi.Clutter;
@@ -10351,83 +9894,6 @@ var reminderApplet;
         }
         function addCleanupFunction(cleanupFunction) {
             cleanupFunctions.push(cleanupFunction);
-        }
-        const selectOffice365Auth = () => getState().settings.authCode;
-        let eventEmitterInitiallized = false;
-        function initCalendarEventEmitter() {
-            if (eventEmitterInitiallized) {
-                global.logWarning("calenderEventEmitter already initiallized");
-                return;
-            }
-            let office35Handler;
-            initOffice365Handler(getState().settings);
-            watchSelector(selectOffice365Auth, (newValue => {
-                initOffice365Handler({
-                    authCode: newValue
-                });
-            }));
-            const intervalId = setInterval(queryNewEvents, 1e5);
-            function initOffice365Handler(args) {
-                if (!args.authCode && !args.refreshToken) return;
-                office35Handler = createOffice365Handler({
-                    authorizatonCode: args.authCode,
-                    refreshToken: args.refreshToken,
-                    onRefreshTokenChanged: newValue => dispatch(refreshTokenChanged(newValue))
-                });
-                queryNewEvents();
-            }
-            async function queryNewEvents() {
-                if (!office35Handler) return;
-                const newEvents = (await office35Handler.getTodayEvents()).map((office365event => CalendarEvent.newFromOffice365response(office365event)));
-                dispatch(eventsLoaded(newEvents));
-            }
-            addCleanupFunction((() => {
-                clearInterval(intervalId);
-                eventEmitterInitiallized = false;
-            }));
-        }
-        function createNotifyService() {
-            let reminders = [];
-            watchSelector(selectEvents, (events => {
-                reminders = updateExistingReminders(reminders, events);
-                const newEvents = events.filter((event => {
-                    const isNew = !reminders.find((reminder => reminder.eventId === event.id));
-                    return isNew;
-                }));
-                newEvents.forEach((event => {
-                    const newReminder = createNewReminder(event);
-                    reminders.push(newReminder);
-                }));
-            }));
-        }
-        function updateExistingReminders(reminders, updatedEvents) {
-            return reminders.flatMap((reminder => {
-                const updatedEvent = updatedEvents.find((event => reminder.eventId === event.id));
-                const currentRemindTime = reminder.remindTime;
-                const updatedRemindTime = null === updatedEvent || void 0 === updatedEvent ? void 0 : updatedEvent.remindTime;
-                const reminderHasChanged = !(0, lodash.isEqual)(currentRemindTime, updatedRemindTime);
-                if (reminderHasChanged) {
-                    reminder.timerId && clearTimeout(reminder.timerId);
-                    if (!updatedEvent) return [];
-                    return createNewReminder(updatedEvent);
-                }
-                return reminder;
-            }));
-        }
-        function createNewReminder(event) {
-            const remindTime = event.remindTime;
-            let timerId;
-            if (event.remindTime <= DateTime.now()) event.sendNotification(); else {
-                const timeout = remindTime.diff(DateTime.now()).milliseconds;
-                timerId = setTimeout((() => {
-                    event.sendNotification();
-                }), timeout);
-            }
-            return {
-                eventId: event.id,
-                remindTime,
-                timerId
-            };
         }
         const {Icon: applet_Icon, IconType: applet_IconType} = imports.gi.St;
         function main(args) {

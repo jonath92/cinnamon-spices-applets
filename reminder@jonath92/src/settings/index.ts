@@ -3,6 +3,7 @@ const Webkit2 = imports.gi.WebKit2;
 const { Server, MemoryUse } = imports.gi.Soup
 const { GtkWindow } = imports.gi.XApp
 const { spawn_command_line_async } = imports.gi.GLib
+import { OFFICE365_CLIENT_ID } from 'consts';
 import { stringify } from 'query-string'
 import { createAddedAccountListRow } from './AddedAccountListRow';
 import { addAccountToSettings } from './appendSettings';
@@ -15,8 +16,7 @@ Gtk.init(null);
 const innerMagin = 30
 
 const queryParams = stringify({
-    // the client ID from Joplin: https://github.com/laurent22/joplin/blob/80b16dd17e227e3f538aa221d7b6cc2d81688e72/packages/lib/parameters.js
-    client_id: 'cbabb902-d276-4ea4-aa88-062a5889d6dc',
+    client_id: OFFICE365_CLIENT_ID,
     scope: "offline_access calendars.read",
     response_type: "code",
     redirect_uri: 'http://localhost:8080',
@@ -24,7 +24,7 @@ const queryParams = stringify({
 
 const loginUrl = `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?${queryParams}`;
 
-const { Box, Orientation,  Button, IconSize, StackSwitcher, MenuButton, Image, Menu, Align, MenuItem, SeparatorMenuItem, ScrolledWindow, PolicyType, Stack, Builder, ListBox, ListBoxRow, Label, StyleContext, ColorChooserDialog, Dialog } = Gtk
+const { Box, Orientation, Align, ListBox, Label } = Gtk
 
 
 // TODO: find free ports first
@@ -70,7 +70,6 @@ const addAcountLabel = new Label({
 mainBox.add(addAcountLabel)
 
 const availableAccountList = new ListBox()
-
 
 availableAccountList.add(createNewAccountListRow())
 
@@ -124,8 +123,9 @@ function startServer() {
             return
 
         addAccountToSettings({
-            accountType: 'office365', 
-            code
+            mail: 'dummy2',
+            provider: 'Office365', 
+            authCode: code
         })
 
         // @ts-ignore

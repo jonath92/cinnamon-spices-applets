@@ -2,6 +2,8 @@ import { HttpError, loadJsonAsync, isHttpError } from "./HttpHandler"
 import { DateTime } from 'luxon';
 import { logInfo } from "../services/Logger";
 import { OFFICE365_CALENDAR_ENDPOINT, OFFICE365_CLIENT_ID, OFFICE365_CLIENT_SECRET, OFFICE365_TOKEN_ENDPOINT } from "../../consts";
+import { CalendarApi } from "applet/model/CalendarApi";
+import { CalendarEvent } from "applet/model/CalendarEvent";
 
 // https://docs.microsoft.com/en-us/graph/api/resources/datetimetimezone?view=graph-rest-1.0
 interface DateTimeTimeZone {
@@ -10,7 +12,7 @@ interface DateTimeTimeZone {
 }
 
 interface Office365CalendarResponse {
-    '@odata.context': string, 
+    '@odata.context': string,
     value: Office365CalendarEventResponse[]
 }
 
@@ -39,33 +41,34 @@ interface Arguments {
     authorizatonCode?: string,
     /** required when no authorizatonCode passed */
     refreshToken?: string,
-    /** called when RefreshToken changed. Should be a function which saves the token to a file*/
-    onRefreshTokenChanged: (newToken: string) => void
+    /** called when RefreshToken changed, for example a function which saves the token to a file*/
+    onRefreshTokenChanged?: (newToken: string) => void
 }
 
 const CLIENT_ID = OFFICE365_CLIENT_ID
 const CLIENT_SECRET = OFFICE365_CLIENT_SECRET
 
+export class Office365Api implements CalendarApi {
 
-export function createOffice365Handler(args: Arguments) {
+    private authorizatonCode: string | undefined
+    private refreshToken: string | undefined
+    private onRefreshTokenChanged: ((newToken: string) => void) | undefined
+    private accessToken: string | undefined
 
-    const {
-        authorizatonCode,
-        onRefreshTokenChanged
-    } = args
+    constructor(args: Arguments) {
+        const { authorizatonCode, refreshToken, onRefreshTokenChanged } = args
 
-    let {
-        refreshToken
-    } = args
+        if (authorizatonCode == null && refreshToken == null)
+            throw new Error('AuthorizationCode and refreshToken must not be both null or undefined')
 
-    let accessToken: string | null
+        this.authorizatonCode = authorizatonCode
+        this.refreshToken = refreshToken
+        this.onRefreshTokenChanged = onRefreshTokenChanged
+    }
 
-    if (authorizatonCode == null && refreshToken == null)
-        throw new Error('AuthorizationCode and refreshToken must not be both null or undefined')
-
-    async function refreshTokens() {
-
-        if (!refreshToken) {
+    private async refreshTokens(): Promise<void> {
+        if (!this.refreshToken) {
+            // TODO: get refreshToken from accessToken!! 
             throw new Error('refresh Token must be defined')
         }
 
@@ -77,34 +80,34 @@ export function createOffice365Handler(args: Arguments) {
                     client_id: CLIENT_ID,
                     client_secret: CLIENT_SECRET,
                     grant_type: "refresh_token",
-                    refresh_token: refreshToken
+                    refresh_token: this.refreshToken
                 },
                 headers: {
-                    "Content-Type": 'application/x-www-form-urlencoded'
+                    'Content-Type': 'application/x-www-form-urlencoded'
                 }
-            }) 
+            })
 
-            accessToken = response.access_token
+            const { access_token, refresh_token } = response
 
-            const newRefreshToken = response.refresh_token
+            this.accessToken = access_token
 
-            if (newRefreshToken !== refreshToken) {
-                refreshToken = newRefreshToken
-                onRefreshTokenChanged(newRefreshToken)
+            if (this.refreshToken !== refresh_token) {
+                this.refreshToken = refresh_token
+                this.onRefreshTokenChanged?.(refresh_token)
             }
 
         } catch (error) {
             global.logError(`couldn't refresh Token, error: ${JSON.stringify(error)}`)
         }
+
     }
 
-    async function getTodayEvents(attempt: number = 0): Promise<Office365CalendarEventResponse[]> {
-
+    public async getTodayOffice365Events(attempt: number = 0): Promise<Office365CalendarEventResponse[]> {
         const now = DateTime.now()
         const startOfDay = DateTime.fromObject({ day: now.day })
         const endOfDay = DateTime.fromObject({ day: now.day + 1 })
 
-        !accessToken && await refreshTokens()
+        !this.accessToken && await this.refreshTokens()
 
         return new Promise(async (resolve, reject) => {
             try {
@@ -112,14 +115,14 @@ export function createOffice365Handler(args: Arguments) {
                     url: OFFICE365_CALENDAR_ENDPOINT,
                     headers: {
                         "Content-Type": 'application/json',
-                        Authorization: `Bearer ${accessToken}`
+                        Authorization: `Bearer ${this.accessToken}`
                     },
                     queryParams: {
                         startdatetime: startOfDay.toISO(),
                         endDateTime: endOfDay.toISO()
                     }
                 })
-        
+
                 resolve(response.value)
 
             } catch (error) {
@@ -132,28 +135,36 @@ export function createOffice365Handler(args: Arguments) {
                 }
 
                 if (isHttpError(error)) {
-                    await handleHttpError(error)
-                    getTodayEvents(++attempt)
+                    await this.handleHttpError(error)
+                    this.getTodayOffice365Events(++attempt)
                     return
                 }
 
                 reject(error)
             }
         })
+
+
+    };
+
+
+    public async getTodayEvents(): Promise<CalendarEvent[]> {
+        const todayOffice365Events = await this.getTodayOffice365Events()
+
+        return todayOffice365Events.map(office365Event => CalendarEvent.newFromOffice365response(office365Event))
     }
 
-    async function handleHttpError(error: HttpError) {
 
+    private async handleHttpError(error: HttpError) {
         if (error.reason_phrase === 'Unauthorized') {
             logInfo('Unauthorized Error. Microsft Graph Api Tokens probably not valid anymore ...')
-            await refreshTokens()
+            await this.refreshTokens()
         }
 
         // TODO handle network errors
     }
 
 
-    return {
-        getTodayEvents
-    }
+
+
 }
