@@ -402,6 +402,7 @@ var reminderApplet;
             listboxRow.add(googleBox);
             return listboxRow;
         }
+        function addAccountToSettings(account) {}
         const {ListBoxRow: CreateNewAccountListRow_ListBoxRow, Image: CreateNewAccountListRow_Image, Box: CreateNewAccountListRow_Box, Align: CreateNewAccountListRow_Align, Label: CreateNewAccountListRow_Label, Orientation: CreateNewAccountListRow_Orientation} = imports.gi.Gtk;
         function createNewAccountListRow() {
             const listboxRow = new CreateNewAccountListRow_ListBoxRow({
@@ -447,8 +448,7 @@ var reminderApplet;
             redirect_uri: "http://localhost:8080"
         });
         const loginUrl = `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?${queryParams}`;
-        const {Window, WindowType, Box: settings_Box, Orientation: settings_Orientation, Toolbar, ToolItem, Button, IconSize, StackSwitcher, MenuButton, Image: settings_Image, Menu, Align: settings_Align, MenuItem, SeparatorMenuItem, ScrolledWindow, PolicyType, Stack, Builder, ListBox, ListBoxRow: settings_ListBoxRow, Label: settings_Label, StyleContext, ColorChooserDialog, Dialog} = Gtk;
-        const {EventMask} = imports.gi.Gdk;
+        const {Box: settings_Box, Orientation: settings_Orientation, Button, IconSize, StackSwitcher, MenuButton, Image: settings_Image, Menu, Align: settings_Align, MenuItem, SeparatorMenuItem, ScrolledWindow, PolicyType, Stack, Builder, ListBox, ListBoxRow: settings_ListBoxRow, Label: settings_Label, StyleContext, ColorChooserDialog, Dialog} = Gtk;
         const server = new Server({
             port: 8080
         });
@@ -487,10 +487,6 @@ var reminderApplet;
             spawn_command_line_async(`xdg-open ${loginUrl}`);
         }));
         mainBox.add(availableAccountList);
-        const builder = new Builder;
-        builder.add_from_file("/home/jonathan/.local/share/cinnamon/applets/reminder@jonath92/settings-view.ui");
-        const main_box = builder.get_object("main_box");
-        log(main_box);
         settings_window.add(mainBox);
         settings_window.show_all();
         Gtk.main();
@@ -501,12 +497,17 @@ var reminderApplet;
         }));
         function startServer() {
             server.connect("request-finished", ((serv, message, client) => {
-                log("request finished");
                 server.disconnect();
             }));
             server.add_handler(null, ((server, msg, path, query) => {
-                log(JSON.stringify(query));
                 msg.set_response("text/html", MemoryUse.COPY, `<!DOCTYPE html>\n                <html lang="en">\n                <head>\n                    <meta charset="UTF-8">\n                    <meta http-equiv="X-UA-Compatible" content="IE=edge">\n                    <meta name="viewport" content="width=device-width, initial-scale=1.0">\n                    <title>Document</title>\n                </head>\n                <body>\n                    <h2>Logged in sucessfully. You may now close the tab<h2/>\n                </body>\n                </html>`);
+                const code = query.code;
+                if (!code) return;
+                addAccountToSettings({
+                    accountType: "office365",
+                    code
+                });
+                log(query.code);
             }));
             server.run_async();
         }

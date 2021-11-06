@@ -29,5 +29,9 @@ export function main(args: AppletArguments): imports.ui.applet.Applet {
 
     createNotifyService()
 
+    // @ts-ignore
+    global.log('uuid', META?.uuid)
+  // global.log('PRODUCTION', PRODUCTION)
+
     return appletBox
 }

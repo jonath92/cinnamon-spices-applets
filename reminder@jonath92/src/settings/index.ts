@@ -5,6 +5,7 @@ const { GtkWindow } = imports.gi.XApp
 const { spawn_command_line_async } = imports.gi.GLib
 import { stringify } from 'query-string'
 import { createAddedAccountListRow } from './AddedAccountListRow';
+import { addAccountToSettings } from './appendSettings';
 import { createNewAccountListRow } from './CreateNewAccountListRow';
 
 imports.gi.versions.Gtk = '3.0'
@@ -23,9 +24,8 @@ const queryParams = stringify({
 
 const loginUrl = `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?${queryParams}`;
 
-const { Window, WindowType, Box, Orientation, Toolbar, ToolItem, Button, IconSize, StackSwitcher, MenuButton, Image, Menu, Align, MenuItem, SeparatorMenuItem, ScrolledWindow, PolicyType, Stack, Builder, ListBox, ListBoxRow, Label, StyleContext, ColorChooserDialog, Dialog } = Gtk
+const { Box, Orientation,  Button, IconSize, StackSwitcher, MenuButton, Image, Menu, Align, MenuItem, SeparatorMenuItem, ScrolledWindow, PolicyType, Stack, Builder, ListBox, ListBoxRow, Label, StyleContext, ColorChooserDialog, Dialog } = Gtk
 
-const { EventMask } = imports.gi.Gdk
 
 // TODO: find free ports first
 const server = new Server({ port: 8080 })
@@ -80,20 +80,10 @@ availableAccountList.connect('row-activated', (actor: any, row: any) => {
 
 
 mainBox.add(availableAccountList)
-
-
-const builder = new Builder()
-builder.add_from_file('/home/jonathan/.local/share/cinnamon/applets/reminder@jonath92/settings-view.ui')
-const main_box = builder.get_object('main_box')
-
-log(main_box)
-
 window.add(mainBox)
-
 window.show_all();
 
 Gtk.main();
-
 
 window.connect('destroy', () => {
     server.disconnect()
@@ -101,19 +91,13 @@ window.connect('destroy', () => {
     log('window destroyed')
 })
 
-
 function startServer() {
 
-
     server.connect('request-finished', (serv, message: imports.gi.Soup.Message, client) => {
-        log('request finished')
-
         server.disconnect()
-
     })
 
     server.add_handler(null, (server, msg, path, query) => {
-        log(JSON.stringify(query))
 
         msg.set_response(
             'text/html',
@@ -131,6 +115,23 @@ function startServer() {
                 </body>
                 </html>`
         )
+
+
+        // @ts-ignore
+        const code: string = query.code
+
+        if (!code)
+            return
+
+        addAccountToSettings({
+            accountType: 'office365', 
+            code
+        })
+
+        // @ts-ignore
+        log(query.code)
+
+
 
     })
 

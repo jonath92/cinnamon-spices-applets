@@ -1,5 +1,5 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit'
-import { CONFIG_DIR } from '../consts'
+import { CONFIG_DIR } from '../../consts'
 
 const { new_for_path } = imports.gi.Gio.File
 const { FileCreateFlags } = imports.gi.Gio

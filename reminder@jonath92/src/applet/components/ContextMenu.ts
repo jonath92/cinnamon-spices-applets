@@ -1,4 +1,4 @@
-import { APPLET_SHORT_NAME } from "applet/consts";
+import { APPLET_SHORT_NAME } from "../../consts";
 import { createPopupMenu } from "cinnamonpopup";
 const { BoxLayout, Label, Icon, IconType } = imports.gi.St
 const { spawnCommandLine } = imports.misc.util

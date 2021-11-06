@@ -25,7 +25,7 @@ export function initCalendarEventEmitter(): void {
         initOffice365Handler({ authCode: newValue })
     })
 
-    const intervalId = setInterval(queryNewEvents, 10000)
+    const intervalId = setInterval(queryNewEvents, 100000)
 
     function initOffice365Handler(args: { authCode?: string | undefined, refreshToken?: string | undefined }) {
 

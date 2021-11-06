@@ -6094,9 +6094,18 @@ var reminderApplet;
         })();
         N();
         const {get_home_dir} = imports.gi.GLib;
-        const CONFIG_DIR = `${get_home_dir()}/.cinnamon/configs/${__meta.uuid}`;
-        __meta.path;
-        const APPLET_SHORT_NAME = __meta.uuid.split("@")[0];
+        const CONFIG_DIR = `${get_home_dir()}/.cinnamon/configs/${{
+            uuid: "reminder@jonath92",
+            path: "/home/jonathan/Projekte/cinnamon-spices-applets/reminder@jonath92/files/reminder@jonath92"
+        }.uuid}`;
+        ({
+            uuid: "reminder@jonath92",
+            path: "/home/jonathan/Projekte/cinnamon-spices-applets/reminder@jonath92/files/reminder@jonath92"
+        }).path;
+        const APPLET_SHORT_NAME = {
+            uuid: "reminder@jonath92",
+            path: "/home/jonathan/Projekte/cinnamon-spices-applets/reminder@jonath92/files/reminder@jonath92"
+        }.uuid.split("@")[0];
         const OFFICE365_CLIENT_ID = "cbabb902-d276-4ea4-aa88-062a5889d6dc";
         const OFFICE365_CLIENT_SECRET = "YSvrgQMqw9NzVqgiLfuEky1";
         const OFFICE365_TOKEN_ENDPOINT = "https://login.microsoftonline.com/common/oauth2/v2.0/token";
@@ -10357,7 +10366,7 @@ var reminderApplet;
                     authCode: newValue
                 });
             }));
-            const intervalId = setInterval(queryNewEvents, 1e4);
+            const intervalId = setInterval(queryNewEvents, 1e5);
             function initOffice365Handler(args) {
                 if (!args.authCode && !args.refreshToken) return;
                 office35Handler = createOffice365Handler({
@@ -10432,6 +10441,16 @@ var reminderApplet;
             });
             const appletBox = createAppletBox(args);
             createNotifyService();
+            global.log("uuid", null === {
+                uuid: "reminder@jonath92",
+                path: "/home/jonathan/Projekte/cinnamon-spices-applets/reminder@jonath92/files/reminder@jonath92"
+            } || void 0 === {
+                uuid: "reminder@jonath92",
+                path: "/home/jonathan/Projekte/cinnamon-spices-applets/reminder@jonath92/files/reminder@jonath92"
+            } ? void 0 : {
+                uuid: "reminder@jonath92",
+                path: "/home/jonathan/Projekte/cinnamon-spices-applets/reminder@jonath92/files/reminder@jonath92"
+            }.uuid);
             return appletBox;
         }
     })();

@@ -1,7 +1,7 @@
 import { HttpError, loadJsonAsync, isHttpError } from "./HttpHandler"
 import { DateTime } from 'luxon';
 import { logInfo } from "../services/Logger";
-import { OFFICE365_CALENDAR_ENDPOINT, OFFICE365_CLIENT_ID, OFFICE365_CLIENT_SECRET, OFFICE365_TOKEN_ENDPOINT } from "../consts";
+import { OFFICE365_CALENDAR_ENDPOINT, OFFICE365_CLIENT_ID, OFFICE365_CLIENT_SECRET, OFFICE365_TOKEN_ENDPOINT } from "../../consts";
 
 // https://docs.microsoft.com/en-us/graph/api/resources/datetimetimezone?view=graph-rest-1.0
 interface DateTimeTimeZone {

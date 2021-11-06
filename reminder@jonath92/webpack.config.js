@@ -25,6 +25,7 @@ const APPLET_JS_CONTENT =
     `const {${LIBRARY_NAME}} = require('./${APPLET_SHORT_NAME}-applet');
     
 function main(metadata, orientation, panel_height, instance_id) {
+    
     return new ${LIBRARY_NAME}.main({
         orientation,
         panelHeight: panel_height,
@@ -82,6 +83,12 @@ module.exports = {
         library: LIBRARY_NAME,
     },
     plugins: [
+        new webpack.DefinePlugin({
+            META: JSON.stringify({
+                uuid: UUID, 
+                path: BUILD_DIR
+            })
+        }),
         {
 
             apply: (
