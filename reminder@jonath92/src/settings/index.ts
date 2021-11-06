@@ -14,7 +14,8 @@ Gtk.init(null);
 const innerMagin = 30
 
 const queryParams = stringify({
-    client_id: '9542590d-b6f8-4c09-8fb7-75ba7c2f8147',
+    // the client ID from Joplin: https://github.com/laurent22/joplin/blob/80b16dd17e227e3f538aa221d7b6cc2d81688e72/packages/lib/parameters.js
+    client_id: 'cbabb902-d276-4ea4-aa88-062a5889d6dc',
     scope: "offline_access calendars.read",
     response_type: "code",
     redirect_uri: 'http://localhost:8080',
@@ -71,50 +72,14 @@ mainBox.add(addAcountLabel)
 const availableAccountList = new ListBox()
 
 
-
 availableAccountList.add(createNewAccountListRow())
+
 availableAccountList.connect('row-activated', (actor: any, row: any) => {
-
     spawn_command_line_async(`xdg-open ${loginUrl}`)
-
-    // log(`row activated, ${row}`)
-    // const dialog = createAddAccountDialog()
-    // dialog.show_all()
-    // @ts-ignore
-    //const colorChooserDialog = new ColorChooserDialog({title: 'Select a Color'})
-    //colorChooserDialog.show_all()
-    //@ts-ignore
 })
 
 
 mainBox.add(availableAccountList)
-
-
-function createAddAccountDialog(){
-    const dialog = new Dialog({
-        title: 'Google Account', 
-        default_width: 500, 
-        default_height: 800
-    })
-
-    const dialogMainBox = new Box({
-      orientation: Orientation.HORIZONTAL
-    })
-
-    dialogMainBox.add(new Button({
-        label: 'Connect', 
-    }))
-
-    dialog.add_action_widget(dialogMainBox, 1)
-
-    return dialog
-}
-
-
-
-
-
-
 
 
 const builder = new Builder()
@@ -123,92 +88,7 @@ const main_box = builder.get_object('main_box')
 
 log(main_box)
 
-
-// const main_box = new Box({ orientation: Orientation.VERTICAL })
-// @ts-ignore
 window.add(mainBox)
-
-// const toolbar = new Toolbar()
-// toolbar.get_style_context().add_class("primary-toolbar")
-// main_box.add(toolbar)
-
-// const toolitem = new ToolItem()
-// toolitem.set_expand(true)
-// toolbar.add(toolitem)
-// const toolbutton_box = new Box({ orientation: Orientation.HORIZONTAL })
-// toolitem.add(toolbutton_box)
-
-// const instance_button_box = new Box({ orientation: Orientation.HORIZONTAL })
-// instance_button_box.get_style_context().add_class('linked')
-// toolbutton_box.pack_start(instance_button_box, false, false, 0)
-
-// const prev_button = Button.new_from_icon_name('go-previous-symbolic', IconSize.BUTTON)
-// prev_button.set_tooltip_text("Previous instance")
-// instance_button_box.add(prev_button)
-
-// const next_button = Button.new_from_icon_name('go-next-symbolic', IconSize.BUTTON)
-// next_button.set_tooltip_text('Next instance')
-// instance_button_box.add(next_button)
-
-// const stack_switcher = new StackSwitcher()
-// toolbutton_box.set_center_widget(stack_switcher)
-
-// const menu_button = new MenuButton()
-// const image = Image.new_from_icon_name('open-menu-symbolic', IconSize.BUTTON)
-// menu_button.add(image)
-// menu_button.set_tooltip_text('More options')
-// toolbutton_box.pack_end(menu_button, false, false, 0)
-
-// const menu = new Menu()
-// menu.set_halign(Align.END)
-
-// const restore_option = new MenuItem({ label: 'Import from a file' })
-// menu.append(restore_option)
-// restore_option.connect('activate', () => log('todo'))
-// restore_option.show()
-
-// const backup_option = new MenuItem({ label: 'Export to a file' })
-// menu.append(backup_option)
-// backup_option.connect('activate', () => log('todo'))
-// backup_option.show()
-
-// const reset_option = new MenuItem({ label: 'Reset to defaults' })
-// menu.append(restore_option)
-// restore_option.connect('activate', () => log('todo'))
-// restore_option.show()
-
-// const seperator = new SeparatorMenuItem()
-// menu.append(seperator)
-// seperator.show()
-
-// menu_button.set_popup(menu)
-// const scw = new ScrolledWindow()
-// scw.set_policy(PolicyType.NEVER, PolicyType.NEVER)
-// main_box.pack_start(scw, true, true, 0)
-// const instance_stack = new Stack()
-// scw.add(instance_stack)
-
-
-
-
-
-const label = new Gtk.Label({
-    label: 'dummy'
-})
-
-//@ts-ignore
-const button = new Gtk.Button({
-    label: 'Login'
-})
-
-button.connect('clicked', () => {
-    // @ts-ignore
-    log(imports.gi.XApp)
-    // spawn_command_line_async(`xdg-open ${loginUrl}`)
-    // log('button clicked')
-})
-
-window.add(button)
 
 window.show_all();
 

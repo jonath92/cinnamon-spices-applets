@@ -441,7 +441,7 @@ var reminderApplet;
         Gtk.init(null);
         const innerMagin = 30;
         const queryParams = (0, query_string.stringify)({
-            client_id: "9542590d-b6f8-4c09-8fb7-75ba7c2f8147",
+            client_id: "cbabb902-d276-4ea4-aa88-062a5889d6dc",
             scope: "offline_access calendars.read",
             response_type: "code",
             redirect_uri: "http://localhost:8080"
@@ -492,16 +492,6 @@ var reminderApplet;
         const main_box = builder.get_object("main_box");
         log(main_box);
         settings_window.add(mainBox);
-        new Gtk.Label({
-            label: "dummy"
-        });
-        const settings_button = new Gtk.Button({
-            label: "Login"
-        });
-        settings_button.connect("clicked", (() => {
-            log(imports.gi.XApp);
-        }));
-        settings_window.add(settings_button);
         settings_window.show_all();
         Gtk.main();
         settings_window.connect("destroy", (() => {

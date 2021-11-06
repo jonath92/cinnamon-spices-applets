@@ -6,9 +6,9 @@ export const APPLET_SHORT_NAME = __meta.uuid.split('@')[0]
 
 
 // SECRETS
-// TODO: replace (with new ones as these can interact with onedrive)
-export const OFFICE365_CLIENT_ID = '877b72ef-232d-424d-87c7-5b6636497a98'
-export const OFFICE365_CLIENT_SECRET = 'SM1=3hvquy[Bj7dvNeJB/qDzAoah?6:5'
+// the client ID from Joplin: https://github.com/laurent22/joplin/blob/80b16dd17e227e3f538aa221d7b6cc2d81688e72/packages/lib/parameters.js
+export const OFFICE365_CLIENT_ID = 'cbabb902-d276-4ea4-aa88-062a5889d6dc'
+export const OFFICE365_CLIENT_SECRET = 'YSvrgQMqw9NzVqgiLfuEky1'
 
 
 // ENDPOINTS
