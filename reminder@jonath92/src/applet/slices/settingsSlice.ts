@@ -1,5 +1,5 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit'
-import { loadSettingsFromFile, saveSettingsToFile } from 'utils'
+import { loadSettingsFromFile, saveSettingsToFile, Settings } from 'utils'
 
 const settingsSlice = createSlice({
     name: 'settings',
@@ -15,12 +15,17 @@ const settingsSlice = createSlice({
             })
 
             saveSettingsToFile(state)
+        }, 
+        settingsFileChanged(state, action: PayloadAction<Settings>){
+            global.log('settingsFileChanged dispatched')
+            state = action.payload
         }
     }
 })
 
 export const {
-    refreshTokenChanged
+    refreshTokenChanged, 
+    settingsFileChanged
 } = settingsSlice.actions
 
 export default settingsSlice.reducer

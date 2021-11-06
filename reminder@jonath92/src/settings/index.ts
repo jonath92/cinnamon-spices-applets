@@ -123,7 +123,7 @@ function startServer() {
             return
 
         addAccountToSettings({
-            mail: 'dummy2',
+            mail: 'dummy3',
             provider: 'Office365', 
             authCode: code
         })

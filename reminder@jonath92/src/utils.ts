@@ -3,7 +3,7 @@ import { CONFIG_DIR } from './consts'
 
 const SETTINGS_PATH = CONFIG_DIR + '/settings.json'
 const ByteArray = imports.byteArray
-const settingsFile = new_for_path(SETTINGS_PATH)
+export const settingsFile = new_for_path(SETTINGS_PATH)
 const { FileCreateFlags } = imports.gi.Gio
 
 export interface Account {
@@ -23,7 +23,7 @@ export function loadSettingsFromFile(): Settings {
 
     try {
         const [success, contents] = settingsFile.load_contents(null)
-        settings = JSON.parse(ByteArray.toString(contents))
+        settings = JSON.parse(contents)
         // TODO: validate settings
     } catch (error) {
         // TODO: important. THIS WON'T WORK when caleld from a settings Widget!! 

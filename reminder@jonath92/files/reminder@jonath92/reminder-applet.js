@@ -5755,7 +5755,7 @@ var reminderApplet;
         }.uuid.split("@")[0];
         const {new_for_path} = imports.gi.Gio.File;
         const SETTINGS_PATH = CONFIG_DIR + "/settings.json";
-        const ByteArray = imports.byteArray;
+        imports.byteArray;
         const settingsFile = new_for_path(SETTINGS_PATH);
         const {FileCreateFlags} = imports.gi.Gio;
         function loadSettingsFromFile() {
@@ -5764,7 +5764,7 @@ var reminderApplet;
             };
             try {
                 const [success, contents] = settingsFile.load_contents(null);
-                settings = JSON.parse(ByteArray.toString(contents));
+                settings = JSON.parse(contents);
             } catch (error) {}
             return settings;
         }
@@ -5790,10 +5790,14 @@ var reminderApplet;
                         refreshToken
                     }) : acc));
                     saveSettingsToFile(state);
+                },
+                settingsFileChanged(state, action) {
+                    global.log("settingsFileChanged dispatched");
+                    action.payload;
                 }
             }
         });
-        const {refreshTokenChanged} = settingsSlice.actions;
+        const {refreshTokenChanged, settingsFileChanged} = settingsSlice.actions;
         const slices_settingsSlice = settingsSlice.reducer;
         const initialState = [];
         const calendarEventSlice = createSlice({
@@ -5826,7 +5830,7 @@ var reminderApplet;
         function getState() {
             return store.getState();
         }
-        store.dispatch;
+        const dispatch = store.dispatch;
         const selectEvents = () => getState().calendarEvents;
         const selectCalendarAccounts = () => getState().settings.accounts;
         function initCalendarEventEmitter() {
@@ -9895,6 +9899,17 @@ var reminderApplet;
         function addCleanupFunction(cleanupFunction) {
             cleanupFunctions.push(cleanupFunction);
         }
+        const {FileMonitorFlags, FileMonitorEvent} = imports.gi.Gio;
+        function monitorSettingsFile() {
+            const monitor = settingsFile.monitor_file(FileMonitorFlags.NONE, null);
+            monitor.connect("changed", ((monitor, file, oldFile, eventType) => {
+                if (eventType !== FileMonitorEvent.CHANGES_DONE_HINT) return;
+                const newSettingsString = file.load_contents(null)[1];
+                const newSettings = JSON.parse(newSettingsString);
+                dispatch(settingsFileChanged(newSettings));
+            }));
+            return monitor;
+        }
         const {Icon: applet_Icon, IconType: applet_IconType} = imports.gi.St;
         function main(args) {
             initCalendarEventEmitter();
@@ -9907,16 +9922,8 @@ var reminderApplet;
             });
             const appletBox = createAppletBox(args);
             createNotifyService();
-            global.log("uuid", null === {
-                uuid: "reminder@jonath92",
-                path: "/home/jonathan/Projekte/cinnamon-spices-applets/reminder@jonath92/files/reminder@jonath92"
-            } || void 0 === {
-                uuid: "reminder@jonath92",
-                path: "/home/jonathan/Projekte/cinnamon-spices-applets/reminder@jonath92/files/reminder@jonath92"
-            } ? void 0 : {
-                uuid: "reminder@jonath92",
-                path: "/home/jonathan/Projekte/cinnamon-spices-applets/reminder@jonath92/files/reminder@jonath92"
-            }.uuid);
+            const settingsMonitor = monitorSettingsFile();
+            appletBox.settingsMonitor = settingsMonitor;
             return appletBox;
         }
     })();

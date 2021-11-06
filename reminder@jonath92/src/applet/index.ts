@@ -2,6 +2,7 @@ import { initNotificationFactory } from "./lib/NotificationFactory";
 import { initCalendarEventEmitter } from "./services/CalendarEventPollingService";
 import { createNotifyService } from "./services/CalendarEventsNotifyService";
 import { createAppletBox } from "./components/AppletContainer";
+import { monitorSettingsFile } from "./services/SettingsMonitor";
 
 const { Icon, IconType } = imports.gi.St
 
@@ -28,6 +29,11 @@ export function main(args: AppletArguments): imports.ui.applet.Applet {
     const appletBox = createAppletBox(args)
 
     createNotifyService()
+
+    const settingsMonitor = monitorSettingsFile()
+
+    // @ts-ignore
+    appletBox.settingsMonitor = settingsMonitor
 
     return appletBox
 }

@@ -418,7 +418,7 @@ var reminderApplet;
         }
         const {new_for_path} = imports.gi.Gio.File;
         const SETTINGS_PATH = CONFIG_DIR + "/settings.json";
-        const ByteArray = imports.byteArray;
+        imports.byteArray;
         const settingsFile = new_for_path(SETTINGS_PATH);
         const {FileCreateFlags} = imports.gi.Gio;
         function loadSettingsFromFile() {
@@ -427,7 +427,7 @@ var reminderApplet;
             };
             try {
                 const [success, contents] = settingsFile.load_contents(null);
-                settings = JSON.parse(ByteArray.toString(contents));
+                settings = JSON.parse(contents);
             } catch (error) {}
             return settings;
         }
@@ -550,7 +550,7 @@ var reminderApplet;
                 const code = query.code;
                 if (!code) return;
                 addAccountToSettings({
-                    mail: "dummy2",
+                    mail: "dummy3",
                     provider: "Office365",
                     authCode: code
                 });
