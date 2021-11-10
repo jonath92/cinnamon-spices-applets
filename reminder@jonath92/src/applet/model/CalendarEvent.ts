@@ -1,5 +1,5 @@
 import { notify } from "../lib/NotificationFactory";
-import { Office365CalendarEventResponse } from "../lib/office365Api";
+import { Office365CalendarEventResponse } from "../../office365Api";
 import { DateTime } from "luxon";
 
 export class CalendarEvent {

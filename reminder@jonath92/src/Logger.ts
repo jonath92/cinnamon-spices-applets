@@ -1,4 +1,4 @@
-import { APPLET_PATH } from "../../consts";
+import { APPLET_PATH } from "./consts";
 // const { file_new_for_path } = imports.gi.Gio
 
 // const DEBUG_FILE_EXIST = file_new_for_path(APPLET_PATH + './DEBUG').query_exists(null)
@@ -16,5 +16,5 @@ export function logInfo(...obj: Array<any>){
         return JSON.stringify(arg,  null, '\t')
     })
 
-    global.log(LOG_PREFIX, ...args)
+    // global.log(LOG_PREFIX, ...args)
 }

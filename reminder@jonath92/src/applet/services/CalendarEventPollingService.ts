@@ -4,7 +4,7 @@ import { dispatch, getState, watchSelector } from "../Store";
 import { CalendarEvent } from "../model/CalendarEvent";
 import { addCleanupFunction } from "../components/AppletContainer";
 import { CalendarApi } from "applet/model/CalendarApi";
-import { Office365Api } from '../lib/office365Api'
+import { Office365Api } from '../../office365Api'
 
 interface CalendarPollingArgs {
     onNewEventsPolled: (events: CalendarEvent[]) => void,

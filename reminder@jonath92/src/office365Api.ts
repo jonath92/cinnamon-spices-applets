@@ -1,7 +1,7 @@
 import { HttpError, loadJsonAsync, isHttpError, HTTPParams } from "./HttpHandler"
 import { DateTime } from 'luxon';
-import { logInfo } from "../services/Logger";
-import { OFFICE365_CALENDAR_ENDPOINT, OFFICE365_CLIENT_ID, OFFICE365_CLIENT_SECRET, OFFICE365_TOKEN_ENDPOINT } from "../../consts";
+import { logInfo } from "./Logger";
+import { OFFICE365_CALENDAR_ENDPOINT, OFFICE365_CLIENT_ID, OFFICE365_CLIENT_SECRET, OFFICE365_TOKEN_ENDPOINT } from "./consts";
 import { CalendarApi } from "applet/model/CalendarApi";
 import { CalendarEvent } from "applet/model/CalendarEvent";
 

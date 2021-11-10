@@ -444,9 +444,7 @@ var reminderApplet;
         function addAccountToSettings(account) {
             var _a;
             const settings = loadSettingsFromFile();
-            const dummy = null === (_a = settings.accounts) || void 0 === _a ? void 0 : _a.push(account);
-            log(`dummy, ${JSON.stringify(dummy)}`);
-            log;
+            null === (_a = settings.accounts) || void 0 === _a || _a.push(account);
             saveSettingsToFile(settings);
         }
         const {ListBoxRow: CreateNewAccountListRow_ListBoxRow, Image: CreateNewAccountListRow_Image, Box: CreateNewAccountListRow_Box, Align: CreateNewAccountListRow_Align, Label: CreateNewAccountListRow_Label, Orientation: CreateNewAccountListRow_Orientation} = imports.gi.Gtk;

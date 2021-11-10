@@ -9779,10 +9779,9 @@ var reminderApplet;
         function friendlyDateTime(dateTimeish) {
             if (DateTime.isDateTime(dateTimeish)) return dateTimeish; else if (dateTimeish && dateTimeish.valueOf && isNumber(dateTimeish.valueOf())) return DateTime.fromJSDate(dateTimeish); else if (dateTimeish && "object" === typeof dateTimeish) return DateTime.fromObject(dateTimeish); else throw new InvalidArgumentError(`Unknown datetime argument: ${dateTimeish}, of type ${typeof dateTimeish}`);
         }
-        const LOG_PREFIX = `[${__meta.uuid}]:`;
+        __meta.uuid;
         function logInfo(...obj) {
-            const args = Array.from(arguments).map((arg => JSON.stringify(arg, null, "\t")));
-            global.log(LOG_PREFIX, ...args);
+            Array.from(arguments).map((arg => JSON.stringify(arg, null, "\t")));
         }
         class CalendarEvent {
             constructor(reminderId, remindTime, subject, startUTC, onlineMeetingUrl) {
