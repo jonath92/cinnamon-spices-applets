@@ -23,7 +23,7 @@ export function createNotifyService() {
         reminders = updateExistingReminders(reminders, events)
 
         const newEvents = events.filter(event => {
-            const isNew = !reminders.find(reminder => reminder.eventId === event.id)
+            const isNew = !reminders.find(reminder => reminder.eventId === event.reminderId)
             return isNew
         })
 
@@ -48,7 +48,7 @@ function updateExistingReminders(reminders: Reminder[], updatedEvents: CalendarE
 
     return reminders.flatMap(reminder => {
 
-        const updatedEvent = updatedEvents.find(event => reminder.eventId === event.id)
+        const updatedEvent = updatedEvents.find(event => reminder.eventId === event.reminderId)
 
         const currentRemindTime = reminder.remindTime
         const updatedRemindTime = updatedEvent?.remindTime
@@ -93,7 +93,7 @@ function createNewReminder(event: CalendarEvent): Reminder {
     }
 
     return {
-        eventId: event.id, 
+        eventId: event.reminderId, 
         remindTime, 
         timerId
     } 

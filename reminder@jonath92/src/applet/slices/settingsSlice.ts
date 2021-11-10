@@ -6,8 +6,6 @@ const settingsSlice = createSlice({
     initialState: loadSettingsFromFile(),
     reducers: {
         refreshTokenChanged(state, action: PayloadAction<{ mail: string, refreshToken: string }>) {
-            global.log('refreshToken Change called')
-
             const { mail, refreshToken } = action.payload
 
             state.accounts = state.accounts?.map(acc => {
@@ -17,7 +15,6 @@ const settingsSlice = createSlice({
             saveSettingsToFile(state)
         }, 
         settingsFileChanged(state, action: PayloadAction<Settings>){
-            global.log('settingsFileChanged dispatched', action.payload)
             state = action.payload
 
             return state

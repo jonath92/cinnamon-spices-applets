@@ -5,7 +5,7 @@ import { DateTime } from "luxon";
 export class CalendarEvent {
 
     constructor(
-        readonly id: string,
+        readonly reminderId: string,
         readonly remindTime: DateTime,
         readonly subject: string,
         readonly startUTC: DateTime, 

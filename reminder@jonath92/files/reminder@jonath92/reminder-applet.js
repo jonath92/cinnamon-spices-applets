@@ -6141,7 +6141,6 @@ var reminderApplet;
             reducers: {
                 refreshTokenChanged(state, action) {
                     var _a;
-                    global.log("refreshToken Change called");
                     const {mail, refreshToken} = action.payload;
                     state.accounts = null === (_a = state.accounts) || void 0 === _a ? void 0 : _a.map((acc => mail === acc.mail ? Object.assign(Object.assign({}, acc), {
                         refreshToken
@@ -6149,7 +6148,6 @@ var reminderApplet;
                     saveSettingsToFile(state);
                 },
                 settingsFileChanged(state, action) {
-                    global.log("settingsFileChanged dispatched", action.payload);
                     state = action.payload;
                     return state;
                 }
@@ -9787,8 +9785,8 @@ var reminderApplet;
             global.log(LOG_PREFIX, ...args);
         }
         class CalendarEvent {
-            constructor(id, remindTime, subject, startUTC, onlineMeetingUrl) {
-                this.id = id;
+            constructor(reminderId, remindTime, subject, startUTC, onlineMeetingUrl) {
+                this.reminderId = reminderId;
                 this.remindTime = remindTime;
                 this.subject = subject;
                 this.startUTC = startUTC;
@@ -9881,6 +9879,7 @@ var reminderApplet;
                             }
                         });
                         resolve(response.value);
+                        global.log("calendar Response", response.value);
                     } catch (error) {
                         if (attempt >= 3) {
                             global.logError(`Couldn't connect to Microsoft Graph Api. Are you connected to the Internet? Don't hesitate to open a bug report when the error persists`);
@@ -9901,7 +9900,6 @@ var reminderApplet;
                 return todayOffice365Events.map((office365Event => CalendarEvent.newFromOffice365response(office365Event)));
             }
             async handleHttpError(error) {
-                global.log("error", error);
                 if ("Unauthorized" === error.reason_phrase) {
                     logInfo("Unauthorized Error. Microsft Graph Api Tokens probably not valid anymore ...");
                     await this.refreshTokens();
@@ -9944,7 +9942,7 @@ var reminderApplet;
             watchSelector(selectEvents, (events => {
                 reminders = updateExistingReminders(reminders, events);
                 const newEvents = events.filter((event => {
-                    const isNew = !reminders.find((reminder => reminder.eventId === event.id));
+                    const isNew = !reminders.find((reminder => reminder.eventId === event.reminderId));
                     return isNew;
                 }));
                 newEvents.forEach((event => {
@@ -9955,7 +9953,7 @@ var reminderApplet;
         }
         function updateExistingReminders(reminders, updatedEvents) {
             return reminders.flatMap((reminder => {
-                const updatedEvent = updatedEvents.find((event => reminder.eventId === event.id));
+                const updatedEvent = updatedEvents.find((event => reminder.eventId === event.reminderId));
                 const currentRemindTime = reminder.remindTime;
                 const updatedRemindTime = null === updatedEvent || void 0 === updatedEvent ? void 0 : updatedEvent.remindTime;
                 const reminderHasChanged = !(0, lodash.isEqual)(currentRemindTime, updatedRemindTime);
@@ -9977,7 +9975,7 @@ var reminderApplet;
                 }), timeout);
             }
             return {
-                eventId: event.id,
+                eventId: event.reminderId,
                 remindTime,
                 timerId
             };

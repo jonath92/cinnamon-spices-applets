@@ -50,7 +50,7 @@ interface Arguments {
     authorizatonCode?: string,
     /** required when no authorizatonCode passed */
     refreshToken?: string,
-    /** called when RefreshToken changed, for example a function which saves the token to a file*/
+    /** called when RefreshToken changed, could be for example a function which saves the token to a file*/
     onRefreshTokenChanged?: (newToken: string) => void
 }
 
@@ -102,6 +102,7 @@ export class Office365Api implements CalendarApi {
                 }
             })
 
+            // TODO: better error handling
             global.log('response', response)
 
 
@@ -143,6 +144,8 @@ export class Office365Api implements CalendarApi {
 
                 resolve(response.value)
 
+                global.log('calendar Response', response.value)
+
             } catch (error) {
 
                 if (attempt >= 3) {
@@ -174,13 +177,10 @@ export class Office365Api implements CalendarApi {
 
 
     private async handleHttpError(error: HttpError) {
-        //@ts-ignore
-        global.log('error', error)
         if (error.reason_phrase === 'Unauthorized') {
             logInfo('Unauthorized Error. Microsft Graph Api Tokens probably not valid anymore ...')
             await this.refreshTokens()
         }
-
         // TODO handle network errors
     }
 

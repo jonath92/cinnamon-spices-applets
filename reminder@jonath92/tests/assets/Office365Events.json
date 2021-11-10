@@ -1,5 +1,5 @@
 {
-    "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#users('9276e47c-dd81-4aa9-cbea-d84bd3c2e7dd')/calendarView",
+    "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#users('9276-not-a-real-id-d84bd3c2e7dd')/calendarView",
     "value": [
         {
             "@odata.etag": "W/\"ehYAq1m8Fk6zyyemGCMJwQAAHu/eOQ==\"",
