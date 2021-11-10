@@ -6149,8 +6149,9 @@ var reminderApplet;
                     saveSettingsToFile(state);
                 },
                 settingsFileChanged(state, action) {
-                    global.log("settingsFileChanged dispatched");
-                    action.payload;
+                    global.log("settingsFileChanged dispatched", action.payload);
+                    state = action.payload;
+                    return state;
                 }
             }
         });
@@ -6184,6 +6185,7 @@ var reminderApplet;
                 cb(newValue, currentValue);
                 currentValue = newValue;
             }));
+            cb(currentValue);
         }
         function getState() {
             return store.getState();
@@ -6218,15 +6220,11 @@ var reminderApplet;
             }));
             if (bodyParams) {
                 const bodyParamsStringified = (0, query_string.stringify)(bodyParams);
-                message.request_body.append(HttpHandler_ByteArray.fromString(bodyParamsStringified, "UTF-16"));
+                message.request_body.append(HttpHandler_ByteArray.fromString(bodyParamsStringified, "UTF-8"));
             }
             return new Promise(((resolve, reject) => {
                 httpSession.queue_message(message, ((session, msgResponse) => {
-                    const error = checkForHttpError(msgResponse);
-                    if (error) {
-                        reject(error);
-                        return;
-                    }
+                    checkForHttpError(msgResponse);
                     const data = JSON.parse(msgResponse.response_body.data);
                     resolve(data);
                 }));
@@ -9827,21 +9825,29 @@ var reminderApplet;
             }
             async refreshTokens() {
                 var _a;
-                if (!this.refreshToken) throw new Error("refresh Token must be defined");
+                let tokenRequest;
+                const clientIDSecret = {
+                    client_id: CLIENT_ID,
+                    client_secret: CLIENT_SECRET
+                };
+                if (!this.refreshToken) tokenRequest = Object.assign(Object.assign({}, clientIDSecret), {
+                    grant_type: "authorization_code",
+                    code: this.authorizatonCode,
+                    redirect_uri: "http://localhost:8080"
+                }); else tokenRequest = Object.assign(Object.assign({}, clientIDSecret), {
+                    grant_type: "refresh_token",
+                    refresh_token: this.refreshToken
+                });
                 try {
                     const response = await loadJsonAsync({
                         method: "POST",
                         url: OFFICE365_TOKEN_ENDPOINT,
-                        bodyParams: {
-                            client_id: CLIENT_ID,
-                            client_secret: CLIENT_SECRET,
-                            grant_type: "refresh_token",
-                            refresh_token: this.refreshToken
-                        },
+                        bodyParams: tokenRequest,
                         headers: {
                             "Content-Type": "application/x-www-form-urlencoded"
                         }
                     });
+                    global.log("response", response);
                     const {access_token, refresh_token} = response;
                     this.accessToken = access_token;
                     if (this.refreshToken !== refresh_token) {
@@ -9895,6 +9901,7 @@ var reminderApplet;
                 return todayOffice365Events.map((office365Event => CalendarEvent.newFromOffice365response(office365Event)));
             }
             async handleHttpError(error) {
+                global.log("error", error);
                 if ("Unauthorized" === error.reason_phrase) {
                     logInfo("Unauthorized Error. Microsft Graph Api Tokens probably not valid anymore ...");
                     await this.refreshTokens();
@@ -9914,6 +9921,7 @@ var reminderApplet;
         function initCalendarEventEmitter() {
             const currentAccounts = [];
             watchSelector(selectCalendarAccounts, (newAccounts => {
+                global.log("new Accounts selector called");
                 newAccounts.forEach((account => {
                     if (currentAccounts.includes(account.mail)) return;
                     const api = new Office365Api({
@@ -9928,7 +9936,7 @@ var reminderApplet;
                         onNewEventsPolled: events => dispatch(eventsLoaded(events)),
                         calendarApi: api
                     });
-                }));
+                }), false);
             }));
         }
         function createNotifyService() {

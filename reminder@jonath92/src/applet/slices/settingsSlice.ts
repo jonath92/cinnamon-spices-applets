@@ -17,8 +17,10 @@ const settingsSlice = createSlice({
             saveSettingsToFile(state)
         }, 
         settingsFileChanged(state, action: PayloadAction<Settings>){
-            global.log('settingsFileChanged dispatched')
+            global.log('settingsFileChanged dispatched', action.payload)
             state = action.payload
+
+            return state
         }
     }
 })

@@ -1,4 +1,4 @@
-import { HttpError, loadJsonAsync, isHttpError } from "./HttpHandler"
+import { HttpError, loadJsonAsync, isHttpError, HTTPParams } from "./HttpHandler"
 import { DateTime } from 'luxon';
 import { logInfo } from "../services/Logger";
 import { OFFICE365_CALENDAR_ENDPOINT, OFFICE365_CLIENT_ID, OFFICE365_CLIENT_SECRET, OFFICE365_TOKEN_ENDPOINT } from "../../consts";
@@ -36,6 +36,15 @@ interface TokenResponse {
     refresh_token: string
 }
 
+interface TokenRequest  {
+    client_id: string
+    client_secret: string
+    grant_type: 'authorization_code' | 'refresh_token'
+    code?: string
+    refresh_token?: string
+    redirect_uri?: string
+}
+
 interface Arguments {
     /** code received from the Login. Only one of authorizationCode and refreshToken needs to be passed */
     authorizatonCode?: string,
@@ -67,25 +76,34 @@ export class Office365Api implements CalendarApi {
     }
 
     private async refreshTokens(): Promise<void> {
-        if (!this.refreshToken) {
-            // TODO: get refreshToken from accessToken!! 
-            throw new Error('refresh Token must be defined')
+
+        let tokenRequest: TokenRequest | undefined
+
+        const clientIDSecret : Pick<TokenRequest, 'client_id' | 'client_secret'> = {
+            client_id: CLIENT_ID, 
+            client_secret: CLIENT_SECRET
         }
 
+        if (!this.refreshToken) {
+            tokenRequest = {...clientIDSecret, grant_type: 'authorization_code', code: this.authorizatonCode, redirect_uri: 'http://localhost:8080' }
+        } else {
+            tokenRequest = {...clientIDSecret, grant_type: 'refresh_token', refresh_token: this.refreshToken}
+        }
+
+        // global.log('tokenRequest', tokenRequest)
+
         try {
-            const response = await loadJsonAsync<TokenResponse>({
+            const response = await loadJsonAsync<TokenResponse, TokenRequest>({
                 method: 'POST',
                 url: OFFICE365_TOKEN_ENDPOINT,
-                bodyParams: {
-                    client_id: CLIENT_ID,
-                    client_secret: CLIENT_SECRET,
-                    grant_type: "refresh_token",
-                    refresh_token: this.refreshToken
-                },
+                bodyParams: tokenRequest as unknown as HTTPParams,
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded'
                 }
             })
+
+            global.log('response', response)
+
 
             const { access_token, refresh_token } = response
 
@@ -156,6 +174,8 @@ export class Office365Api implements CalendarApi {
 
 
     private async handleHttpError(error: HttpError) {
+        //@ts-ignore
+        global.log('error', error)
         if (error.reason_phrase === 'Unauthorized') {
             logInfo('Unauthorized Error. Microsft Graph Api Tokens probably not valid anymore ...')
             await this.refreshTokens()

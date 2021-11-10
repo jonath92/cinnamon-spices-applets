@@ -15,6 +15,7 @@ export function watchSelector<T>(selectProp: () => T, cb: (newValue: T, oldValue
     let currentValue = selectProp()
 
     store.subscribe(() => {
+      //  global.log('store subscribe called', store.getState())
         const newValue = selectProp()
 
         if (checkEquality && isEqual(currentValue, newValue))
@@ -23,6 +24,8 @@ export function watchSelector<T>(selectProp: () => T, cb: (newValue: T, oldValue
         cb(newValue, currentValue)
         currentValue = newValue
     })
+
+    cb(currentValue)
 }
 
 export function getState() {

@@ -38,7 +38,10 @@ export function initCalendarEventEmitter(): void {
     const currentAccounts: string[] = []
 
     watchSelector(selectCalendarAccounts, (newAccounts) => {
+        global.log('new Accounts selector called')
+
         newAccounts.forEach(account => {
+
 
             if (currentAccounts.includes(account.mail)) {
                 return
@@ -51,53 +54,7 @@ export function initCalendarEventEmitter(): void {
             })
 
             createCalendarPollingService({ onNewEventsPolled: (events) => dispatch(eventsLoaded(events)), calendarApi: api })
-        })
+        }, false)
     })
 
-
-    // if (eventEmitterInitiallized) {
-    //     global.logWarning('calenderEventEmitter already initiallized')
-    //     return
-    // }
-
-    // let office35Handler: ReturnType<typeof createOffice365Handler> | undefined
-
-    // initOffice365Handler(getState().settings)
-
-    // watchSelector(selectOffice365Auth, (newValue) => {
-    //     initOffice365Handler({ authCode: newValue })
-    // })
-
-    // const intervalId = setInterval(queryNewEvents, 100000)
-
-    // function initOffice365Handler(args: { authCode?: string | undefined, refreshToken?: string | undefined }) {
-
-    //     if (!args.authCode && !args.refreshToken)
-    //         return
-
-    //     office35Handler = createOffice365Handler({
-    //         authorizatonCode: args.authCode,
-    //         refreshToken: args.refreshToken,
-    //         onRefreshTokenChanged: (newValue) => dispatch(refreshTokenChanged(newValue))
-    //     })
-
-    //     queryNewEvents()
-    // }
-
-    // async function queryNewEvents(): Promise<void> {
-    //     if (!office35Handler)
-    //         return
-
-    //     const newEvents: CalendarEvent[] = (await office35Handler.getTodayEvents()).map(office365event => {
-    //         return CalendarEvent.newFromOffice365response(office365event)
-    //     })
-
-
-    //     dispatch(eventsLoaded(newEvents))
-    // }
-
-    // addCleanupFunction(() => {
-    //     clearInterval(intervalId)
-    //     eventEmitterInitiallized = false
-    // })
 }

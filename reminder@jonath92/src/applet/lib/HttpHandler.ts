@@ -4,7 +4,7 @@ const { Message, SessionAsync } = imports.gi.Soup
 
 const httpSession = new SessionAsync()
 
-interface HTTPParams {
+export interface HTTPParams {
     [key: string]: boolean | string | number;
 }
 
@@ -41,6 +41,7 @@ function checkForHttpError(message: imports.gi.Soup.Message): HttpError | false 
 
     const code = message?.status_code | 0
     const reason_phrase = message?.reason_phrase || 'no network response'
+
 
     let errMessage: string | undefined
 
@@ -85,7 +86,7 @@ export function loadJsonAsync<T1, T2 = LoadJsonArgs>(args: LoadJsonArgs): Promis
 
     if (bodyParams) {
         const bodyParamsStringified = stringify(bodyParams)
-        message.request_body.append(ByteArray.fromString(bodyParamsStringified, 'UTF-16'))
+        message.request_body.append(ByteArray.fromString(bodyParamsStringified, 'UTF-8'))
     }
 
     return new Promise((resolve, reject) => {
@@ -94,10 +95,10 @@ export function loadJsonAsync<T1, T2 = LoadJsonArgs>(args: LoadJsonArgs): Promis
 
             const error = checkForHttpError(msgResponse);
 
-            if (error) {
-                reject(error)
-                return
-            }
+            // if (error) {
+            //     reject(error)
+            //     return
+            // }
 
             const data = JSON.parse(msgResponse.response_body.data) as T1
             resolve(data)
