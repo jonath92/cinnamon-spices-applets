@@ -1,5 +1,5 @@
-import { notify } from "../lib/NotificationFactory";
-import { Office365CalendarEventResponse } from "../../office365Api";
+import { notify } from "./applet/lib/NotificationFactory";
+import { Office365CalendarEventResponse } from "./office365Api";
 import { DateTime } from "luxon";
 
 export class CalendarEvent {
@@ -29,14 +29,14 @@ export class CalendarEvent {
         return this.startUTC.toLocaleString(DateTime.TIME_SIMPLE)
     }
 
-    public sendNotification() {
-        // TODO:  What is this? Why is \n needed instead of <br> ?
-        const notificationText = `<b>${this.startFormated}</b>\n\n${this.subject}`
+    // public sendNotification() {
+    //     // TODO:  What is this? Why is \n needed instead of <br> ?
+    //     const notificationText = `<b>${this.startFormated}</b>\n\n${this.subject}`
 
-        notify({
-            notificationText,
-            transient: false
-        })
-    }
+    //     notify({
+    //         notificationText,
+    //         transient: false
+    //     })
+    // }
 
 }

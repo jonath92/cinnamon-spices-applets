@@ -1,5 +1,5 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit'
-import { CalendarEvent } from '../model/CalendarEvent'
+import { CalendarEvent } from '../../CalendarEvent'
 
 
 const initialState: CalendarEvent[] = [] 

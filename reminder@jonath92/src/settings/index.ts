@@ -9,6 +9,9 @@ import { createAddedAccountListRow } from './AddedAccountListRow';
 import { addAccountToSettings } from './appendSettings';
 import { createNewAccountListRow } from './CreateNewAccountListRow';
 
+// TODO: this should throw an error!
+// import {getState} from '../applet/Store'
+
 imports.gi.versions.Gtk = '3.0'
 
 Gtk.init(null);

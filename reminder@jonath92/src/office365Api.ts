@@ -2,8 +2,8 @@ import { HttpError, loadJsonAsync, isHttpError, HTTPParams } from "./HttpHandler
 import { DateTime } from 'luxon';
 import { logInfo } from "./Logger";
 import { OFFICE365_CALENDAR_ENDPOINT, OFFICE365_CLIENT_ID, OFFICE365_CLIENT_SECRET, OFFICE365_TOKEN_ENDPOINT } from "./consts";
-import { CalendarApi } from "applet/model/CalendarApi";
-import { CalendarEvent } from "applet/model/CalendarEvent";
+import { CalendarApi } from "./CalendarApi";
+import { CalendarEvent } from "./CalendarEvent";
 
 // https://docs.microsoft.com/en-us/graph/api/resources/datetimetimezone?view=graph-rest-1.0
 interface DateTimeTimeZone {
@@ -75,6 +75,12 @@ export class Office365Api implements CalendarApi {
         this.onRefreshTokenChanged = onRefreshTokenChanged
     }
 
+    public async getRefreshToken(): Promise<string> {
+        await this.refreshTokens()
+
+        return this.refreshToken!
+    }
+
     private async refreshTokens(): Promise<void> {
 
         let tokenRequest: TokenRequest | undefined
@@ -103,7 +109,7 @@ export class Office365Api implements CalendarApi {
             })
 
             // TODO: better error handling
-            global.log('response', response)
+           // global.log('response', response)
 
 
             const { access_token, refresh_token } = response
@@ -116,7 +122,7 @@ export class Office365Api implements CalendarApi {
             }
 
         } catch (error) {
-            global.logError(`couldn't refresh Token, error: ${JSON.stringify(error)}`)
+            //global.logError(`couldn't refresh Token, error: ${JSON.stringify(error)}`)
         }
 
     }
@@ -144,14 +150,14 @@ export class Office365Api implements CalendarApi {
 
                 resolve(response.value)
 
-                global.log('calendar Response', response.value)
+              //  global.log('calendar Response', response.value)
 
             } catch (error) {
 
                 if (attempt >= 3) {
-                    global.logError(`Couldn't connect to Microsoft Graph Api. Are you connected to the Internet? Don't hesitate to open a bug report when the error persists`)
+             //       global.logError(`Couldn't connect to Microsoft Graph Api. Are you connected to the Internet? Don't hesitate to open a bug report when the error persists`)
                     // TODO improve 
-                    global.logError(JSON.stringify(error))
+           //         global.logError(JSON.stringify(error))
                     return
                 }
 

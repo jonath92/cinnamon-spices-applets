@@ -1,8 +1,8 @@
 import { selectEvents, watchSelector } from "../Store"
 import { DateTime } from 'luxon'
-import { CalendarEvent } from "../model/CalendarEvent"
+import { CalendarEvent } from "../../CalendarEvent"
 import { isEqual } from "lodash"
-
+import { notify } from '../lib/NotificationFactory'
 
 interface Reminder {
     eventId: string,
@@ -81,21 +81,32 @@ function createNewReminder(event: CalendarEvent): Reminder {
     const remindTime = event.remindTime
 
     let timerId: ReturnType<typeof setTimeout> | undefined
-    
+
     if (event.remindTime <= DateTime.now()) {
-        event.sendNotification()
+        sendNotification(event)
     } else {
         const timeout = remindTime.diff(DateTime.now()).milliseconds
 
         timerId = setTimeout(() => {
-            event.sendNotification()
+            sendNotification(event)
         }, timeout)
     }
 
     return {
-        eventId: event.reminderId, 
-        remindTime, 
+        eventId: event.reminderId,
+        remindTime,
         timerId
-    } 
+    }
+}
 
+function sendNotification(event: CalendarEvent) {
+
+    const { startFormated, subject } = event
+
+    const notificationText = `<b>${startFormated}</b>\n\n${subject}`
+
+    notify({
+        notificationText,
+        transient: false
+    })
 }

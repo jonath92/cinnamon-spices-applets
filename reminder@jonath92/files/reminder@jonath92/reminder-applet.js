@@ -9779,7 +9779,10 @@ var reminderApplet;
         function friendlyDateTime(dateTimeish) {
             if (DateTime.isDateTime(dateTimeish)) return dateTimeish; else if (dateTimeish && dateTimeish.valueOf && isNumber(dateTimeish.valueOf())) return DateTime.fromJSDate(dateTimeish); else if (dateTimeish && "object" === typeof dateTimeish) return DateTime.fromObject(dateTimeish); else throw new InvalidArgumentError(`Unknown datetime argument: ${dateTimeish}, of type ${typeof dateTimeish}`);
         }
-        __meta.uuid;
+        ({
+            uuid: "reminder@jonath92",
+            path: "/home/jonathan/Projekte/cinnamon-spices-applets/reminder@jonath92/files/reminder@jonath92"
+        }).uuid;
         function logInfo(...obj) {
             Array.from(arguments).map((arg => JSON.stringify(arg, null, "\t")));
         }
@@ -9820,6 +9823,10 @@ var reminderApplet;
                 this.refreshToken = refreshToken;
                 this.onRefreshTokenChanged = onRefreshTokenChanged;
             }
+            async getRefreshToken() {
+                await this.refreshTokens();
+                return this.refreshToken;
+            }
             async refreshTokens() {
                 var _a;
                 let tokenRequest;
@@ -9844,16 +9851,13 @@ var reminderApplet;
                             "Content-Type": "application/x-www-form-urlencoded"
                         }
                     });
-                    global.log("response", response);
                     const {access_token, refresh_token} = response;
                     this.accessToken = access_token;
                     if (this.refreshToken !== refresh_token) {
                         this.refreshToken = refresh_token;
                         null === (_a = this.onRefreshTokenChanged) || void 0 === _a ? void 0 : _a.call(this, refresh_token);
                     }
-                } catch (error) {
-                    global.logError(`couldn't refresh Token, error: ${JSON.stringify(error)}`);
-                }
+                } catch (error) {}
             }
             async getTodayOffice365Events(attempt = 0) {
                 const now = DateTime.now();
@@ -9878,13 +9882,8 @@ var reminderApplet;
                             }
                         });
                         resolve(response.value);
-                        global.log("calendar Response", response.value);
                     } catch (error) {
-                        if (attempt >= 3) {
-                            global.logError(`Couldn't connect to Microsoft Graph Api. Are you connected to the Internet? Don't hesitate to open a bug report when the error persists`);
-                            global.logError(JSON.stringify(error));
-                            return;
-                        }
+                        if (attempt >= 3) return;
                         if (isHttpError(error)) {
                             await this.handleHttpError(error);
                             this.getTodayOffice365Events(++attempt);

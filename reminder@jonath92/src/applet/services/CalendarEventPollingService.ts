@@ -1,9 +1,9 @@
 import { refreshTokenChanged } from "../slices/settingsSlice";
 import { eventsLoaded } from "../slices/CalendarEventsSlice";
 import { dispatch, getState, watchSelector } from "../Store";
-import { CalendarEvent } from "../model/CalendarEvent";
+import { CalendarEvent } from "../../CalendarEvent";
 import { addCleanupFunction } from "../components/AppletContainer";
-import { CalendarApi } from "applet/model/CalendarApi";
+import { CalendarApi } from "CalendarApi";
 import { Office365Api } from '../../office365Api'
 
 interface CalendarPollingArgs {
@@ -12,6 +12,9 @@ interface CalendarPollingArgs {
 }
 
 const selectCalendarAccounts = () => getState().settings.accounts
+
+
+// TODO function: fetchEventsFromOffice365 - this function should create the CalendarEvents
 
 /**
  * 

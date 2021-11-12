@@ -1,9 +1,10 @@
 import { APPLET_PATH } from "./consts";
+
 // const { file_new_for_path } = imports.gi.Gio
 
 // const DEBUG_FILE_EXIST = file_new_for_path(APPLET_PATH + './DEBUG').query_exists(null)
 
-const LOG_PREFIX = `[${__meta.uuid}]:`
+const LOG_PREFIX = `[${META.uuid}]:`
 
 
 export function debug() {

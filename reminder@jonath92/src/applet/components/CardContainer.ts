@@ -1,4 +1,4 @@
-import { CalendarEvent } from "../model/CalendarEvent"
+import { CalendarEvent } from "../../CalendarEvent"
 import { selectEvents, watchSelector } from "../Store"
 import { createCard } from "./Card"
 
