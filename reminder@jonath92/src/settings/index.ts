@@ -1,9 +1,9 @@
 const { Gtk } = imports.gi;
-const Webkit2 = imports.gi.WebKit2;
 const { Server, MemoryUse } = imports.gi.Soup
 const { GtkWindow } = imports.gi.XApp
 const { spawn_command_line_async } = imports.gi.GLib
 import { OFFICE365_CLIENT_ID } from 'consts';
+import { logInfo } from 'Logger';
 import { stringify } from 'query-string'
 import { createAddedAccountListRow } from './AddedAccountListRow';
 import { addAccountToSettings } from './appendSettings';
@@ -35,6 +35,8 @@ const server = new Server({ port: 8080 })
 startServer()
 
 log(ARGV)
+
+logInfo('test from settings')
 
 
 const window = new GtkWindow({

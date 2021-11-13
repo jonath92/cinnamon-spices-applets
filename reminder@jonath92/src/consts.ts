@@ -13,4 +13,5 @@ export const OFFICE365_CLIENT_SECRET = 'YSvrgQMqw9NzVqgiLfuEky1'
 
 // ENDPOINTS
 export const OFFICE365_TOKEN_ENDPOINT = 'https://login.microsoftonline.com/common/oauth2/v2.0/token'
+export const OFFICE365_USER_ENDPOINT = 'https://graph.microsoft.com/v1.0/me'
 export const OFFICE365_CALENDAR_ENDPOINT = 'https://graph.microsoft.com/v1.0/me/calendarview' 

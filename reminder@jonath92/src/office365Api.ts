@@ -111,7 +111,6 @@ export class Office365Api implements CalendarApi {
             // TODO: better error handling
            // global.log('response', response)
 
-
             const { access_token, refresh_token } = response
 
             this.accessToken = access_token
@@ -126,6 +125,14 @@ export class Office365Api implements CalendarApi {
         }
 
     }
+
+    // public async getMailAdress(): Promise<string> {
+    //     return new Promise(async (resolve, reject) => {
+    //         try {
+    //             const response = await loadJsonAsync<
+    //         }
+    //     })
+    // }
 
     public async getTodayOffice365Events(attempt: number = 0): Promise<Office365CalendarEventResponse[]> {
         const now = DateTime.now()

@@ -371,10 +371,10 @@ var reminderApplet;
             uuid: "reminder@jonath92",
             path: "/home/jonathan/Projekte/cinnamon-spices-applets/reminder@jonath92/files/reminder@jonath92"
         }.uuid}`;
-        ({
+        const APPLET_PATH = {
             uuid: "reminder@jonath92",
             path: "/home/jonathan/Projekte/cinnamon-spices-applets/reminder@jonath92/files/reminder@jonath92"
-        }).path;
+        }.path;
         ({
             uuid: "reminder@jonath92",
             path: "/home/jonathan/Projekte/cinnamon-spices-applets/reminder@jonath92/files/reminder@jonath92"
@@ -383,6 +383,48 @@ var reminderApplet;
         const OFFICE365_CLIENT_SECRET = "YSvrgQMqw9NzVqgiLfuEky1";
         const OFFICE365_TOKEN_ENDPOINT = "https://login.microsoftonline.com/common/oauth2/v2.0/token";
         const OFFICE365_CALENDAR_ENDPOINT = "https://graph.microsoft.com/v1.0/me/calendarview";
+        const LOG_FILE_PATH = `${APPLET_PATH}/log`;
+        const {new_for_path} = imports.gi.Gio.File;
+        new_for_path(LOG_FILE_PATH);
+        const {FileCreateFlags, Subprocess, SubprocessFlags} = imports.gi.Gio;
+        const {Bytes, PRIORITY_DEFAULT} = imports.gi.GLib;
+        ({
+            uuid: "reminder@jonath92",
+            path: "/home/jonathan/Projekte/cinnamon-spices-applets/reminder@jonath92/files/reminder@jonath92"
+        }).uuid;
+        const script = `\necho "BEGIN";\n\nwhile read line; do\n  echo "$line" >> /home/jonathan/Tmp/logger ;\n  sleep 1;\ndone;\n`;
+        function writeInput(stdin, value) {
+            (new Date).toLocaleString();
+            stdin.write_bytes_async(new Bytes(`${value}\n`), PRIORITY_DEFAULT, null, ((stdin, res) => {
+                try {
+                    stdin.write_bytes_finish(res);
+                    log(`WROTE: ${value}`);
+                } catch (e) {
+                    logError(e);
+                }
+            }));
+        }
+        let stdinStream;
+        try {
+            log("inside try block");
+            const proc = Subprocess.new([ "bash", "-c", script ], SubprocessFlags.STDIN_PIPE | SubprocessFlags.STDOUT_PIPE);
+            proc.wait_async(null, ((proc, res) => {
+                try {
+                    proc.wait_finish(res);
+                } catch (e) {
+                    logError(e);
+                }
+            }));
+            stdinStream = proc.get_stdin_pipe();
+        } catch (error) {}
+        function logInfo(message) {
+            if (!stdinStream) {
+                log("Something went wrong. StdInStream not defined.");
+                return;
+            }
+            log("this is called");
+            writeInput(stdinStream, "testi from settings");
+        }
         var query_string = __webpack_require__(563);
         const {ListBoxRow, Box, Image, Align, Orientation, Label} = imports.gi.Gtk;
         function createAddedAccountListRow() {
@@ -4007,13 +4049,6 @@ var reminderApplet;
         function friendlyDateTime(dateTimeish) {
             if (DateTime.isDateTime(dateTimeish)) return dateTimeish; else if (dateTimeish && dateTimeish.valueOf && isNumber(dateTimeish.valueOf())) return DateTime.fromJSDate(dateTimeish); else if (dateTimeish && "object" === typeof dateTimeish) return DateTime.fromObject(dateTimeish); else throw new InvalidArgumentError(`Unknown datetime argument: ${dateTimeish}, of type ${typeof dateTimeish}`);
         }
-        ({
-            uuid: "reminder@jonath92",
-            path: "/home/jonathan/Projekte/cinnamon-spices-applets/reminder@jonath92/files/reminder@jonath92"
-        }).uuid;
-        function logInfo(...obj) {
-            Array.from(arguments).map((arg => JSON.stringify(arg, null, "\t")));
-        }
         class CalendarEvent {
             constructor(reminderId, remindTime, subject, startUTC, onlineMeetingUrl) {
                 this.reminderId = reminderId;
@@ -4125,11 +4160,12 @@ var reminderApplet;
                 }
             }
         }
-        const {new_for_path} = imports.gi.Gio.File;
+        const {new_for_path: utils_new_for_path} = imports.gi.Gio.File;
         const SETTINGS_PATH = CONFIG_DIR + "/settings.json";
         imports.byteArray;
-        const settingsFile = new_for_path(SETTINGS_PATH);
-        const {FileCreateFlags} = imports.gi.Gio;
+        const settingsFile = utils_new_for_path(SETTINGS_PATH);
+        const {FileCreateFlags: utils_FileCreateFlags, Cancellable, SubprocessFlags: utils_SubprocessFlags, Subprocess: utils_Subprocess, IOErrorEnum, io_error_from_errno} = imports.gi.Gio;
+        const {strerror} = imports.gi.GLib;
         function loadSettingsFromFile() {
             let settings = {
                 accounts: []
@@ -4144,10 +4180,10 @@ var reminderApplet;
             log(`query exists: ${settingsFile.query_exists(null)}`);
             if (!settingsFile.query_exists(null)) {
                 log("this is called");
-                settingsFile.create(FileCreateFlags.REPLACE_DESTINATION, null);
+                settingsFile.create(utils_FileCreateFlags.REPLACE_DESTINATION, null);
             }
             try {
-                settingsFile.replace_contents(JSON.stringify(settings, null, 3), null, false, FileCreateFlags.REPLACE_DESTINATION, null);
+                settingsFile.replace_contents(JSON.stringify(settings, null, 3), null, false, utils_FileCreateFlags.REPLACE_DESTINATION, null);
             } catch (error) {}
         }
         var __rest = void 0 && (void 0).__rest || function(s, e) {
@@ -4203,7 +4239,6 @@ var reminderApplet;
             return listboxRow;
         }
         const {Gtk} = imports.gi;
-        imports.gi.WebKit2;
         const {Server, MemoryUse} = imports.gi.Soup;
         const {GtkWindow} = imports.gi.XApp;
         const {spawn_command_line_async} = imports.gi.GLib;
@@ -4223,6 +4258,7 @@ var reminderApplet;
         });
         startServer();
         log(ARGV);
+        logInfo("test from settings");
         const settings_window = new GtkWindow({
             default_width: 800,
             default_height: 600,
