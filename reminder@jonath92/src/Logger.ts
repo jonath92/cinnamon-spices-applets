@@ -24,6 +24,7 @@ done;
 `;
 
 // This function simply writes the current time to `stdin`
+// based on https://gjs.guide/guides/gio/subprocesses.html
 function writeInput(stdin: imports.gi.Gio.OutputStream, value: string) {
     let date = new Date().toLocaleString();
 
@@ -64,8 +65,7 @@ try {
             // @ts-ignore TODO: add logError to gnome js types
             logError(e);
         } 
-
-        // TODO: remove on stop somehow
+        // TODO: kill processes on stop somehow. proc.force_exit() (necessary??. Can probably checked with getting get_identifier and than check if the id still exist after programm terminated)
     });
 
         // Get the `stdin`and `stdout` pipes, wrapping `stdout` to make it easier to

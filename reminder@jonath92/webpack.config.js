@@ -40,7 +40,7 @@ createMetadata()
 module.exports = {
     mode: 'production',
     entry: {
-        // [BUNDLED_APPLET_FILE_NAME]: './src/applet/index.ts',
+        [BUNDLED_APPLET_FILE_NAME]: './src/applet/index.ts',
         [BUNDLED_SETTINGS_FILE_NAME]: './src/settings/index.ts'
     },
     optimization: {

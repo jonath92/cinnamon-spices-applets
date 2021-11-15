@@ -6098,10 +6098,10 @@ var reminderApplet;
             uuid: "reminder@jonath92",
             path: "/home/jonathan/Projekte/cinnamon-spices-applets/reminder@jonath92/files/reminder@jonath92"
         }.uuid}`;
-        ({
+        const APPLET_PATH = {
             uuid: "reminder@jonath92",
             path: "/home/jonathan/Projekte/cinnamon-spices-applets/reminder@jonath92/files/reminder@jonath92"
-        }).path;
+        }.path;
         const APPLET_SHORT_NAME = {
             uuid: "reminder@jonath92",
             path: "/home/jonathan/Projekte/cinnamon-spices-applets/reminder@jonath92/files/reminder@jonath92"
@@ -6114,7 +6114,8 @@ var reminderApplet;
         const SETTINGS_PATH = CONFIG_DIR + "/settings.json";
         imports.byteArray;
         const settingsFile = new_for_path(SETTINGS_PATH);
-        const {FileCreateFlags} = imports.gi.Gio;
+        const {FileCreateFlags, Cancellable, SubprocessFlags, Subprocess, IOErrorEnum, io_error_from_errno} = imports.gi.Gio;
+        const {strerror} = imports.gi.GLib;
         function loadSettingsFromFile() {
             let settings = {
                 accounts: []
@@ -9779,12 +9780,47 @@ var reminderApplet;
         function friendlyDateTime(dateTimeish) {
             if (DateTime.isDateTime(dateTimeish)) return dateTimeish; else if (dateTimeish && dateTimeish.valueOf && isNumber(dateTimeish.valueOf())) return DateTime.fromJSDate(dateTimeish); else if (dateTimeish && "object" === typeof dateTimeish) return DateTime.fromObject(dateTimeish); else throw new InvalidArgumentError(`Unknown datetime argument: ${dateTimeish}, of type ${typeof dateTimeish}`);
         }
+        const LOG_FILE_PATH = `${APPLET_PATH}/log`;
+        const {new_for_path: Logger_new_for_path} = imports.gi.Gio.File;
+        Logger_new_for_path(LOG_FILE_PATH);
+        const {FileCreateFlags: Logger_FileCreateFlags, Subprocess: Logger_Subprocess, SubprocessFlags: Logger_SubprocessFlags} = imports.gi.Gio;
+        const {Bytes, PRIORITY_DEFAULT} = imports.gi.GLib;
         ({
             uuid: "reminder@jonath92",
             path: "/home/jonathan/Projekte/cinnamon-spices-applets/reminder@jonath92/files/reminder@jonath92"
         }).uuid;
-        function logInfo(...obj) {
-            Array.from(arguments).map((arg => JSON.stringify(arg, null, "\t")));
+        const script = `\necho "BEGIN";\n\nwhile read line; do\n  echo "$line" >> /home/jonathan/Tmp/logger ;\n  sleep 1;\ndone;\n`;
+        function writeInput(stdin, value) {
+            (new Date).toLocaleString();
+            stdin.write_bytes_async(new Bytes(`${value}\n`), PRIORITY_DEFAULT, null, ((stdin, res) => {
+                try {
+                    stdin.write_bytes_finish(res);
+                    log(`WROTE: ${value}`);
+                } catch (e) {
+                    logError(e);
+                }
+            }));
+        }
+        let stdinStream;
+        try {
+            log("inside try block");
+            const proc = Logger_Subprocess.new([ "bash", "-c", script ], Logger_SubprocessFlags.STDIN_PIPE | Logger_SubprocessFlags.STDOUT_PIPE);
+            proc.wait_async(null, ((proc, res) => {
+                try {
+                    proc.wait_finish(res);
+                } catch (e) {
+                    logError(e);
+                }
+            }));
+            stdinStream = proc.get_stdin_pipe();
+        } catch (error) {}
+        function logInfo(message) {
+            if (!stdinStream) {
+                log("Something went wrong. StdInStream not defined.");
+                return;
+            }
+            log("this is called");
+            writeInput(stdinStream, "testi from settings");
         }
         class CalendarEvent {
             constructor(reminderId, remindTime, subject, startUTC, onlineMeetingUrl) {
@@ -9804,13 +9840,6 @@ var reminderApplet;
             }
             get startFormated() {
                 return this.startUTC.toLocaleString(DateTime.TIME_SIMPLE);
-            }
-            sendNotification() {
-                const notificationText = `<b>${this.startFormated}</b>\n\n${this.subject}`;
-                notify({
-                    notificationText,
-                    transient: false
-                });
             }
         }
         const CLIENT_ID = OFFICE365_CLIENT_ID;
@@ -9916,10 +9945,10 @@ var reminderApplet;
         };
         function initCalendarEventEmitter() {
             const currentAccounts = [];
-            watchSelector(selectCalendarAccounts, (newAccounts => {
-                global.log("new Accounts selector called");
+            watchSelector(selectCalendarAccounts, ((newAccounts, oldValue) => {
                 newAccounts.forEach((account => {
                     if (currentAccounts.includes(account.mail)) return;
+                    global.log(`currentAccounts: ${JSON.stringify(currentAccounts)}`);
                     const api = new Office365Api({
                         authorizatonCode: account.authCode,
                         onRefreshTokenChanged: newToken => dispatch(refreshTokenChanged({
@@ -9932,7 +9961,8 @@ var reminderApplet;
                         onNewEventsPolled: events => dispatch(eventsLoaded(events)),
                         calendarApi: api
                     });
-                }), false);
+                    currentAccounts.push(account.mail);
+                }));
             }));
         }
         function createNotifyService() {
@@ -9966,10 +9996,10 @@ var reminderApplet;
         function createNewReminder(event) {
             const remindTime = event.remindTime;
             let timerId;
-            if (event.remindTime <= DateTime.now()) event.sendNotification(); else {
+            if (event.remindTime <= DateTime.now()) sendNotification(event); else {
                 const timeout = remindTime.diff(DateTime.now()).milliseconds;
                 timerId = setTimeout((() => {
-                    event.sendNotification();
+                    sendNotification(event);
                 }), timeout);
             }
             return {
@@ -9977,6 +10007,14 @@ var reminderApplet;
                 remindTime,
                 timerId
             };
+        }
+        function sendNotification(event) {
+            const {startFormated, subject} = event;
+            const notificationText = `<b>${startFormated}</b>\n\n${subject}`;
+            notify({
+                notificationText,
+                transient: false
+            });
         }
         const {Label} = imports.gi.St;
         const {ActorAlign} = imports.gi.Clutter;

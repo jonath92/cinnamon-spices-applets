@@ -40,15 +40,15 @@ export function initCalendarEventEmitter(): void {
 
     const currentAccounts: string[] = []
 
-    watchSelector(selectCalendarAccounts, (newAccounts) => {
-        global.log('new Accounts selector called')
+    watchSelector(selectCalendarAccounts, (newAccounts, oldValue) => {
 
         newAccounts.forEach(account => {
-
 
             if (currentAccounts.includes(account.mail)) {
                 return
             }
+
+            // TODO for all account which have delted, the clear function must be called and they must be removed from array
 
             const api = new Office365Api({
                 authorizatonCode: account.authCode,
@@ -56,8 +56,11 @@ export function initCalendarEventEmitter(): void {
                 refreshToken: account.refreshToken
             })
 
+            // TODO save them to an array, so that ty can later be cleared
             createCalendarPollingService({ onNewEventsPolled: (events) => dispatch(eventsLoaded(events)), calendarApi: api })
-        }, false)
+
+            currentAccounts.push(account.mail)
+        })
     })
 
 }
