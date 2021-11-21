@@ -5,7 +5,7 @@ const { Message, SessionAsync } = imports.gi.Soup
 const httpSession = new SessionAsync()
 
 export interface HTTPParams {
-    [key: string]: boolean | string | number;
+    [key: string]: boolean | string | number | undefined;
 }
 
 export interface HttpError {
@@ -27,11 +27,12 @@ interface Headers {
     'Authorization'?: string
 }
 
-interface LoadJsonArgs {
+// FIXME: why is T1 not allowed to be of type HTTPParams?
+export interface LoadJsonArgs<T1=any, T2=HTTPParams> {
     url: string,
     method?: Method,
-    bodyParams?: HTTPParams,
-    queryParams?: HTTPParams,
+    bodyParams?: T1,
+    queryParams?: T2,
     headers: Headers
 }
 
@@ -66,7 +67,7 @@ function checkForHttpError(message: imports.gi.Soup.Message): HttpError | false 
 }
 
 
-export function loadJsonAsync<T1, T2 = LoadJsonArgs>(args: LoadJsonArgs): Promise<T1> {
+export function loadJsonAsync<T1>(args: LoadJsonArgs): Promise<T1> {
 
     const {
         url,

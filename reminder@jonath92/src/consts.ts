@@ -7,8 +7,8 @@ export const APPLET_SHORT_NAME = META.uuid.split('@')[0]
 
 // SECRETS
 // the client ID from Joplin: https://github.com/laurent22/joplin/blob/80b16dd17e227e3f538aa221d7b6cc2d81688e72/packages/lib/parameters.js
-export const OFFICE365_CLIENT_ID = 'cbabb902-d276-4ea4-aa88-062a5889d6dc'
-export const OFFICE365_CLIENT_SECRET = 'YSvrgQMqw9NzVqgiLfuEky1'
+export const OFFICE365_CLIENT_ID = '253aba70-3393-40a9-92ce-1296905d25fa'
+export const OFFICE365_CLIENT_SECRET = 'sva7Q~VDZS4yNJJ_4X3VDE4Rsh4SzP1AUpP.p'
 
 
 // ENDPOINTS

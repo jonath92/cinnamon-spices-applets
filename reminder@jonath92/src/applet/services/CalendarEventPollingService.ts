@@ -48,10 +48,9 @@ export function initCalendarEventEmitter(): void {
                 return
             }
 
-            // TODO for all account which have delted, the clear function must be called and they must be removed from array
+            // TODO for all account which have deleted, the clear function must be called and they must be removed from array
 
             const api = new Office365Api({
-                authorizatonCode: account.authCode,
                 onRefreshTokenChanged: (newToken) => dispatch(refreshTokenChanged({ mail: account.mail, refreshToken: newToken })),
                 refreshToken: account.refreshToken
             })

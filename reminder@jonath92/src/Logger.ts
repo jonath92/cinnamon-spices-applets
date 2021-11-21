@@ -93,9 +93,7 @@ export function logInfo(message: string) {
         return
     }
 
-    log('this is called')
-
-    writeInput(stdinStream, 'testi from settings')
+    writeInput(stdinStream, message)
 
     //stream.
 

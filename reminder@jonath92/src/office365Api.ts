@@ -1,7 +1,7 @@
-import { HttpError, loadJsonAsync, isHttpError, HTTPParams } from "./HttpHandler"
+import { HttpError, loadJsonAsync, isHttpError, HTTPParams, LoadJsonArgs } from "./HttpHandler"
 import { DateTime } from 'luxon';
 import { logInfo } from "./Logger";
-import { OFFICE365_CALENDAR_ENDPOINT, OFFICE365_CLIENT_ID, OFFICE365_CLIENT_SECRET, OFFICE365_TOKEN_ENDPOINT } from "./consts";
+import { OFFICE365_CALENDAR_ENDPOINT, OFFICE365_CLIENT_ID, OFFICE365_CLIENT_SECRET, OFFICE365_TOKEN_ENDPOINT, OFFICE365_USER_ENDPOINT } from "./consts";
 import { CalendarApi } from "./CalendarApi";
 import { CalendarEvent } from "./CalendarEvent";
 
@@ -36,7 +36,12 @@ interface TokenResponse {
     refresh_token: string
 }
 
-interface TokenRequest  {
+// not complete
+interface UserResponse {
+    mail: string
+}
+
+interface TokenRequest {
     client_id: string
     client_secret: string
     grant_type: 'authorization_code' | 'refresh_token'
@@ -75,38 +80,45 @@ export class Office365Api implements CalendarApi {
         this.onRefreshTokenChanged = onRefreshTokenChanged
     }
 
-    public async getRefreshToken(): Promise<string> {
-        await this.refreshTokens()
+    // private async getRefreshToken(): Promise<string> {
+    //     await this.refreshTokens()
 
-        return this.refreshToken!
-    }
+    //     return this.refreshToken!
+    // }
 
     private async refreshTokens(): Promise<void> {
 
-        let tokenRequest: TokenRequest | undefined
 
         const clientIDSecret : Pick<TokenRequest, 'client_id' | 'client_secret'> = {
             client_id: CLIENT_ID, 
             client_secret: CLIENT_SECRET
         }
 
-        if (!this.refreshToken) {
-            tokenRequest = {...clientIDSecret, grant_type: 'authorization_code', code: this.authorizatonCode, redirect_uri: 'http://localhost:8080' }
-        } else {
-            tokenRequest = {...clientIDSecret, grant_type: 'refresh_token', refresh_token: this.refreshToken}
+        const tokenRequest: TokenRequest = this.refreshToken ? {
+            ...clientIDSecret, 
+            grant_type: 'refresh_token', 
+            refresh_token: this.refreshToken
+        } : {
+            ...clientIDSecret, 
+            grant_type: 'authorization_code', 
+            code: this.authorizatonCode, 
+            redirect_uri: 'http://localhost:8080' 
+        }
+
+ 
+        const requestParams: LoadJsonArgs<TokenRequest>  = {
+            method: 'POST',
+            url: OFFICE365_TOKEN_ENDPOINT,
+            bodyParams: tokenRequest,
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded'
+            }
         }
 
         // global.log('tokenRequest', tokenRequest)
 
         try {
-            const response = await loadJsonAsync<TokenResponse, TokenRequest>({
-                method: 'POST',
-                url: OFFICE365_TOKEN_ENDPOINT,
-                bodyParams: tokenRequest as unknown as HTTPParams,
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded'
-                }
-            })
+            const response = await loadJsonAsync<TokenResponse>(requestParams)
 
             // TODO: better error handling
            // global.log('response', response)
@@ -121,19 +133,49 @@ export class Office365Api implements CalendarApi {
             }
 
         } catch (error) {
-            //global.logError(`couldn't refresh Token, error: ${JSON.stringify(error)}`)
+            global.logError(`couldn't refresh Token, error: ${JSON.stringify(error)}`)
         }
 
     }
 
-    // public async getMailAdress(): Promise<string> {
-    //     return new Promise(async (resolve, reject) => {
-    //         try {
-    //             const response = await loadJsonAsync<
-    //         }
-    //     })
-    // }
+    public async getMailAdress(): Promise<string> {
 
+        logInfo('getMailAdress called')
+
+        !this.accessToken && await this.refreshTokens()
+
+        logInfo(`accessToken: ${this.accessToken}`)
+
+        const requestParams = {
+            url: OFFICE365_USER_ENDPOINT, 
+            method: "GET",
+            headers: {
+                Authorization: `Bearer ${this.accessToken}`,
+                "Content-Type": 'application/json',
+            },
+        }
+
+        logInfo(`requestParams: ${JSON.stringify(requestParams)}`)
+
+        return new Promise(async (resolve, reject) => {
+            try {
+                // @ts-ignore
+                const response = await loadJsonAsync<UserResponse>(requestParams)    
+
+                // logInfo(`accessToken, ${this.accessToken}`)
+                logInfo(`response, ${JSON.stringify(response)}`)
+    
+                resolve(response?.mail)
+
+            } catch (error) {
+                reject("couldn't get email adress")
+            }
+        })
+
+
+    }
+
+    // TODO: use makeRequest for that
     public async getTodayOffice365Events(attempt: number = 0): Promise<Office365CalendarEventResponse[]> {
         const now = DateTime.now()
         const startOfDay = DateTime.fromObject({ day: now.day })
@@ -180,6 +222,29 @@ export class Office365Api implements CalendarApi {
 
 
     };
+
+    private async makeRequest<T1>(requestParams: LoadJsonArgs, attempt: number = 0): Promise<T1> {
+        !this.accessToken && await this.refreshTokens()
+
+        return new Promise(async (resolve, reject) => {
+            try {
+                const response = await loadJsonAsync<T1>(requestParams)
+                resolve (response)
+            } catch (error) {
+                if (attempt >= 3) {
+                    reject(error)
+                    return
+                }
+
+                if (isHttpError(error)){
+                    await this.handleHttpError(error)
+                    this.makeRequest(requestParams, ++attempt)
+                    return
+                }
+            }
+        })
+
+    } 
 
 
     public async getTodayEvents(): Promise<CalendarEvent[]> {

@@ -6106,9 +6106,10 @@ var reminderApplet;
             uuid: "reminder@jonath92",
             path: "/home/jonathan/Projekte/cinnamon-spices-applets/reminder@jonath92/files/reminder@jonath92"
         }.uuid.split("@")[0];
-        const OFFICE365_CLIENT_ID = "cbabb902-d276-4ea4-aa88-062a5889d6dc";
-        const OFFICE365_CLIENT_SECRET = "YSvrgQMqw9NzVqgiLfuEky1";
+        const OFFICE365_CLIENT_ID = "253aba70-3393-40a9-92ce-1296905d25fa";
+        const OFFICE365_CLIENT_SECRET = "sva7Q~VDZS4yNJJ_4X3VDE4Rsh4SzP1AUpP.p";
         const OFFICE365_TOKEN_ENDPOINT = "https://login.microsoftonline.com/common/oauth2/v2.0/token";
+        const OFFICE365_USER_ENDPOINT = "https://graph.microsoft.com/v1.0/me";
         const OFFICE365_CALENDAR_ENDPOINT = "https://graph.microsoft.com/v1.0/me/calendarview";
         const {new_for_path} = imports.gi.Gio.File;
         const SETTINGS_PATH = CONFIG_DIR + "/settings.json";
@@ -9819,8 +9820,7 @@ var reminderApplet;
                 log("Something went wrong. StdInStream not defined.");
                 return;
             }
-            log("this is called");
-            writeInput(stdinStream, "testi from settings");
+            writeInput(stdinStream, message);
         }
         class CalendarEvent {
             constructor(reminderId, remindTime, subject, startUTC, onlineMeetingUrl) {
@@ -9852,41 +9852,62 @@ var reminderApplet;
                 this.refreshToken = refreshToken;
                 this.onRefreshTokenChanged = onRefreshTokenChanged;
             }
-            async getRefreshToken() {
-                await this.refreshTokens();
-                return this.refreshToken;
-            }
             async refreshTokens() {
                 var _a;
-                let tokenRequest;
                 const clientIDSecret = {
                     client_id: CLIENT_ID,
                     client_secret: CLIENT_SECRET
                 };
-                if (!this.refreshToken) tokenRequest = Object.assign(Object.assign({}, clientIDSecret), {
+                const tokenRequest = this.refreshToken ? Object.assign(Object.assign({}, clientIDSecret), {
+                    grant_type: "refresh_token",
+                    refresh_token: this.refreshToken
+                }) : Object.assign(Object.assign({}, clientIDSecret), {
                     grant_type: "authorization_code",
                     code: this.authorizatonCode,
                     redirect_uri: "http://localhost:8080"
-                }); else tokenRequest = Object.assign(Object.assign({}, clientIDSecret), {
-                    grant_type: "refresh_token",
-                    refresh_token: this.refreshToken
                 });
+                const requestParams = {
+                    method: "POST",
+                    url: OFFICE365_TOKEN_ENDPOINT,
+                    bodyParams: tokenRequest,
+                    headers: {
+                        "Content-Type": "application/x-www-form-urlencoded"
+                    }
+                };
                 try {
-                    const response = await loadJsonAsync({
-                        method: "POST",
-                        url: OFFICE365_TOKEN_ENDPOINT,
-                        bodyParams: tokenRequest,
-                        headers: {
-                            "Content-Type": "application/x-www-form-urlencoded"
-                        }
-                    });
+                    const response = await loadJsonAsync(requestParams);
                     const {access_token, refresh_token} = response;
                     this.accessToken = access_token;
                     if (this.refreshToken !== refresh_token) {
                         this.refreshToken = refresh_token;
                         null === (_a = this.onRefreshTokenChanged) || void 0 === _a ? void 0 : _a.call(this, refresh_token);
                     }
-                } catch (error) {}
+                } catch (error) {
+                    global.logError(`couldn't refresh Token, error: ${JSON.stringify(error)}`);
+                }
+            }
+            async getMailAdress() {
+                logInfo("getMailAdress called");
+                !this.accessToken && await this.refreshTokens();
+                logInfo(`accessToken: ${this.accessToken}`);
+                const requestParams = {
+                    url: OFFICE365_USER_ENDPOINT,
+                    method: "GET",
+                    headers: {
+                        Authorization: `Bearer ${this.accessToken}`,
+                        "Content-Type": "application/json"
+                    }
+                };
+                logInfo(`requestParams: ${JSON.stringify(requestParams)}`);
+                return new Promise((async (resolve, reject) => {
+                    try {
+                        const response = await loadJsonAsync(requestParams);
+                        logInfo(`response, ${JSON.stringify(response)}`);
+                        resolve(null === response || void 0 === response ? void 0 : response.mail);
+                    } catch (error) {
+                        reject("couldn't get email adress");
+                    }
+                }));
             }
             async getTodayOffice365Events(attempt = 0) {
                 const now = DateTime.now();
@@ -9922,6 +9943,25 @@ var reminderApplet;
                     }
                 }));
             }
+            async makeRequest(requestParams, attempt = 0) {
+                !this.accessToken && await this.refreshTokens();
+                return new Promise((async (resolve, reject) => {
+                    try {
+                        const response = await loadJsonAsync(requestParams);
+                        resolve(response);
+                    } catch (error) {
+                        if (attempt >= 3) {
+                            reject(error);
+                            return;
+                        }
+                        if (isHttpError(error)) {
+                            await this.handleHttpError(error);
+                            this.makeRequest(requestParams, ++attempt);
+                            return;
+                        }
+                    }
+                }));
+            }
             async getTodayEvents() {
                 const todayOffice365Events = await this.getTodayOffice365Events();
                 return todayOffice365Events.map((office365Event => CalendarEvent.newFromOffice365response(office365Event)));
@@ -9948,9 +9988,7 @@ var reminderApplet;
             watchSelector(selectCalendarAccounts, ((newAccounts, oldValue) => {
                 newAccounts.forEach((account => {
                     if (currentAccounts.includes(account.mail)) return;
-                    global.log(`currentAccounts: ${JSON.stringify(currentAccounts)}`);
                     const api = new Office365Api({
-                        authorizatonCode: account.authCode,
                         onRefreshTokenChanged: newToken => dispatch(refreshTokenChanged({
                             mail: account.mail,
                             refreshToken: newToken

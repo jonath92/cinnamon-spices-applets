@@ -36,7 +36,7 @@ startServer()
 
 log(ARGV)
 
-logInfo('test from settings')
+logInfo('test from settings2')
 
 
 const window = new GtkWindow({
@@ -127,14 +127,15 @@ function startServer() {
         if (!code)
             return
 
-        addAccountToSettings({
-            mail: 'dummy3',
-            provider: 'Office365', 
-            authCode: code
-        })
+        logInfo(code)
 
-        // @ts-ignore
-        log(query.code)
+        // addAccountToSettings({
+        //     provider: 'Office365', 
+        //     authCode: code
+        // })
+
+        // // @ts-ignore
+        // log(query.code)
 
 
 
