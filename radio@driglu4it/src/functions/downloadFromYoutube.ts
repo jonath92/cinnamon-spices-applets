@@ -1,6 +1,8 @@
 const { spawnCommandLineAsyncIO } = imports.misc.util;
 const { get_home_dir } = imports.gi.GLib;
 
+type FailureReason = 'not Installed' | 'unknown'
+
 interface Arguments {
     title: string,
     downloadDir: string,
@@ -27,6 +29,8 @@ export function downloadSongFromYoutube(args: Arguments) {
 
     // ytsearch option found here https://askubuntu.com/a/731511/1013434 (not given in the youtube-dl docs ...)
     const downloadCommand = `youtube-dl --output "${music_dir_absolut}/%(title)s.%(ext)s" --extract-audio --audio-format mp3 ytsearch1:"${title.replaceAll('"', '\\\"')}" --add-metadata --embed-thumbnail`
+
+    global.log('the downloadCommand is: ' ,downloadCommand)
 
     const process = spawnCommandLineAsyncIO(downloadCommand, (stdout, stderr) => {
 

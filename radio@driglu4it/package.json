@@ -17,6 +17,8 @@
     "@types/lodash": "^4.14.170",
     "@types/lodash-es": "^4.17.5",
     "@types/node": "^16.6.2",
+    "babel-jest": "^27.3.1",
+    "babel-preset-env": "^1.7.0",
     "cjs-jest-test-runtime": "1.0.8",
     "jest": "^27.1.0",
     "ts-jest": "^27.0.5",

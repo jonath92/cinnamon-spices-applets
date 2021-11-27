@@ -111,9 +111,6 @@ class RadioSearchWidget(SettingsWidget):
         self.pack_end(scrollbox, False, False, 0)
         self.treeview.get_selection().connect("changed", self.on_tree_selection_changed)
 
-
-
-
     def on_tree_selection_changed(self, *args):
         self.add_button.set_sensitive(True)
 

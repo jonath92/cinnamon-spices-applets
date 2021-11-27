@@ -232,6 +232,7 @@ const createConfig = (args) => {
         return initialVolume;
     }
     function handleMusicDirChanged() {
+        global.log(`musicDownloadDir`, settingsObject.musicDownloadDir);
         // By Default the value is set to ~/Music/Radio but when changing to another location and back again to the default value in the settings dialog, the music dir is set to null instead of the default value again. As workaround the music dir is set programmatically to default value again if value is set to null (and the settings dialog can't be opened anymore). 
         if (settingsObject.musicDownloadDir === null) {
             settingsObject.musicDownloadDir = "~/Music/Radio";
@@ -1266,6 +1267,7 @@ function downloadSongFromYoutube(args) {
     const music_dir_absolut = downloadDir.replace('~', downloadFromYoutube_get_home_dir()).replace('file://', '');
     // ytsearch option found here https://askubuntu.com/a/731511/1013434 (not given in the youtube-dl docs ...)
     const downloadCommand = `youtube-dl --output "${music_dir_absolut}/%(title)s.%(ext)s" --extract-audio --audio-format mp3 ytsearch1:"${title.replaceAll('"', '\\\"')}" --add-metadata --embed-thumbnail`;
+    global.log('the downloadCommand is: ', downloadCommand);
     const process = spawnCommandLineAsyncIO(downloadCommand, (stdout, stderr) => {
         try {
             if (hasBeenCancelled) {
