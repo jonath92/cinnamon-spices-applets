@@ -135,7 +135,7 @@ describe('starting mpv with invalid url is working', () => {
 
         Object.values(callbacks)
             .forEach(cb => {
-                expect(cb).not.toHaveBeenCalled()
+                expect(cb).not.toHaveBeenCalledWith()
             });
 
     })
@@ -202,7 +202,7 @@ describe('changing url is working', () => {
         const serverPlayer = createMpvDbusServerPlayer()
         await serverPlayer.OpenUriRemote(INVALID_URL)
 
-        expect(onUrlChanged).not.toHaveBeenCalled()
+        expect(onUrlChanged).not.toHaveBeenCalledWith()
  
     })
 
@@ -241,7 +241,7 @@ describe('changing volume is working', () => {
 
         const serverPlayer = createMpvDbusServerPlayer()
         serverPlayer.Volume = VALID_VOLUME_PERCENT_2 / 100
-        expect(onVolumeChanged).not.toHaveBeenCalled()
+        expect(onVolumeChanged).not.toHaveBeenCalledWith()
     })
 
     it('changing volume to 0 is handled', async () => {

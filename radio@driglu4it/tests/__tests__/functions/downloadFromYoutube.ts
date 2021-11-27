@@ -4,7 +4,15 @@ interface YoutbeDlOption {
     value?: string
 }
 
-const mockedDownloadtime = 1 // in ms
+// wrong installed means not by official installation instruction (e.g. with apt)
+type InstallationStatus = 'correctly installed' | 'not installed' | 'wrong installed'
+
+let installationStatus: InstallationStatus = 'not installed'
+
+const MOCKED_DOWNLOAD_TIME = 1 // in ms
+
+let youtubeDlOptions: YoutbeDlOption[] = []
+
 
 function spawnCommandLineAsyncIO(command: string, cb: (stdout: string, stderr: string, exitCode: number) =>
     void) {
@@ -32,8 +40,11 @@ function spawnCommandLineAsyncIO(command: string, cb: (stdout: string, stderr: s
         throw new RangeError('spawnCommandLineAsyncIo not called with youtube-dl')
 
     const timer = setTimeout(() => {
-        youtubeInstalled ? cb(workingExample.stdOut, null, 0) : cb(null, 'line 1: youtube-dl: command not found', 127)
-    }, mockedDownloadtime);
+        installationStatus === 'correctly installed' && cb(workingExample.stdOut, null, 0)
+        installationStatus === 'not installed' && cb(null, 'line 1: youtube-dl: command not found', 127)
+        // this error occured for me on apt but might also be different...
+        installationStatus === 'wrong installed' && cb(null, "The following error occured at youtube download attempt: Error: ERROR: Error in output template: unsupported format character 'D' (0x44) at index 20 (encoding: 'UTF-8')", 1)
+    }, MOCKED_DOWNLOAD_TIME);
 
     return {
         force_exit: () => {
@@ -66,7 +77,7 @@ function spawnCommandLineAsyncIO(command: string, cb: (stdout: string, stderr: s
 
 imports.misc.util = {
     // @ts-ignore
-   spawnCommandLineAsyncIO
+    spawnCommandLineAsyncIO
 }
 
 import { initPolyfills } from 'polyfill';
@@ -95,8 +106,19 @@ const workingExample = {
     filePath: '/home/jonathan/Music/Radio/Lady Gaga - Stupid Love (Official Music Video).mp3'
 }
 
+// https://dev.to/spacesnaill/react-and-typescript-testing-mocking-functions-with-jest-1pn8
+type DownloadFromYoutubeArgs = Parameters<typeof downloadSongFromYoutube>[0]
+
+type OnDownloadFailed = DownloadFromYoutubeArgs['onDownloadFailed']
+
+type OnDownloadFailedArgs = Parameters<OnDownloadFailed>[0]
+type OnDownloadFailedReturn = ReturnType<OnDownloadFailed>
+
+
+//const onDownloadFailed: jest.Mock<onDownloadFailedReturn, onDownloadFailedArgs> = jest.fn()
+
+const onDownloadFailed = jest.fn(() => {})
 const onDownloadFinished = jest.fn(() => { })
-const onDownloadFailed = jest.fn(() => { })
 
 function downloadWithValidValues() {
     return downloadSongFromYoutube({
@@ -107,66 +129,99 @@ function downloadWithValidValues() {
     })
 }
 
-let youtubeInstalled: boolean = false
-let youtubeDlOptions: YoutbeDlOption[] = []
-
-
-
 
 afterEach(() => {
     jest.clearAllMocks()
-    youtubeInstalled = false
+    installationStatus = 'not installed'
     youtubeDlOptions = []
 })
 
 it('sucessful download handled correctly', done => {
 
-    youtubeInstalled = true
+    installationStatus = 'correctly installed'
 
     downloadWithValidValues()
 
     setTimeout(() => {
         expect(onDownloadFinished).toHaveBeenCalledWith(workingExample.filePath)
         done()
-    }, mockedDownloadtime);
+    }, MOCKED_DOWNLOAD_TIME);
 
 })
 
-// skipping output as already handled in previous test
-it('youtubeDl called with correct arguments', done => {
-    youtubeInstalled = true
+describe('youtubeDl called with correct values', () => {
 
-    downloadWithValidValues()
+    it('youtubeDl called with correct arguments', done => {
+        installationStatus = 'correctly installed'
 
-    setTimeout(() => {
+        downloadWithValidValues()
 
-        ['--extract-audio', '--add-metadata', '--embed-thumbnail'].forEach(command => {
-            expect(youtubeDlOptions.find(option => option.command === command)).toBeTruthy()
+        setTimeout(() => {
+
+            ['--extract-audio', '--add-metadata', '--embed-thumbnail'].forEach(command => {
+                expect(youtubeDlOptions.find(option => option.command === command)).toBeTruthy()
+            })
+
+            const audioFormat = youtubeDlOptions.find(option => option.command === '--audio-format').value
+            expect(audioFormat).toBe('mp3')
+            done()
+        }, MOCKED_DOWNLOAD_TIME);
+
+    })
+
+    it('double quotes are correctly escaped', () => {
+        installationStatus = 'correctly installed'
+    
+        const title = `"Good 4 U" von Olivia Rodrigo`
+    
+        downloadSongFromYoutube({
+            title: `"Good 4 U" von Olivia Rodrigo`,
+            downloadDir: workingExample.downloadDir,
+            onDownloadFinished,
+            onDownloadFailed
         })
+    
+        const searchPrefix = 'ytsearch1:'
+    
+        const searchTerm = youtubeDlOptions.find(
+            option => option.command.startsWith(searchPrefix)
+        ).command.split(searchPrefix)[1].substr(1).slice(0, -1)
+    
+        expect(title.replaceAll('"', '\\"')).toBe(searchTerm)
+    
+    })
 
-        const audioFormat = youtubeDlOptions.find(option => option.command === '--audio-format').value
-        expect(audioFormat).toBe('mp3')
-        done()
-    }, mockedDownloadtime);
+})
+
+describe('error handling working', () => {
+    it('error callback called correctly when youtube-dl not installed', done => {
+
+        downloadWithValidValues()
+
+        const expectedArguments: Partial<OnDownloadFailedArgs> = {
+            reason: 'not Installed', 
+        }
+
+        setTimeout(() => {
+            expect(onDownloadFailed).toHaveBeenCalledWith(
+                expect.objectContaining(expectedArguments)
+            )
+            done()
+        }, MOCKED_DOWNLOAD_TIME);
+    
+    })
+
 
 })
 
-it('error handling working', done => {
 
-    downloadWithValidValues()
 
-    setTimeout(() => {
-        expect(onDownloadFailed).toHaveBeenCalled()
-        done()
-    }, mockedDownloadtime);
-
-})
 
 describe('canceling download is working', () => {
     it('no callback executed when canceling download', () => {
         const downloadProcess = downloadWithValidValues()
         downloadProcess.cancel()
-        expect(onDownloadFailed).not.toHaveBeenCalled()
+        expect(onDownloadFailed).not.toHaveBeenCalledWith()
     })
 
     it('canceling download has no impact for next download attempt', done => {
@@ -176,37 +231,16 @@ describe('canceling download is working', () => {
         downloadWithValidValues()
 
         setTimeout(() => {
-            expect(onDownloadFailed).toHaveBeenCalled()
-            youtubeInstalled = true
+            expect(onDownloadFailed).toHaveBeenCalledWith()
+            installationStatus = 'correctly installed'
 
             downloadWithValidValues()
             setTimeout(() => {
                 expect(onDownloadFinished).toHaveBeenCalledWith(workingExample.filePath)
                 done()
-            }, mockedDownloadtime);
+            }, MOCKED_DOWNLOAD_TIME);
 
-        }, mockedDownloadtime);
+        }, MOCKED_DOWNLOAD_TIME);
     })
 })
 
-it('double quotes are correctly escaped', () => {
-    youtubeInstalled = true
-
-    const title = `"Good 4 U" von Olivia Rodrigo`
-
-    downloadSongFromYoutube({
-        title: `"Good 4 U" von Olivia Rodrigo`,
-        downloadDir: workingExample.downloadDir,
-        onDownloadFinished,
-        onDownloadFailed
-    })
-
-    const searchPrefix = 'ytsearch1:'
-
-    const searchTerm = youtubeDlOptions.find(
-        option => option.command.startsWith(searchPrefix)
-    ).command.split(searchPrefix)[1].substr(1).slice(0, -1)
-
-    expect(title.replaceAll('"', '\\"')).toBe(searchTerm)
-
-})

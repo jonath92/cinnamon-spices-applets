@@ -1,13 +1,19 @@
 const { spawnCommandLineAsyncIO } = imports.misc.util;
 const { get_home_dir } = imports.gi.GLib;
 
-type FailureReason = 'not Installed' | 'unknown'
+type FailureReason = 'not Installed' | 'not installed by official instruction' | "download path can't be determined from stdout" | 'unknown'
+
+interface OnDownloadFailedArgs {
+    reason: FailureReason,
+    usedCommand: string,
+    stderr?: string
+}
 
 interface Arguments {
     title: string,
     downloadDir: string,
     onDownloadFinished: (path: string) => void,
-    onDownloadFailed: () => void
+    onDownloadFailed: (args: OnDownloadFailedArgs) => void
 }
 
 export function downloadSongFromYoutube(args: Arguments) {
@@ -30,30 +36,36 @@ export function downloadSongFromYoutube(args: Arguments) {
     // ytsearch option found here https://askubuntu.com/a/731511/1013434 (not given in the youtube-dl docs ...)
     const downloadCommand = `youtube-dl --output "${music_dir_absolut}/%(title)s.%(ext)s" --extract-audio --audio-format mp3 ytsearch1:"${title.replaceAll('"', '\\\"')}" --add-metadata --embed-thumbnail`
 
-    global.log('the downloadCommand is: ' ,downloadCommand)
+    const process = spawnCommandLineAsyncIO(downloadCommand, (stdout, stderr, exitCode) => {
 
-    const process = spawnCommandLineAsyncIO(downloadCommand, (stdout, stderr) => {
+        if (hasBeenCancelled) {
+            hasBeenCancelled = false
+            return
+        }
+        let failureReason: FailureReason | undefined
 
-        try {
+        if (exitCode === 127) {
+            failureReason = 'not Installed'
+        }
 
-            if (hasBeenCancelled) {
-                hasBeenCancelled = false
+        if (stdout) {
+            const downloadPath = getDownloadPath(stdout)
+
+            if (!downloadPath){
+                onDownloadFinished(downloadPath)
                 return
             }
 
-            if (stderr) throw new Error(stderr)
-
-            if (stdout) {
-                const downloadPath = getDownloadPath(stdout)
-                if (!downloadPath) throw new Error('File not saved')
-
-                onDownloadFinished(downloadPath)
+            if (!downloadPath) {
+                failureReason = "download path can't be determined from stdout"
             }
-        } catch (error) {
-            global.logError(`The following error occured at youtube download attempt: ${error}. The used download Command was: ${downloadCommand}`)
-            onDownloadFailed()
         }
-    })
+
+        onDownloadFailed({ reason: failureReason, usedCommand: downloadCommand, stderr })
+
+
+    }
+    )
 
     function cancel() {
         hasBeenCancelled = true
