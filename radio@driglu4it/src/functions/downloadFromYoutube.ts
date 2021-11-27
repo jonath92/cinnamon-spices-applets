@@ -51,7 +51,7 @@ export function downloadSongFromYoutube(args: Arguments) {
         if (stdout) {
             const downloadPath = getDownloadPath(stdout)
 
-            if (!downloadPath){
+            if (downloadPath){
                 onDownloadFinished(downloadPath)
                 return
             }
