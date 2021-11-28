@@ -1,5 +1,5 @@
 import { COPY_ICON_NAME } from "../../consts";
-import { createControlBtn } from "./ControlBtn";
+import { createControlBtn } from "../../lib/IconBtn";
 
 interface Arguments {
     onClick: { (): void }

@@ -1,6 +1,8 @@
 const { spawnCommandLineAsyncIO } = imports.misc.util;
 const { get_home_dir } = imports.gi.GLib;
 
+const { File } = imports.gi.Gio
+
 type FailureReason = 'not Installed' | 'not installed by official instruction' | "download path can't be determined from stdout" | 'unknown'
 
 interface OnDownloadFailedArgs {
@@ -42,26 +44,40 @@ export function downloadSongFromYoutube(args: Arguments) {
             hasBeenCancelled = false
             return
         }
-        let failureReason: FailureReason | undefined
 
         if (exitCode === 127) {
-            failureReason = 'not Installed'
+            handleDownloadFailed('not Installed')
+            return
         }
+
+        const officialYoutubeDlFile = File.new_for_path('/usr/local/bin/youtube-dl')
+        global.log('officalFile exist: ', officialYoutubeDlFile.query_exists(null))
+        global.log('downloadCommand', downloadCommand)
+
+        if (exitCode) {
+            const officialYoutubeDlFile = File.new_for_path('/usr/local/bin/youtube-dl')
+            global.log('officalFile exist: ', officialYoutubeDlFile.query_exists(null))
+        }
+
+        global.log('this line is called. Exitcode: ', exitCode)
+
 
         if (stdout) {
             const downloadPath = getDownloadPath(stdout)
 
-            if (downloadPath){
+            if (downloadPath) {
                 onDownloadFinished(downloadPath)
                 return
             }
 
             if (!downloadPath) {
-                failureReason = "download path can't be determined from stdout"
+                handleDownloadFailed("download path can't be determined from stdout")
             }
         }
 
-        onDownloadFailed({ reason: failureReason, usedCommand: downloadCommand, stderr })
+        function handleDownloadFailed(reason: FailureReason) {
+            onDownloadFailed({ reason, usedCommand: downloadCommand, stderr })
+        }
 
 
     }
@@ -82,6 +98,6 @@ function getDownloadPath(stdout: string) {
     // there is only one line in stdout which gives the path of the downloaded mp3. This start with [ffmpeg] Destination ...
     const searchString = '[ffmpeg] Destination: '
 
-    return arrayOfLines.find(line => line.includes(searchString))
-        .split(searchString)[1]
+    return arrayOfLines?.find(line => line.includes(searchString))
+        ?.split(searchString)[1]
 }

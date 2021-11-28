@@ -485,7 +485,7 @@ function createIconMenuItem(args) {
     };
 }
 
-;// CONCATENATED MODULE: ./src/ui/ChannelList/ChannelMenuItem.ts
+;// CONCATENATED MODULE: ./src/components/ChannelList/ChannelMenuItem.ts
 
 
 function createChannelMenuItem(args) {
@@ -512,7 +512,7 @@ function createChannelMenuItem(args) {
     };
 }
 
-;// CONCATENATED MODULE: ./src/ui/ChannelList/ChannelList.ts
+;// CONCATENATED MODULE: ./src/components/ChannelList/ChannelList.ts
 
 
 function createChannelList(args) {
@@ -946,7 +946,7 @@ function createSlider(args) {
     };
 }
 
-;// CONCATENATED MODULE: ./src/ui/VolumeSlider.ts
+;// CONCATENATED MODULE: ./src/components/VolumeSlider.ts
 
 
 
@@ -1082,7 +1082,7 @@ function createSeparatorMenuItem() {
     return container;
 }
 
-;// CONCATENATED MODULE: ./src/ui/Toolbar/MediaControlToolbar.ts
+;// CONCATENATED MODULE: ./src/components/Toolbar/MediaControlToolbar.ts
 const { BoxLayout: MediaControlToolbar_BoxLayout } = imports.gi.St;
 const { ActorAlign: MediaControlToolbar_ActorAlign } = imports.gi.Clutter;
 const createMediaControlToolbar = (args) => {
@@ -1095,14 +1095,14 @@ const createMediaControlToolbar = (args) => {
     return toolbar;
 };
 
-;// CONCATENATED MODULE: ./src/ui/Toolbar/ControlBtn.ts
+;// CONCATENATED MODULE: ./src/lib/IconBtn.ts
 
-const { Button, Icon: ControlBtn_Icon, IconType: ControlBtn_IconType } = imports.gi.St;
-const { Tooltip: ControlBtn_Tooltip } = imports.ui.tooltips;
+const { Button, Icon: IconBtn_Icon, IconType: IconBtn_IconType } = imports.gi.St;
+const { Tooltip: IconBtn_Tooltip } = imports.ui.tooltips;
 function createControlBtn(args) {
     const { iconName, tooltipTxt, onClick } = args;
-    const icon = new ControlBtn_Icon({
-        icon_type: ControlBtn_IconType.SYMBOLIC,
+    const icon = new IconBtn_Icon({
+        icon_type: IconBtn_IconType.SYMBOLIC,
         icon_name: iconName,
         style_class: 'popup-menu-icon' // this specifies the icon-size
     });
@@ -1118,7 +1118,7 @@ function createControlBtn(args) {
         widget: btn,
         onActivated: onClick
     });
-    const tooltip = new ControlBtn_Tooltip(btn, tooltipTxt);
+    const tooltip = new IconBtn_Tooltip(btn, tooltipTxt);
     return {
         actor: btn,
         icon,
@@ -1126,7 +1126,7 @@ function createControlBtn(args) {
     };
 }
 
-;// CONCATENATED MODULE: ./src/ui/Toolbar/PlayPauseButton.ts
+;// CONCATENATED MODULE: ./src/components/Toolbar/PlayPauseButton.ts
 
 
 function createPlayPauseButton(args) {
@@ -1161,7 +1161,7 @@ function createPlayPauseButton(args) {
     };
 }
 
-;// CONCATENATED MODULE: ./src/ui/Toolbar/StopButton.ts
+;// CONCATENATED MODULE: ./src/components/Toolbar/StopButton.ts
 
 
 function createStopBtn(args) {
@@ -1176,7 +1176,7 @@ function createStopBtn(args) {
     };
 }
 
-;// CONCATENATED MODULE: ./src/ui/InfoSection.ts
+;// CONCATENATED MODULE: ./src/components/InfoSection.ts
 
 
 const { BoxLayout: InfoSection_BoxLayout } = imports.gi.St;
@@ -1209,7 +1209,7 @@ function createInfoSection() {
     };
 }
 
-;// CONCATENATED MODULE: ./src/ui/Toolbar/DownloadButton.ts
+;// CONCATENATED MODULE: ./src/components/Toolbar/DownloadButton.ts
 
 
 function createDownloadButton(args) {
@@ -1224,7 +1224,7 @@ function createDownloadButton(args) {
     };
 }
 
-;// CONCATENATED MODULE: ./src/ui/Toolbar/CopyButton.ts
+;// CONCATENATED MODULE: ./src/components/Toolbar/CopyButton.ts
 
 
 function createCopyButton(args) {
@@ -1258,6 +1258,7 @@ function createCopyButton(args) {
 ;// CONCATENATED MODULE: ./src/functions/downloadFromYoutube.ts
 const { spawnCommandLineAsyncIO } = imports.misc.util;
 const { get_home_dir: downloadFromYoutube_get_home_dir } = imports.gi.GLib;
+const { File } = imports.gi.Gio;
 function downloadSongFromYoutube(args) {
     const { title, downloadDir, onDownloadFinished, onDownloadFailed } = args;
     let hasBeenCancelled = false;
@@ -1267,25 +1268,34 @@ function downloadSongFromYoutube(args) {
     // ytsearch option found here https://askubuntu.com/a/731511/1013434 (not given in the youtube-dl docs ...)
     const downloadCommand = `youtube-dl --output "${music_dir_absolut}/%(title)s.%(ext)s" --extract-audio --audio-format mp3 ytsearch1:"${title.replaceAll('"', '\\\"')}" --add-metadata --embed-thumbnail`;
     const process = spawnCommandLineAsyncIO(downloadCommand, (stdout, stderr, exitCode) => {
-        try {
-            if (hasBeenCancelled) {
-                hasBeenCancelled = false;
+        if (hasBeenCancelled) {
+            hasBeenCancelled = false;
+            return;
+        }
+        if (exitCode === 127) {
+            handleDownloadFailed('not Installed');
+            return;
+        }
+        const officialYoutubeDlFile = File.new_for_path('/usr/local/bin/youtube-dl');
+        global.log('officalFile exist: ', officialYoutubeDlFile.query_exists(null));
+        global.log('downloadCommand', downloadCommand);
+        if (exitCode) {
+            const officialYoutubeDlFile = File.new_for_path('/usr/local/bin/youtube-dl');
+            global.log('officalFile exist: ', officialYoutubeDlFile.query_exists(null));
+        }
+        global.log('this line is called. Exitcode: ', exitCode);
+        if (stdout) {
+            const downloadPath = getDownloadPath(stdout);
+            if (downloadPath) {
+                onDownloadFinished(downloadPath);
                 return;
             }
-            global.log(`stderr`, stderr);
-            global.log('exitCode', exitCode);
-            if (stderr)
-                throw new Error(stderr);
-            if (stdout) {
-                const downloadPath = getDownloadPath(stdout);
-                if (!downloadPath)
-                    throw new Error('File not saved');
-                onDownloadFinished(downloadPath);
+            if (!downloadPath) {
+                handleDownloadFailed("download path can't be determined from stdout");
             }
         }
-        catch (error) {
-            global.logError(`The following error occured at youtube download attempt: ${error}. The used download Command was: ${downloadCommand}`);
-            onDownloadFailed();
+        function handleDownloadFailed(reason) {
+            onDownloadFailed({ reason, usedCommand: downloadCommand, stderr });
         }
     });
     function cancel() {
@@ -1296,11 +1306,11 @@ function downloadSongFromYoutube(args) {
     return { cancel };
 }
 function getDownloadPath(stdout) {
+    var _a;
     const arrayOfLines = stdout.match(/[^\r\n]+/g);
     // there is only one line in stdout which gives the path of the downloaded mp3. This start with [ffmpeg] Destination ...
     const searchString = '[ffmpeg] Destination: ';
-    return arrayOfLines.find(line => line.includes(searchString))
-        .split(searchString)[1];
+    return (_a = arrayOfLines === null || arrayOfLines === void 0 ? void 0 : arrayOfLines.find(line => line.includes(searchString))) === null || _a === void 0 ? void 0 : _a.split(searchString)[1];
 }
 
 ;// CONCATENATED MODULE: ./src/functions/promiseHelpers.ts
@@ -1313,7 +1323,7 @@ const spawnCommandLinePromise = function (command) {
     });
 };
 
-;// CONCATENATED MODULE: ./src/ui/Notifications/NotificationBase.ts
+;// CONCATENATED MODULE: ./src/components/Notifications/NotificationBase.ts
 const { SystemNotificationSource, Notification } = imports.ui.messageTray;
 const { messageTray } = imports.ui.main;
 const { Icon: NotificationBase_Icon, IconType: NotificationBase_IconType } = imports.gi.St;
@@ -1335,7 +1345,7 @@ function createBasicNotification(args) {
     return notification;
 }
 
-;// CONCATENATED MODULE: ./src/ui/Notifications/GenericNotification.ts
+;// CONCATENATED MODULE: ./src/components/Notifications/GenericNotification.ts
 
 function notify(args) {
     const { text } = args;
@@ -1402,7 +1412,7 @@ function copyText(text) {
     Clipboard.get_default().set_text(ClipboardType.CLIPBOARD, text);
 }
 
-;// CONCATENATED MODULE: ./src/ui/Applet/Applet.ts
+;// CONCATENATED MODULE: ./src/components/Applet/Applet.ts
 const { Applet, AllowedLayout } = imports.ui.applet;
 const { Bin } = imports.gi.St;
 const { EventType } = imports.gi.Clutter;
@@ -1438,7 +1448,7 @@ function createApplet(args) {
     return applet;
 }
 
-;// CONCATENATED MODULE: ./src/ui/Applet/AppletIcon.ts
+;// CONCATENATED MODULE: ./src/components/Applet/AppletIcon.ts
 
 const { Icon: AppletIcon_Icon, IconType: AppletIcon_IconType } = imports.gi.St;
 const { IconType: IconTypeEnum } = imports.gi.St;
@@ -1512,7 +1522,7 @@ function createAppletIcon(args) {
     };
 }
 
-;// CONCATENATED MODULE: ./src/ui/Applet/AppletLabel.ts
+;// CONCATENATED MODULE: ./src/components/Applet/AppletLabel.ts
 const { Label: AppletLabel_Label } = imports.gi.St;
 const { EllipsizeMode } = imports.gi.Pango;
 const { ActorAlign: AppletLabel_ActorAlign } = imports.gi.Clutter;
@@ -1555,7 +1565,7 @@ function createAppletLabel() {
     };
 }
 
-;// CONCATENATED MODULE: ./src/ui/Applet/AppletTooltip.ts
+;// CONCATENATED MODULE: ./src/components/Applet/AppletTooltip.ts
 
 const { PanelItemTooltip } = imports.ui.tooltips;
 function createAppletTooltip(args) {
@@ -1574,7 +1584,7 @@ function createAppletTooltip(args) {
     };
 }
 
-;// CONCATENATED MODULE: ./src/ui/Notifications/YoutubeDownloadFinishedNotification.ts
+;// CONCATENATED MODULE: ./src/components/Notifications/YoutubeDownloadFinishedNotification.ts
 
 const { spawnCommandLine: YoutubeDownloadFinishedNotification_spawnCommandLine } = imports.misc.util;
 function notifyYoutubeDownloadFinished(args) {
@@ -1592,7 +1602,7 @@ function notifyYoutubeDownloadFinished(args) {
     notification.notify();
 }
 
-;// CONCATENATED MODULE: ./src/ui/Notifications/YoutubeDownloadStartedNotification.ts
+;// CONCATENATED MODULE: ./src/components/Notifications/YoutubeDownloadStartedNotification.ts
 
 function notifyYoutubeDownloadStarted(args) {
     const { title, onCancelClicked } = args;
@@ -1608,7 +1618,7 @@ function notifyYoutubeDownloadStarted(args) {
     notification.notify();
 }
 
-;// CONCATENATED MODULE: ./src/ui/Notifications/YoutubeDownloadFailedNotification.ts
+;// CONCATENATED MODULE: ./src/components/Notifications/YoutubeDownloadFailedNotification.ts
 
 
 const { spawnCommandLine: YoutubeDownloadFailedNotification_spawnCommandLine } = imports.misc.util;
@@ -1637,7 +1647,7 @@ function notifyYoutubeDownloadFailed() {
     notification.notify();
 }
 
-;// CONCATENATED MODULE: ./src/ui/Seeker.ts
+;// CONCATENATED MODULE: ./src/components/Seeker.ts
 
 
 

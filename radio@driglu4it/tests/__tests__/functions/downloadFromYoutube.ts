@@ -205,12 +205,9 @@ xdescribe('error handling working', () => {
     })
 
 
-    // TODO other error states
+    // TODO all other error states
 
 })
-
-
-
 
 xdescribe('canceling download is working', () => {
     it('no callback executed when canceling download', () => {
