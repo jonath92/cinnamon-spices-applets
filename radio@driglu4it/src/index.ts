@@ -48,21 +48,8 @@ export function main(args: Arguments): imports.ui.applet.Applet {
 
     initPolyfills()
 
-    const appletDefinition = getAppletDefinition({
-        applet_id: instanceId,
-    })
 
-    const panel = panelManager.panels.find(panel =>
-        panel?.panelId === appletDefinition.panelId
-    ) as imports.ui.panel.Panel
-
-    const appletIcon = createAppletIcon({
-        locationLabel: appletDefinition.location_label,
-        panel
-    })
-
-    panel.connect('icon-size-changed', () => appletIcon.updateIconSize())
-
+    const appletIcon = createAppletIcon({instanceId})
     const appletLabel = createAppletLabel()
 
 
