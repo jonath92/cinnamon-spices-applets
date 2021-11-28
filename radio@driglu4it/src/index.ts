@@ -131,7 +131,8 @@ export function main(args: Arguments): imports.ui.applet.Applet {
     })
 
     const downloadBtn = createDownloadButton({
-        onClick: handleDownloadBtnClicked
+        mpvHandler, 
+        configs
     })
 
     const copyBtn = createCopyButton({
@@ -282,27 +283,7 @@ export function main(args: Arguments): imports.ui.applet.Applet {
         seeker?.setPosition(position)
     }
 
-    function handleDownloadBtnClicked() {
-
-        const title = mpvHandler.getCurrentTitle()
-
-        const downloadProcess = downloadSongFromYoutube({
-            downloadDir: configs.musicDownloadDir,
-            title,
-            onDownloadFinished: (path) => notifyYoutubeDownloadFinished({
-                downloadPath: path
-            }),
-            onDownloadFailed: notifyYoutubeDownloadFailed
-        })
-
-        notifyYoutubeDownloadStarted({
-            title,
-            onCancelClicked: () => downloadProcess.cancel()
-        })
-    }
-
     return applet
-
 }
 
 

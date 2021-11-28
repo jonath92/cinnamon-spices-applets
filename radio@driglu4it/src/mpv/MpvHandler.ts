@@ -6,7 +6,6 @@ const { spawnCommandLine } = imports.misc.util;
 // see https://lazka.github.io/pgi-docs/Cvc-1.0/index.html
 const { MixerControl } = imports.gi.Cvc;
 
-
 export interface Arguments {
     onPlaybackstatusChanged: (playbackStatus: AdvancedPlaybackStatus) => void,
     onUrlChanged: (url: string) => void,
@@ -267,7 +266,6 @@ export function createMpvHandler(args: Arguments) {
         return microSecondsToRoundedSeconds(positionMicroSeconds)
     }
 
-
     function setUrl(url: string) {
 
         if (getPlaybackStatus() === 'Stopped') {
@@ -402,3 +400,5 @@ export function createMpvHandler(args: Arguments) {
         dbus
     }
 }
+
+

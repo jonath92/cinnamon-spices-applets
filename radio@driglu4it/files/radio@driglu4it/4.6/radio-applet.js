@@ -1209,50 +1209,89 @@ function createInfoSection() {
     };
 }
 
-;// CONCATENATED MODULE: ./src/components/Toolbar/DownloadButton.ts
+;// CONCATENATED MODULE: ./src/components/Notifications/NotificationBase.ts
+const { SystemNotificationSource, Notification } = imports.ui.messageTray;
+const { messageTray } = imports.ui.main;
+const { Icon: NotificationBase_Icon, IconType: NotificationBase_IconType } = imports.gi.St;
 
-
-function createDownloadButton(args) {
-    const { onClick } = args;
-    const downloadButton = createControlBtn({
-        iconName: DOWNLOAD_ICON_NAME,
-        tooltipTxt: "Download current song from Youtube",
-        onClick
+const messageSource = new SystemNotificationSource('Radio Applet');
+messageTray.add(messageSource);
+function createBasicNotification(args) {
+    const { notificationText, isMarkup = false, transient = true } = args;
+    const icon = new NotificationBase_Icon({
+        icon_type: NotificationBase_IconType.SYMBOLIC,
+        icon_name: RADIO_SYMBOLIC_ICON_NAME,
+        icon_size: 25
     });
-    return {
-        actor: downloadButton.actor
+    const notification = new Notification(messageSource, __meta.name, notificationText, { icon, bodyMarkup: isMarkup });
+    notification.setTransient(transient);
+    notification.notify = () => {
+        messageSource.notify(notification);
     };
+    return notification;
 }
 
-;// CONCATENATED MODULE: ./src/components/Toolbar/CopyButton.ts
+;// CONCATENATED MODULE: ./src/components/Notifications/YoutubeDownloadFailedNotification.ts
 
 
-function createCopyButton(args) {
-    const { onClick } = args;
-    const defaultTooltipTxt = "Copy current song title to Clipboard";
-    const controlBtn = createControlBtn({
-        iconName: COPY_ICON_NAME,
-        tooltipTxt: defaultTooltipTxt,
-        onClick: handleClick
+const { spawnCommandLine: YoutubeDownloadFailedNotification_spawnCommandLine } = imports.misc.util;
+const { get_home_dir: YoutubeDownloadFailedNotification_get_home_dir } = imports.gi.GLib;
+function notifyYoutubeDownloadFailed() {
+    const notificationText = `Couldn't download Song from Youtube due to an Error. Make Sure you have the newest version of youtube-dl installed. 
+        \n<b>Important:</b> Don't use apt for the installation but follow the installation instruction given on the Radio Applet Site in the Cinnamon Store instead
+        \nFor more information see the logs`;
+    const notification = createBasicNotification({
+        notificationText,
+        isMarkup: true,
+        transient: false
     });
-    function handleClick() {
-        controlBtn.tooltip.show();
-        onClick();
-        // showCopyInTooltip()
-    }
-    // For some reasons I don't understand, this function has stopped working after refactoring the popup Menu. No idea how to debug this. Therefore deactivating this for now :-(. It is thrown an  warning when clicking on the button but this has nothing to do with the tooltip
-    function showCopyInTooltip() {
-        const tooltip = controlBtn.tooltip;
-        tooltip.set_text("Copied");
-        tooltip.show();
-        setTimeout(() => {
-            tooltip.hide();
-            tooltip.set_text(defaultTooltipTxt);
-        }, 500);
-    }
-    return {
-        actor: controlBtn.actor,
-    };
+    const viewStoreBtnId = 'viewStoreBtn';
+    const viewLogBtnId = 'viewLogBtn';
+    notification.addButton(viewStoreBtnId, 'View Installation Instruction');
+    notification.addButton(viewLogBtnId, "View Logs");
+    notification.connect('action-invoked', (actor, id) => {
+        if (id === viewStoreBtnId) {
+            YoutubeDownloadFailedNotification_spawnCommandLine(`xdg-open ${APPLET_SITE} `);
+        }
+        if (id === viewLogBtnId) {
+            YoutubeDownloadFailedNotification_spawnCommandLine(`xdg-open ${YoutubeDownloadFailedNotification_get_home_dir()}/.xsession-errors`);
+        }
+    });
+    notification.notify();
+}
+
+;// CONCATENATED MODULE: ./src/components/Notifications/YoutubeDownloadFinishedNotification.ts
+
+const { spawnCommandLine: YoutubeDownloadFinishedNotification_spawnCommandLine } = imports.misc.util;
+function notifyYoutubeDownloadFinished(args) {
+    const { downloadPath } = args;
+    const notification = createBasicNotification({
+        notificationText: `Download finished. File saved to ${downloadPath}`
+    });
+    const playBtnId = 'openBtn';
+    notification.addButton(playBtnId, 'Play');
+    notification.connect('action-invoked', (actor, id) => {
+        if (id === playBtnId) {
+            YoutubeDownloadFinishedNotification_spawnCommandLine(`xdg-open '${downloadPath}'`);
+        }
+    });
+    notification.notify();
+}
+
+;// CONCATENATED MODULE: ./src/components/Notifications/YoutubeDownloadStartedNotification.ts
+
+function notifyYoutubeDownloadStarted(args) {
+    const { title, onCancelClicked } = args;
+    const notification = createBasicNotification({
+        notificationText: `Downloading ${title} ...`,
+    });
+    const cancelBtnId = 'cancelBtn';
+    notification.addButton(cancelBtnId, 'Cancel');
+    notification.connect('action-invoked', (actor, id) => {
+        if (id === cancelBtnId)
+            onCancelClicked();
+    });
+    notification.notify();
 }
 
 ;// CONCATENATED MODULE: ./src/functions/downloadFromYoutube.ts
@@ -1313,6 +1352,71 @@ function getDownloadPath(stdout) {
     return (_a = arrayOfLines === null || arrayOfLines === void 0 ? void 0 : arrayOfLines.find(line => line.includes(searchString))) === null || _a === void 0 ? void 0 : _a.split(searchString)[1];
 }
 
+;// CONCATENATED MODULE: ./src/components/Toolbar/DownloadButton.ts
+
+
+
+
+
+
+function createDownloadButton(args) {
+    const { mpvHandler, configs } = args;
+    const handleBtnClicked = () => {
+        const title = mpvHandler.getCurrentTitle();
+        const downloadProcess = downloadSongFromYoutube({
+            downloadDir: configs.musicDownloadDir,
+            title,
+            onDownloadFinished: (path) => notifyYoutubeDownloadFinished({
+                downloadPath: path
+            }),
+            onDownloadFailed: notifyYoutubeDownloadFailed
+        });
+        notifyYoutubeDownloadStarted({
+            title,
+            onCancelClicked: () => downloadProcess.cancel()
+        });
+    };
+    const downloadButton = createControlBtn({
+        iconName: DOWNLOAD_ICON_NAME,
+        tooltipTxt: "Download current song from Youtube",
+        onClick: handleBtnClicked
+    });
+    return {
+        actor: downloadButton.actor
+    };
+}
+
+;// CONCATENATED MODULE: ./src/components/Toolbar/CopyButton.ts
+
+
+function createCopyButton(args) {
+    const { onClick } = args;
+    const defaultTooltipTxt = "Copy current song title to Clipboard";
+    const controlBtn = createControlBtn({
+        iconName: COPY_ICON_NAME,
+        tooltipTxt: defaultTooltipTxt,
+        onClick: handleClick
+    });
+    function handleClick() {
+        controlBtn.tooltip.show();
+        onClick();
+        // showCopyInTooltip()
+    }
+    // For some reasons I don't understand, this function has stopped working after refactoring the popup Menu. No idea how to debug this. Therefore deactivating this for now :-(. It is thrown an  warning when clicking on the button but this has nothing to do with the tooltip
+    function showCopyInTooltip() {
+        const tooltip = controlBtn.tooltip;
+        tooltip.set_text("Copied");
+        tooltip.show();
+        setTimeout(() => {
+            tooltip.hide();
+            tooltip.set_text(defaultTooltipTxt);
+        }, 500);
+    }
+    return {
+        actor: controlBtn.actor,
+    };
+}
+
 ;// CONCATENATED MODULE: ./src/functions/promiseHelpers.ts
 const { spawnCommandLineAsyncIO: promiseHelpers_spawnCommandLineAsyncIO } = imports.misc.util;
 const spawnCommandLinePromise = function (command) {
@@ -1322,28 +1426,6 @@ const spawnCommandLinePromise = function (command) {
         });
     });
 };
-
-;// CONCATENATED MODULE: ./src/components/Notifications/NotificationBase.ts
-const { SystemNotificationSource, Notification } = imports.ui.messageTray;
-const { messageTray } = imports.ui.main;
-const { Icon: NotificationBase_Icon, IconType: NotificationBase_IconType } = imports.gi.St;
-
-const messageSource = new SystemNotificationSource('Radio Applet');
-messageTray.add(messageSource);
-function createBasicNotification(args) {
-    const { notificationText, isMarkup = false, transient = true } = args;
-    const icon = new NotificationBase_Icon({
-        icon_type: NotificationBase_IconType.SYMBOLIC,
-        icon_name: RADIO_SYMBOLIC_ICON_NAME,
-        icon_size: 25
-    });
-    const notification = new Notification(messageSource, __meta.name, notificationText, { icon, bodyMarkup: isMarkup });
-    notification.setTransient(transient);
-    notification.notify = () => {
-        messageSource.notify(notification);
-    };
-    return notification;
-}
 
 ;// CONCATENATED MODULE: ./src/components/Notifications/GenericNotification.ts
 
@@ -1582,69 +1664,6 @@ function createAppletTooltip(args) {
         setVolume,
         setDefaultTooltip
     };
-}
-
-;// CONCATENATED MODULE: ./src/components/Notifications/YoutubeDownloadFinishedNotification.ts
-
-const { spawnCommandLine: YoutubeDownloadFinishedNotification_spawnCommandLine } = imports.misc.util;
-function notifyYoutubeDownloadFinished(args) {
-    const { downloadPath } = args;
-    const notification = createBasicNotification({
-        notificationText: `Download finished. File saved to ${downloadPath}`
-    });
-    const playBtnId = 'openBtn';
-    notification.addButton(playBtnId, 'Play');
-    notification.connect('action-invoked', (actor, id) => {
-        if (id === playBtnId) {
-            YoutubeDownloadFinishedNotification_spawnCommandLine(`xdg-open '${downloadPath}'`);
-        }
-    });
-    notification.notify();
-}
-
-;// CONCATENATED MODULE: ./src/components/Notifications/YoutubeDownloadStartedNotification.ts
-
-function notifyYoutubeDownloadStarted(args) {
-    const { title, onCancelClicked } = args;
-    const notification = createBasicNotification({
-        notificationText: `Downloading ${title} ...`,
-    });
-    const cancelBtnId = 'cancelBtn';
-    notification.addButton(cancelBtnId, 'Cancel');
-    notification.connect('action-invoked', (actor, id) => {
-        if (id === cancelBtnId)
-            onCancelClicked();
-    });
-    notification.notify();
-}
-
-;// CONCATENATED MODULE: ./src/components/Notifications/YoutubeDownloadFailedNotification.ts
-
-
-const { spawnCommandLine: YoutubeDownloadFailedNotification_spawnCommandLine } = imports.misc.util;
-const { get_home_dir: YoutubeDownloadFailedNotification_get_home_dir } = imports.gi.GLib;
-function notifyYoutubeDownloadFailed() {
-    const notificationText = `Couldn't download Song from Youtube due to an Error. Make Sure you have the newest version of youtube-dl installed. 
-        \n<b>Important:</b> Don't use apt for the installation but follow the installation instruction given on the Radio Applet Site in the Cinnamon Store instead
-        \nFor more information see the logs`;
-    const notification = createBasicNotification({
-        notificationText,
-        isMarkup: true,
-        transient: false
-    });
-    const viewStoreBtnId = 'viewStoreBtn';
-    const viewLogBtnId = 'viewLogBtn';
-    notification.addButton(viewStoreBtnId, 'View Installation Instruction');
-    notification.addButton(viewLogBtnId, "View Logs");
-    notification.connect('action-invoked', (actor, id) => {
-        if (id === viewStoreBtnId) {
-            YoutubeDownloadFailedNotification_spawnCommandLine(`xdg-open ${APPLET_SITE} `);
-        }
-        if (id === viewLogBtnId) {
-            YoutubeDownloadFailedNotification_spawnCommandLine(`xdg-open ${YoutubeDownloadFailedNotification_get_home_dir()}/.xsession-errors`);
-        }
-    });
-    notification.notify();
 }
 
 ;// CONCATENATED MODULE: ./src/components/Seeker.ts
@@ -5198,10 +5217,6 @@ function initPolyfills() {
 
 
 
-
-
-
-
 const { ScrollDirection: src_ScrollDirection } = imports.gi.Clutter;
 const { getAppletDefinition } = imports.ui.appletManager;
 const { panelManager } = imports.ui.main;
@@ -5273,7 +5288,8 @@ function main(args) {
         onClick: () => mpvHandler.stop()
     });
     const downloadBtn = createDownloadButton({
-        onClick: handleDownloadBtnClicked
+        mpvHandler,
+        configs
     });
     const copyBtn = createCopyButton({
         onClick: () => copyText(mpvHandler.getCurrentTitle())
@@ -5390,21 +5406,6 @@ function main(args) {
     }
     function handlePositionChanged(position) {
         seeker === null || seeker === void 0 ? void 0 : seeker.setPosition(position);
-    }
-    function handleDownloadBtnClicked() {
-        const title = mpvHandler.getCurrentTitle();
-        const downloadProcess = downloadSongFromYoutube({
-            downloadDir: configs.musicDownloadDir,
-            title,
-            onDownloadFinished: (path) => notifyYoutubeDownloadFinished({
-                downloadPath: path
-            }),
-            onDownloadFailed: notifyYoutubeDownloadFailed
-        });
-        notifyYoutubeDownloadStarted({
-            title,
-            onCancelClicked: () => downloadProcess.cancel()
-        });
     }
     return applet;
 }
