@@ -1,4 +1,4 @@
-import { createConfig } from './Config';
+import { createConfig, createConfigNew } from './Config';
 import { ChannelStore } from './ChannelStore';
 import { createChannelList } from './ui/ChannelList/ChannelList';
 import { AdvancedPlaybackStatus, Channel, AppletIcon } from './types';
@@ -49,6 +49,7 @@ export function main(args: Arguments): imports.ui.applet.Applet {
     initPolyfills()
 
 
+    const configNew = createConfigNew(instanceId)
     const appletIcon = createAppletIcon({instanceId})
     const appletLabel = createAppletLabel()
 
@@ -98,7 +99,7 @@ export function main(args: Arguments): imports.ui.applet.Applet {
 
 
 
-    const channelStore = new ChannelStore(configs.userStations)
+    const channelStore = new ChannelStore(configNew.userStations)
 
     const channelList = createChannelList({
         stationNames: channelStore.activatedChannelNames,
@@ -234,7 +235,7 @@ export function main(args: Arguments): imports.ui.applet.Applet {
         channelStore.channelList = stations
         channelList.setStationNames(channelStore.activatedChannelNames)
 
-        const lastUrlValid = channelStore.checkUrlValid(configs.lastUrl)
+        const lastUrlValid = channelStore.checkUrlValid(configNew.lastUrl)
         if (!lastUrlValid) mpvHandler.stop()
     }
 
@@ -242,8 +243,8 @@ export function main(args: Arguments): imports.ui.applet.Applet {
 
         if (playbackstatus === 'Stopped') {
             radioActiveSection.hide()
-            configs.lastVolume = lastVolume
-            configs.lastUrl = null
+            configNew.lastVolume = lastVolume
+            configNew.lastUrl = null
             appletLabel.setText(null)
             appletTooltip.setDefaultTooltip()
             popupMenu.close()
@@ -269,7 +270,7 @@ export function main(args: Arguments): imports.ui.applet.Applet {
 
         channelName && channelList.setCurrentChannel(channelName)
         channelName && infoSection.setChannel(channelName)
-        configs.lastUrl = url
+        configNew.lastUrl = url
     }
 
     function hanldeLengthChanged(length: number) {
@@ -287,7 +288,7 @@ export function main(args: Arguments): imports.ui.applet.Applet {
         if (!title) return
 
         const downloadProcess = downloadSongFromYoutube({
-            downloadDir: configs.musicDownloadDir,
+            downloadDir: configNew.musicDownloadDir,
             title,
             onDownloadFinished: (path) => notifyYoutubeDownloadFinished({
                 downloadPath: path

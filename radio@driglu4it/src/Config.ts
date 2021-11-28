@@ -26,6 +26,29 @@ interface Settings {
     musicDownloadDir: string
 }
 
+export const createConfigNew = (instanceId: number): Omit<Settings, 'initialVolume'> => {
+
+    // all settings are saved to this object
+    const settingsObject = {} as Omit<Settings, 'initialVolume'>
+
+    const appletSettings = new AppletSettings(settingsObject, __meta.uuid, instanceId)
+
+    appletSettings.bind('icon-type', 'iconType')
+    appletSettings.bind('color-on', 'symbolicIconColorWhenPlaying')
+    appletSettings.bind('color-paused', 'symbolicIconColorWhenPaused')
+    appletSettings.bind('channel-on-panel', 'channelNameOnPanel')
+    appletSettings.bind('keep-volume-between-sessions', 'keepVolume')
+    appletSettings.bind('initial-volume', 'customInitVolume')
+    appletSettings.bind('last-volume', 'lastVolume')
+    appletSettings.bind('tree', 'userStations')
+    appletSettings.bind('last-url', 'lastUrl')
+    appletSettings.bind('music-download-dir-select', 'musicDownloadDir')
+
+    return settingsObject
+
+}
+
+
 export const createConfig = (args: Arguments) => {
 
     const {

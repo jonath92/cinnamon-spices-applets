@@ -209,6 +209,22 @@ __webpack_require__.d(__webpack_exports__, {
 
 ;// CONCATENATED MODULE: ./src/Config.ts
 const { AppletSettings } = imports.ui.settings;
+const createConfigNew = (instanceId) => {
+    // all settings are saved to this object
+    const settingsObject = {};
+    const appletSettings = new AppletSettings(settingsObject, __meta.uuid, instanceId);
+    appletSettings.bind('icon-type', 'iconType');
+    appletSettings.bind('color-on', 'symbolicIconColorWhenPlaying');
+    appletSettings.bind('color-paused', 'symbolicIconColorWhenPaused');
+    appletSettings.bind('channel-on-panel', 'channelNameOnPanel');
+    appletSettings.bind('keep-volume-between-sessions', 'keepVolume');
+    appletSettings.bind('initial-volume', 'customInitVolume');
+    appletSettings.bind('last-volume', 'lastVolume');
+    appletSettings.bind('tree', 'userStations');
+    appletSettings.bind('last-url', 'lastUrl');
+    appletSettings.bind('music-download-dir-select', 'musicDownloadDir');
+    return settingsObject;
+};
 const createConfig = (args) => {
     const { uuid, instanceId, onIconChanged, onIconColorPlayingChanged, onIconColorPausedChanged, onChannelOnPanelChanged, onMyStationsChanged, } = args;
     // all settings are saved to this object
@@ -1458,8 +1474,15 @@ function createApplet(args) {
 
 const { Icon: AppletIcon_Icon, IconType: AppletIcon_IconType } = imports.gi.St;
 const { IconType: IconTypeEnum } = imports.gi.St;
+const { panelManager } = imports.ui.main;
+const { getAppletDefinition } = imports.ui.appletManager;
 function createAppletIcon(args) {
-    const { panel, locationLabel } = args;
+    const { instanceId } = args;
+    const appletDefinition = getAppletDefinition({
+        applet_id: instanceId,
+    });
+    const locationLabel = appletDefinition.location_label;
+    const panel = panelManager.panels.find(panel => (panel === null || panel === void 0 ? void 0 : panel.panelId) === appletDefinition.panelId);
     let playbackStatus;
     const playbackStatusStyleMap = new Map([
         ['Stopped', ' '],
@@ -1518,13 +1541,13 @@ function createAppletIcon(args) {
             return;
         icon.set_style(style);
     }
+    panel.connect('icon-size-changed', () => updateIconSize());
     return {
         actor: icon,
         setPlaybackStatus,
         setColorWhenPlaying,
         setColorWhenPaused,
         setIconType,
-        updateIconSize
     };
 }
 
@@ -5211,21 +5234,14 @@ function initPolyfills() {
 
 
 const { ScrollDirection: src_ScrollDirection } = imports.gi.Clutter;
-const { getAppletDefinition } = imports.ui.appletManager;
-const { panelManager } = imports.ui.main;
+const { getAppletDefinition: src_getAppletDefinition } = imports.ui.appletManager;
+const { panelManager: src_panelManager } = imports.ui.main;
 const { BoxLayout: src_BoxLayout } = imports.gi.St;
 function main(args) {
     const { orientation, panelHeight, instanceId } = args;
     initPolyfills();
-    const appletDefinition = getAppletDefinition({
-        applet_id: instanceId,
-    });
-    const panel = panelManager.panels.find(panel => (panel === null || panel === void 0 ? void 0 : panel.panelId) === appletDefinition.panelId);
-    const appletIcon = createAppletIcon({
-        locationLabel: appletDefinition.location_label,
-        panel
-    });
-    panel.connect('icon-size-changed', () => appletIcon.updateIconSize());
+    const configNew = createConfigNew(instanceId);
+    const appletIcon = createAppletIcon({ instanceId });
     const appletLabel = createAppletLabel();
     const configs = createConfig({
         uuid: __meta.uuid,
@@ -5263,7 +5279,7 @@ function main(args) {
         applet,
         orientation
     });
-    const channelStore = new ChannelStore(configs.userStations);
+    const channelStore = new ChannelStore(configNew.userStations);
     const channelList = createChannelList({
         stationNames: channelStore.activatedChannelNames,
         onChannelClicked: handleChannelClicked
@@ -5370,15 +5386,15 @@ function main(args) {
             return;
         channelStore.channelList = stations;
         channelList.setStationNames(channelStore.activatedChannelNames);
-        const lastUrlValid = channelStore.checkUrlValid(configs.lastUrl);
+        const lastUrlValid = channelStore.checkUrlValid(configNew.lastUrl);
         if (!lastUrlValid)
             mpvHandler.stop();
     }
     function handlePlaybackstatusChanged(playbackstatus) {
         if (playbackstatus === 'Stopped') {
             radioActiveSection.hide();
-            configs.lastVolume = lastVolume;
-            configs.lastUrl = null;
+            configNew.lastVolume = lastVolume;
+            configNew.lastUrl = null;
             appletLabel.setText(null);
             appletTooltip.setDefaultTooltip();
             popupMenu.close();
@@ -5396,7 +5412,7 @@ function main(args) {
         appletLabel.setText(channelName);
         channelName && channelList.setCurrentChannel(channelName);
         channelName && infoSection.setChannel(channelName);
-        configs.lastUrl = url;
+        configNew.lastUrl = url;
     }
     function hanldeLengthChanged(length) {
         seeker.setLength(length);
@@ -5409,7 +5425,7 @@ function main(args) {
         if (!title)
             return;
         const downloadProcess = downloadSongFromYoutube({
-            downloadDir: configs.musicDownloadDir,
+            downloadDir: configNew.musicDownloadDir,
             title,
             onDownloadFinished: (path) => notifyYoutubeDownloadFinished({
                 downloadPath: path
