@@ -49,6 +49,7 @@ export function createMpvHandler(args: Arguments) {
 
     const control = new MixerControl({ name: __meta.name })
     let cvcStream: imports.gi.Cvc.MixerStream
+    let isLoading: boolean = false
 
     control.open()
     control.connect('stream-added', (ctrl, id) => {
@@ -70,28 +71,28 @@ export function createMpvHandler(args: Arguments) {
 
     let currentUrl = initialPlaybackStatus !== "Stopped" ? lastUrl : null
     let currentLength: number = getLength() // in seconds
-    let positionTimerId: ReturnType<typeof setInterval> | null
+    let positionTimerId: ReturnType<typeof setInterval> | null = null
 
     let bufferExceeded = false
 
-    let mediaPropsListenerId: number | null
-    let seekListenerId: number | null
+    let mediaPropsListenerId: number | null = null
+    let seekListenerId: number | null = null
 
     if (initialPlaybackStatus !== "Stopped") {
         activateMprisPropsListener();
-        activeSeekListener()
+        activateSeekListener()
 
-        currentUrl && onUrlChanged(currentUrl)
-        onPlaybackstatusChanged(initialPlaybackStatus)
+        //currentUrl && onUrlChanged(currentUrl)
+        //onPlaybackstatusChanged(initialPlaybackStatus)
 
-        const currentVolulume = getVolume()
-        currentVolulume && onVolumeChanged(currentVolulume)
+        //const currentVolulume = getVolume()
+        //currentVolulume && onVolumeChanged(currentVolulume)
 
-        const currentTitle = getCurrentTitle()
-        currentTitle && onTitleChanged(currentTitle)
+        //const currentTitle = getCurrentTitle()
+        //currentTitle && onTitleChanged(currentTitle)
 
-        onLengthChanged(currentLength)
-        onPositionChanged(getPosition())
+        //onLengthChanged(currentLength)
+        //onPositionChanged(getPosition())
 
         startPositionTimer()
     }
@@ -106,7 +107,7 @@ export function createMpvHandler(args: Arguments) {
 
         if (newOwner) {
             activateMprisPropsListener()
-            activeSeekListener()
+            activateSeekListener()
             pauseAllOtherMediaPlayers()
         }
 
@@ -154,7 +155,7 @@ export function createMpvHandler(args: Arguments) {
         )
     }
 
-    function activeSeekListener() {
+    function activateSeekListener() {
         seekListenerId = mediaServerPlayer.connectSignal('Seeked', (id, sender, value) => {
             handlePositionChanged(microSecondsToRoundedSeconds(value))
         })
@@ -173,10 +174,12 @@ export function createMpvHandler(args: Arguments) {
         currentLength = lengthInSeconds;
 
         if (startLoading) {
+            isLoading = true
             onPlaybackstatusChanged('Loading')
         }
 
         if (finishedLoading || bufferExceeded) {
+            isLoading = false
             const position = finishedLoading ? 0 : getPosition()
             handlePositionChanged(position)
             onPlaybackstatusChanged(getPlaybackStatus())
@@ -272,7 +275,6 @@ export function createMpvHandler(args: Arguments) {
         return microSecondsToRoundedSeconds(positionMicroSeconds)
     }
 
-
     function setUrl(url: string) {
 
         if (getPlaybackStatus() === 'Stopped') {
@@ -366,14 +368,15 @@ export function createMpvHandler(args: Arguments) {
         })
     }
 
-    function getPlaybackStatus(): PlaybackStatus {
+    function getPlaybackStatus(): AdvancedPlaybackStatus {
+
+        if (isLoading) return 'Loading'
 
         // this is necessary because when a user stops mpv and afterwards start vlc (or maybe also an other media player), mediaServerPlayer.PlaybackStatus wrongly returns "Playing"  
         const mpvRunning = dbus.ListNamesSync()[0].includes(MPV_MPRIS_BUS_NAME)
 
         return mpvRunning ? mediaServerPlayer.PlaybackStatus : 'Stopped'
     }
-
 
     function getVolume(): number | null {
 
@@ -388,7 +391,6 @@ export function createMpvHandler(args: Arguments) {
         const secondsRounded = Math.round(seconds)
         return secondsRounded
     }
-
 
     /** @param newPosition in seconds */
     function setPosition(newPosition: number) {
@@ -406,6 +408,7 @@ export function createMpvHandler(args: Arguments) {
         getCurrentTitle,
         setPosition,
         deactivateAllListener,
+        getPlaybackStatus,
         // it is very confusing but dbus must be returned!
         // Otherwilse all listeners stop working after about 20 seconds which is fucking difficult to debug
         dbus

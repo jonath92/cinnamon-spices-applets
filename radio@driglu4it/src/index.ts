@@ -48,21 +48,34 @@ export function main(args: Arguments): imports.ui.applet.Applet {
 
     initPolyfills()
 
-
     const {
         settingsObject: configNew,
         setIconTypeChangeHandler,
         setColorPlayingHandler,
         setColorWhenPausedHandler,
         setChannelOnPanelHandler, 
-        setStationsHandler
+        setStationsHandler, 
+        getInitialVolume
     } = createConfigNew(instanceId)
+
+    const mpvHandler = createMpvHandler({
+        getInitialVolume: getInitialVolume,
+        onVolumeChanged: handleVolumeChanged,
+        onLengthChanged: hanldeLengthChanged,
+        onPositionChanged: handlePositionChanged,
+        checkUrlValid: (url) => channelStore.checkUrlValid(url),
+        onTitleChanged: handleTitleChanged,
+        onPlaybackstatusChanged: handlePlaybackstatusChanged,
+        lastUrl: configNew.lastUrl,
+        onUrlChanged: handleUrlChanged
+    })
 
     const appletIcon = createAppletIcon({
         instanceId,
         iconType: configNew.iconType,
         colorWhenPlaying: configNew.symbolicIconColorWhenPlaying,
-        colorWhenPaused: configNew.symbolicIconColorWhenPaused
+        colorWhenPaused: configNew.symbolicIconColorWhenPaused, 
+        playbackstatus: mpvHandler.getPlaybackStatus()
     })
 
     const appletLabel = createAppletLabel({ visible: configNew.channelNameOnPanel })
@@ -86,7 +99,6 @@ export function main(args: Arguments): imports.ui.applet.Applet {
 
     // this is a workaround for now. Optimally the lastVolume should be saved persistently each time the volume is changed but this lead to significant performance issue on scrolling at the moment. However this shouldn't be the case as it is no problem to log the volume each time the volume changes (so it is a problem in the config implementation). As a workaround the volume is only saved persistently when the radio stops but the volume obviously can't be received anymore from dbus when the player has been already stopped ... 
     let lastVolume: number
-    let mpvHandler: ReturnType<typeof createMpvHandler>
 
     let installationInProgress = false
 
@@ -171,17 +183,7 @@ export function main(args: Arguments): imports.ui.applet.Applet {
     popupMenu.add_child(channelList.actor)
     popupMenu.add_child(radioActiveSection)
 
-    mpvHandler = createMpvHandler({
-        getInitialVolume: () => { return configs.initialVolume },
-        onVolumeChanged: handleVolumeChanged,
-        onLengthChanged: hanldeLengthChanged,
-        onPositionChanged: handlePositionChanged,
-        checkUrlValid: (url) => channelStore.checkUrlValid(url),
-        onTitleChanged: handleTitleChanged,
-        onPlaybackstatusChanged: handlePlaybackstatusChanged,
-        lastUrl: configs.lastUrl,
-        onUrlChanged: handleUrlChanged
-    })
+
 
     // CALLBACKS
 

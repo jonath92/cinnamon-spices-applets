@@ -54,8 +54,23 @@ export const createConfigNew = (instanceId: number) => {
     appletSettings.bind('music-download-dir-select', 'musicDownloadDir')
 
 
+    function getInitialVolume() {
+        const {
+            keepVolume,
+            lastVolume,
+            customInitVolume
+        } = settingsObject
+
+        let initialVolume = keepVolume ? lastVolume : customInitVolume
+
+        return initialVolume
+    }
+
+
     return {
         settingsObject,
+
+        getInitialVolume, 
 
         setIconTypeChangeHandler: (newIconTypeChangeHandler: ChangeHandler<AppletIcon>) => {
             iconTypeHandler = newIconTypeChangeHandler

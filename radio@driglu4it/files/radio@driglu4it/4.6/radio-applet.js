@@ -217,23 +217,26 @@ const createConfigNew = (instanceId) => {
     let colorPlayingHandler;
     let colorPausedHandler;
     let channelOnPanelHandler;
+    let keepVolumeHandler;
+    let stationsHandler;
     appletSettings.bind('icon-type', 'iconType', (...arg) => iconTypeHandler === null || iconTypeHandler === void 0 ? void 0 : iconTypeHandler(...arg));
     appletSettings.bind('color-on', 'symbolicIconColorWhenPlaying', (...arg) => colorPlayingHandler === null || colorPlayingHandler === void 0 ? void 0 : colorPlayingHandler(...arg));
     appletSettings.bind('color-paused', 'symbolicIconColorWhenPaused', (...arg) => colorPausedHandler === null || colorPausedHandler === void 0 ? void 0 : colorPausedHandler(...arg));
-    appletSettings.bind('channel-on-panel', 'channelNameOnPanel', (...arg) => {
-        global.log('channelOnPanel changed');
-        channelOnPanelHandler === null || channelOnPanelHandler === void 0 ? void 0 : channelOnPanelHandler(...arg);
-    });
-    appletSettings.bind('keep-volume-between-sessions', 'keepVolume', () => {
-        global.log('keep voluem changed');
-    });
+    appletSettings.bind('channel-on-panel', 'channelNameOnPanel', (...arg) => channelOnPanelHandler === null || channelOnPanelHandler === void 0 ? void 0 : channelOnPanelHandler(...arg));
+    appletSettings.bind('keep-volume-between-sessions', 'keepVolume', (...arg) => keepVolumeHandler === null || keepVolumeHandler === void 0 ? void 0 : keepVolumeHandler(...arg));
     appletSettings.bind('initial-volume', 'customInitVolume');
     appletSettings.bind('last-volume', 'lastVolume');
-    appletSettings.bind('tree', 'userStations');
+    appletSettings.bind('tree', 'userStations', (...arg) => stationsHandler === null || stationsHandler === void 0 ? void 0 : stationsHandler(...arg));
     appletSettings.bind('last-url', 'lastUrl');
     appletSettings.bind('music-download-dir-select', 'musicDownloadDir');
+    function getInitialVolume() {
+        const { keepVolume, lastVolume, customInitVolume } = settingsObject;
+        let initialVolume = keepVolume ? lastVolume : customInitVolume;
+        return initialVolume;
+    }
     return {
         settingsObject,
+        getInitialVolume,
         setIconTypeChangeHandler: (newIconTypeChangeHandler) => {
             iconTypeHandler = newIconTypeChangeHandler;
         },
@@ -245,6 +248,9 @@ const createConfigNew = (instanceId) => {
         },
         setChannelOnPanelHandler: (newChannelOnPanelHandler) => {
             channelOnPanelHandler = newChannelOnPanelHandler;
+        },
+        setStationsHandler: (newStationHandler) => {
+            stationsHandler = newStationHandler;
         }
         // setIcon
     };
@@ -630,6 +636,7 @@ function createMpvHandler(args) {
     const mediaProps = getDBusProperties(MPV_MPRIS_BUS_NAME, MEDIA_PLAYER_2_PATH);
     const control = new MixerControl({ name: __meta.name });
     let cvcStream;
+    let isLoading = false;
     control.open();
     control.connect('stream-added', (ctrl, id) => {
         const addedStream = control.lookup_stream_id(id);
@@ -644,21 +651,21 @@ function createMpvHandler(args) {
     const initialPlaybackStatus = !lastUrl ? 'Stopped' : getPlaybackStatus();
     let currentUrl = initialPlaybackStatus !== "Stopped" ? lastUrl : null;
     let currentLength = getLength(); // in seconds
-    let positionTimerId;
+    let positionTimerId = null;
     let bufferExceeded = false;
-    let mediaPropsListenerId;
-    let seekListenerId;
+    let mediaPropsListenerId = null;
+    let seekListenerId = null;
     if (initialPlaybackStatus !== "Stopped") {
         activateMprisPropsListener();
-        activeSeekListener();
-        currentUrl && onUrlChanged(currentUrl);
-        onPlaybackstatusChanged(initialPlaybackStatus);
-        const currentVolulume = getVolume();
-        currentVolulume && onVolumeChanged(currentVolulume);
-        const currentTitle = getCurrentTitle();
-        currentTitle && onTitleChanged(currentTitle);
-        onLengthChanged(currentLength);
-        onPositionChanged(getPosition());
+        activateSeekListener();
+        //currentUrl && onUrlChanged(currentUrl)
+        //onPlaybackstatusChanged(initialPlaybackStatus)
+        //const currentVolulume = getVolume()
+        //currentVolulume && onVolumeChanged(currentVolulume)
+        //const currentTitle = getCurrentTitle()
+        //currentTitle && onTitleChanged(currentTitle)
+        //onLengthChanged(currentLength)
+        //onPositionChanged(getPosition())
         startPositionTimer();
     }
     const nameOwnerSignalId = dbus.connectSignal('NameOwnerChanged', (...args) => {
@@ -669,7 +676,7 @@ function createMpvHandler(args) {
             return;
         if (newOwner) {
             activateMprisPropsListener();
-            activeSeekListener();
+            activateSeekListener();
             pauseAllOtherMediaPlayers();
         }
         if (oldOwner) {
@@ -710,7 +717,7 @@ function createMpvHandler(args) {
             title && onTitleChanged(title);
         });
     }
-    function activeSeekListener() {
+    function activateSeekListener() {
         seekListenerId = mediaServerPlayer.connectSignal('Seeked', (id, sender, value) => {
             handlePositionChanged(microSecondsToRoundedSeconds(value));
         });
@@ -723,9 +730,11 @@ function createMpvHandler(args) {
         const finishedLoading = length !== 0 && currentLength === 0;
         currentLength = lengthInSeconds;
         if (startLoading) {
+            isLoading = true;
             onPlaybackstatusChanged('Loading');
         }
         if (finishedLoading || bufferExceeded) {
+            isLoading = false;
             const position = finishedLoading ? 0 : getPosition();
             handlePositionChanged(position);
             onPlaybackstatusChanged(getPlaybackStatus());
@@ -868,6 +877,8 @@ function createMpvHandler(args) {
         });
     }
     function getPlaybackStatus() {
+        if (isLoading)
+            return 'Loading';
         // this is necessary because when a user stops mpv and afterwards start vlc (or maybe also an other media player), mediaServerPlayer.PlaybackStatus wrongly returns "Playing"  
         const mpvRunning = dbus.ListNamesSync()[0].includes(MPV_MPRIS_BUS_NAME);
         return mpvRunning ? mediaServerPlayer.PlaybackStatus : 'Stopped';
@@ -897,6 +908,7 @@ function createMpvHandler(args) {
         getCurrentTitle,
         setPosition,
         deactivateAllListener,
+        getPlaybackStatus,
         // it is very confusing but dbus must be returned!
         // Otherwilse all listeners stop working after about 20 seconds which is fucking difficult to debug
         dbus
@@ -1501,7 +1513,7 @@ const { IconType: IconTypeEnum } = imports.gi.St;
 const { panelManager } = imports.ui.main;
 const { getAppletDefinition } = imports.ui.appletManager;
 function createAppletIcon(args) {
-    const { instanceId, iconType, colorWhenPlaying, colorWhenPaused } = args;
+    const { instanceId, iconType, colorWhenPlaying, colorWhenPaused, playbackstatus } = args;
     const appletDefinition = getAppletDefinition({
         applet_id: instanceId,
     });
@@ -1569,6 +1581,7 @@ function createAppletIcon(args) {
     setIconType(iconType);
     setColorWhenPlaying(colorWhenPlaying);
     setColorWhenPaused(colorWhenPaused);
+    setPlaybackStatus(playbackstatus);
     return {
         actor: icon,
         setPlaybackStatus,
@@ -5269,12 +5282,24 @@ const { BoxLayout: src_BoxLayout } = imports.gi.St;
 function main(args) {
     const { orientation, panelHeight, instanceId } = args;
     initPolyfills();
-    const { settingsObject: configNew, setIconTypeChangeHandler, setColorPlayingHandler, setColorWhenPausedHandler, setChannelOnPanelHandler } = createConfigNew(instanceId);
+    const { settingsObject: configNew, setIconTypeChangeHandler, setColorPlayingHandler, setColorWhenPausedHandler, setChannelOnPanelHandler, setStationsHandler, getInitialVolume } = createConfigNew(instanceId);
+    const mpvHandler = createMpvHandler({
+        getInitialVolume: getInitialVolume,
+        onVolumeChanged: handleVolumeChanged,
+        onLengthChanged: hanldeLengthChanged,
+        onPositionChanged: handlePositionChanged,
+        checkUrlValid: (url) => channelStore.checkUrlValid(url),
+        onTitleChanged: handleTitleChanged,
+        onPlaybackstatusChanged: handlePlaybackstatusChanged,
+        lastUrl: configNew.lastUrl,
+        onUrlChanged: handleUrlChanged
+    });
     const appletIcon = createAppletIcon({
         instanceId,
         iconType: configNew.iconType,
         colorWhenPlaying: configNew.symbolicIconColorWhenPlaying,
-        colorWhenPaused: configNew.symbolicIconColorWhenPaused
+        colorWhenPaused: configNew.symbolicIconColorWhenPaused,
+        playbackstatus: mpvHandler.getPlaybackStatus()
     });
     const appletLabel = createAppletLabel({ visible: configNew.channelNameOnPanel });
     setIconTypeChangeHandler((...arg) => appletIcon.setIconType(...arg));
@@ -5292,7 +5317,6 @@ function main(args) {
     });
     // this is a workaround for now. Optimally the lastVolume should be saved persistently each time the volume is changed but this lead to significant performance issue on scrolling at the moment. However this shouldn't be the case as it is no problem to log the volume each time the volume changes (so it is a problem in the config implementation). As a workaround the volume is only saved persistently when the radio stops but the volume obviously can't be received anymore from dbus when the player has been already stopped ... 
     let lastVolume;
-    let mpvHandler;
     let installationInProgress = false;
     const applet = createApplet({
         icon: appletIcon.actor,
@@ -5358,17 +5382,6 @@ function main(args) {
     });
     popupMenu.add_child(channelList.actor);
     popupMenu.add_child(radioActiveSection);
-    mpvHandler = createMpvHandler({
-        getInitialVolume: () => { return configs.initialVolume; },
-        onVolumeChanged: handleVolumeChanged,
-        onLengthChanged: hanldeLengthChanged,
-        onPositionChanged: handlePositionChanged,
-        checkUrlValid: (url) => channelStore.checkUrlValid(url),
-        onTitleChanged: handleTitleChanged,
-        onPlaybackstatusChanged: handlePlaybackstatusChanged,
-        lastUrl: configs.lastUrl,
-        onUrlChanged: handleUrlChanged
-    });
     // CALLBACKS
     async function handleAppletClicked() {
         if (installationInProgress)
