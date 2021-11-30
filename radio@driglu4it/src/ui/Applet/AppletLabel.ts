@@ -3,12 +3,13 @@ const { EllipsizeMode } = imports.gi.Pango
 const { ActorAlign } = imports.gi.Clutter
 
 interface Props {
-    visible: boolean
+    visible: boolean, 
+    initialChannel: string | null
 }
 
 export function createAppletLabel(props: Props) {
 
-    const { visible: initialVisible } = props
+    const { visible: initialVisible, initialChannel } = props
 
     const label = new Label({
         reactive: true,
@@ -49,8 +50,8 @@ export function createAppletLabel(props: Props) {
         if (visible && text) setText(text)
     }
 
-
     setVisibility(initialVisible)
+    setText(initialChannel)
 
     return {
         actor: label,

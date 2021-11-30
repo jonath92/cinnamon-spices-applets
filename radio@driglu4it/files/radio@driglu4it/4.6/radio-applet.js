@@ -318,6 +318,8 @@ class ChannelStore {
     }
     // TODO: what is when two Channels have the same Name or Url? :O
     getChannelName(channelUrl) {
+        if (!channelUrl)
+            return null;
         const channel = this._channelList.find(cnl => cnl.url === channelUrl);
         return channel ? channel.name : null;
     }
@@ -909,6 +911,7 @@ function createMpvHandler(args) {
         setPosition,
         deactivateAllListener,
         getPlaybackStatus,
+        getCurrentUrl: () => currentUrl,
         // it is very confusing but dbus must be returned!
         // Otherwilse all listeners stop working after about 20 seconds which is fucking difficult to debug
         dbus
@@ -1596,7 +1599,7 @@ const { Label: AppletLabel_Label } = imports.gi.St;
 const { EllipsizeMode } = imports.gi.Pango;
 const { ActorAlign: AppletLabel_ActorAlign } = imports.gi.Clutter;
 function createAppletLabel(props) {
-    const { visible: initialVisible } = props;
+    const { visible: initialVisible, initialChannel } = props;
     const label = new AppletLabel_Label({
         reactive: true,
         track_hover: true,
@@ -1629,6 +1632,7 @@ function createAppletLabel(props) {
             setText(text);
     }
     setVisibility(initialVisible);
+    setText(initialChannel);
     return {
         actor: label,
         setVisibility,
@@ -5283,6 +5287,7 @@ function main(args) {
     const { orientation, panelHeight, instanceId } = args;
     initPolyfills();
     const { settingsObject: configNew, setIconTypeChangeHandler, setColorPlayingHandler, setColorWhenPausedHandler, setChannelOnPanelHandler, setStationsHandler, getInitialVolume } = createConfigNew(instanceId);
+    const channelStore = new ChannelStore(configNew.userStations);
     const mpvHandler = createMpvHandler({
         getInitialVolume: getInitialVolume,
         onVolumeChanged: handleVolumeChanged,
@@ -5301,7 +5306,10 @@ function main(args) {
         colorWhenPaused: configNew.symbolicIconColorWhenPaused,
         playbackstatus: mpvHandler.getPlaybackStatus()
     });
-    const appletLabel = createAppletLabel({ visible: configNew.channelNameOnPanel });
+    const appletLabel = createAppletLabel({
+        visible: configNew.channelNameOnPanel,
+        initialChannel: channelStore.getChannelName(mpvHandler.getCurrentUrl())
+    });
     setIconTypeChangeHandler((...arg) => appletIcon.setIconType(...arg));
     setColorPlayingHandler((...arg) => appletIcon.setColorWhenPlaying(...arg));
     setColorWhenPausedHandler((...arg) => appletIcon.setColorWhenPaused(...arg));
@@ -5335,7 +5343,6 @@ function main(args) {
         applet,
         orientation
     });
-    const channelStore = new ChannelStore(configNew.userStations);
     const channelList = createChannelList({
         stationNames: channelStore.activatedChannelNames,
         onChannelClicked: handleChannelClicked

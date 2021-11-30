@@ -58,6 +58,8 @@ export function main(args: Arguments): imports.ui.applet.Applet {
         getInitialVolume
     } = createConfigNew(instanceId)
 
+    const channelStore = new ChannelStore(configNew.userStations)
+
     const mpvHandler = createMpvHandler({
         getInitialVolume: getInitialVolume,
         onVolumeChanged: handleVolumeChanged,
@@ -78,7 +80,10 @@ export function main(args: Arguments): imports.ui.applet.Applet {
         playbackstatus: mpvHandler.getPlaybackStatus()
     })
 
-    const appletLabel = createAppletLabel({ visible: configNew.channelNameOnPanel })
+    const appletLabel = createAppletLabel({ 
+        visible: configNew.channelNameOnPanel, 
+        initialChannel: channelStore.getChannelName(mpvHandler.getCurrentUrl()) 
+    })
 
     setIconTypeChangeHandler((...arg) => appletIcon.setIconType(...arg))
     setColorPlayingHandler((...arg) => appletIcon.setColorWhenPlaying(...arg))
@@ -123,7 +128,6 @@ export function main(args: Arguments): imports.ui.applet.Applet {
 
 
 
-    const channelStore = new ChannelStore(configNew.userStations)
 
     const channelList = createChannelList({
         stationNames: channelStore.activatedChannelNames,
