@@ -26,25 +26,61 @@ interface Settings {
     musicDownloadDir: string
 }
 
-export const createConfigNew = (instanceId: number): Omit<Settings, 'initialVolume'> => {
+type ChangeHandler<T> = (newValue: T) => void
+
+export const createConfigNew = (instanceId: number) => {
 
     // all settings are saved to this object
     const settingsObject = {} as Omit<Settings, 'initialVolume'>
 
     const appletSettings = new AppletSettings(settingsObject, __meta.uuid, instanceId)
 
-    appletSettings.bind('icon-type', 'iconType')
-    appletSettings.bind('color-on', 'symbolicIconColorWhenPlaying')
-    appletSettings.bind('color-paused', 'symbolicIconColorWhenPaused')
-    appletSettings.bind('channel-on-panel', 'channelNameOnPanel')
-    appletSettings.bind('keep-volume-between-sessions', 'keepVolume')
+    let iconTypeHandler: ChangeHandler<AppletIcon> | undefined
+    let colorPlayingHandler: ChangeHandler<string> | undefined
+    let colorPausedHandler: ChangeHandler<string> | undefined
+    let channelOnPanelHandler: ChangeHandler<boolean> | undefined
+    let keepVolumeHandler: ChangeHandler<boolean> | undefined
+    let stationsHandler: ChangeHandler<Channel[]> | undefined
+
+    appletSettings.bind<AppletIcon>('icon-type', 'iconType', (...arg) => iconTypeHandler?.(...arg))
+    appletSettings.bind<string>('color-on', 'symbolicIconColorWhenPlaying', (...arg) => colorPlayingHandler?.(...arg))
+    appletSettings.bind<string>('color-paused', 'symbolicIconColorWhenPaused', (...arg) => colorPausedHandler?.(...arg))
+    appletSettings.bind<boolean>('channel-on-panel', 'channelNameOnPanel', (...arg) => channelOnPanelHandler?.(...arg))
+    appletSettings.bind<boolean>('keep-volume-between-sessions', 'keepVolume', (...arg) => keepVolumeHandler?.(...arg))
     appletSettings.bind('initial-volume', 'customInitVolume')
     appletSettings.bind('last-volume', 'lastVolume')
-    appletSettings.bind('tree', 'userStations')
+    appletSettings.bind<Channel[]>('tree', 'userStations', (...arg) => stationsHandler?.(...arg))
     appletSettings.bind('last-url', 'lastUrl')
     appletSettings.bind('music-download-dir-select', 'musicDownloadDir')
 
-    return settingsObject
+
+    return {
+        settingsObject,
+
+        setIconTypeChangeHandler: (newIconTypeChangeHandler: ChangeHandler<AppletIcon>) => {
+            iconTypeHandler = newIconTypeChangeHandler
+        },
+
+        setColorPlayingHandler: (newColorPlayingHandler: ChangeHandler<string>) => {
+            colorPlayingHandler = newColorPlayingHandler
+        },
+
+        setColorWhenPausedHandler: (newColorPausedHandler: ChangeHandler<string>) => {
+            colorPausedHandler = newColorPausedHandler
+        }, 
+
+        setChannelOnPanelHandler: (newChannelOnPanelHandler: ChangeHandler<boolean>) => {
+            channelOnPanelHandler = newChannelOnPanelHandler
+        }, 
+
+        setStationsHandler: (newStationHandler: ChangeHandler<Channel[]>) => {
+            stationsHandler = newStationHandler
+        }
+
+
+        // setIcon
+
+    }
 
 }
 

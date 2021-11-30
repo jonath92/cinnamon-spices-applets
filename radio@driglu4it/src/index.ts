@@ -49,25 +49,37 @@ export function main(args: Arguments): imports.ui.applet.Applet {
     initPolyfills()
 
 
-    const configNew = createConfigNew(instanceId)
-    const appletIcon = createAppletIcon({instanceId})
-    const appletLabel = createAppletLabel()
+    const {
+        settingsObject: configNew,
+        setIconTypeChangeHandler,
+        setColorPlayingHandler,
+        setColorWhenPausedHandler,
+        setChannelOnPanelHandler, 
+        setStationsHandler
+    } = createConfigNew(instanceId)
+
+    const appletIcon = createAppletIcon({
+        instanceId,
+        iconType: configNew.iconType,
+        colorWhenPlaying: configNew.symbolicIconColorWhenPlaying,
+        colorWhenPaused: configNew.symbolicIconColorWhenPaused
+    })
+
+    const appletLabel = createAppletLabel({ visible: configNew.channelNameOnPanel })
+
+    setIconTypeChangeHandler((...arg) => appletIcon.setIconType(...arg))
+    setColorPlayingHandler((...arg) => appletIcon.setColorWhenPlaying(...arg))
+    setColorWhenPausedHandler((...arg) => appletIcon.setColorWhenPaused(...arg))
+    setChannelOnPanelHandler((...arg) => appletLabel.setVisibility(...arg))
 
 
     const configs = createConfig({
         uuid: __meta.uuid,
         instanceId,
-
-        onIconChanged: handleIconTypeChanged,
-        onIconColorPlayingChanged: (color) => {
-            appletIcon.setColorWhenPlaying(color)
-        },
-        onIconColorPausedChanged: (color) => {
-            appletIcon.setColorWhenPaused(color)
-        },
-        onChannelOnPanelChanged: (channelOnPanel) => {
-            appletLabel.setVisibility(channelOnPanel)
-        },
+        onIconChanged: () => { },
+        onIconColorPlayingChanged: () => { },
+        onIconColorPausedChanged: () => { },
+        onChannelOnPanelChanged: () => {},
         onMyStationsChanged: handleStationsUpdated,
     })
 

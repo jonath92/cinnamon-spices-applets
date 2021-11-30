@@ -213,17 +213,41 @@ const createConfigNew = (instanceId) => {
     // all settings are saved to this object
     const settingsObject = {};
     const appletSettings = new AppletSettings(settingsObject, __meta.uuid, instanceId);
-    appletSettings.bind('icon-type', 'iconType');
-    appletSettings.bind('color-on', 'symbolicIconColorWhenPlaying');
-    appletSettings.bind('color-paused', 'symbolicIconColorWhenPaused');
-    appletSettings.bind('channel-on-panel', 'channelNameOnPanel');
-    appletSettings.bind('keep-volume-between-sessions', 'keepVolume');
+    let iconTypeHandler;
+    let colorPlayingHandler;
+    let colorPausedHandler;
+    let channelOnPanelHandler;
+    appletSettings.bind('icon-type', 'iconType', (...arg) => iconTypeHandler === null || iconTypeHandler === void 0 ? void 0 : iconTypeHandler(...arg));
+    appletSettings.bind('color-on', 'symbolicIconColorWhenPlaying', (...arg) => colorPlayingHandler === null || colorPlayingHandler === void 0 ? void 0 : colorPlayingHandler(...arg));
+    appletSettings.bind('color-paused', 'symbolicIconColorWhenPaused', (...arg) => colorPausedHandler === null || colorPausedHandler === void 0 ? void 0 : colorPausedHandler(...arg));
+    appletSettings.bind('channel-on-panel', 'channelNameOnPanel', (...arg) => {
+        global.log('channelOnPanel changed');
+        channelOnPanelHandler === null || channelOnPanelHandler === void 0 ? void 0 : channelOnPanelHandler(...arg);
+    });
+    appletSettings.bind('keep-volume-between-sessions', 'keepVolume', () => {
+        global.log('keep voluem changed');
+    });
     appletSettings.bind('initial-volume', 'customInitVolume');
     appletSettings.bind('last-volume', 'lastVolume');
     appletSettings.bind('tree', 'userStations');
     appletSettings.bind('last-url', 'lastUrl');
     appletSettings.bind('music-download-dir-select', 'musicDownloadDir');
-    return settingsObject;
+    return {
+        settingsObject,
+        setIconTypeChangeHandler: (newIconTypeChangeHandler) => {
+            iconTypeHandler = newIconTypeChangeHandler;
+        },
+        setColorPlayingHandler: (newColorPlayingHandler) => {
+            colorPlayingHandler = newColorPlayingHandler;
+        },
+        setColorWhenPausedHandler: (newColorPausedHandler) => {
+            colorPausedHandler = newColorPausedHandler;
+        },
+        setChannelOnPanelHandler: (newChannelOnPanelHandler) => {
+            channelOnPanelHandler = newChannelOnPanelHandler;
+        }
+        // setIcon
+    };
 };
 const createConfig = (args) => {
     const { uuid, instanceId, onIconChanged, onIconColorPlayingChanged, onIconColorPausedChanged, onChannelOnPanelChanged, onMyStationsChanged, } = args;
@@ -1477,7 +1501,7 @@ const { IconType: IconTypeEnum } = imports.gi.St;
 const { panelManager } = imports.ui.main;
 const { getAppletDefinition } = imports.ui.appletManager;
 function createAppletIcon(args) {
-    const { instanceId } = args;
+    const { instanceId, iconType, colorWhenPlaying, colorWhenPaused } = args;
     const appletDefinition = getAppletDefinition({
         applet_id: instanceId,
     });
@@ -1542,6 +1566,9 @@ function createAppletIcon(args) {
         icon.set_style(style);
     }
     panel.connect('icon-size-changed', () => updateIconSize());
+    setIconType(iconType);
+    setColorWhenPlaying(colorWhenPlaying);
+    setColorWhenPaused(colorWhenPaused);
     return {
         actor: icon,
         setPlaybackStatus,
@@ -1555,7 +1582,8 @@ function createAppletIcon(args) {
 const { Label: AppletLabel_Label } = imports.gi.St;
 const { EllipsizeMode } = imports.gi.Pango;
 const { ActorAlign: AppletLabel_ActorAlign } = imports.gi.Clutter;
-function createAppletLabel() {
+function createAppletLabel(props) {
+    const { visible: initialVisible } = props;
     const label = new AppletLabel_Label({
         reactive: true,
         track_hover: true,
@@ -1587,6 +1615,7 @@ function createAppletLabel() {
         if (visible && text)
             setText(text);
     }
+    setVisibility(initialVisible);
     return {
         actor: label,
         setVisibility,
@@ -5240,22 +5269,25 @@ const { BoxLayout: src_BoxLayout } = imports.gi.St;
 function main(args) {
     const { orientation, panelHeight, instanceId } = args;
     initPolyfills();
-    const configNew = createConfigNew(instanceId);
-    const appletIcon = createAppletIcon({ instanceId });
-    const appletLabel = createAppletLabel();
+    const { settingsObject: configNew, setIconTypeChangeHandler, setColorPlayingHandler, setColorWhenPausedHandler, setChannelOnPanelHandler } = createConfigNew(instanceId);
+    const appletIcon = createAppletIcon({
+        instanceId,
+        iconType: configNew.iconType,
+        colorWhenPlaying: configNew.symbolicIconColorWhenPlaying,
+        colorWhenPaused: configNew.symbolicIconColorWhenPaused
+    });
+    const appletLabel = createAppletLabel({ visible: configNew.channelNameOnPanel });
+    setIconTypeChangeHandler((...arg) => appletIcon.setIconType(...arg));
+    setColorPlayingHandler((...arg) => appletIcon.setColorWhenPlaying(...arg));
+    setColorWhenPausedHandler((...arg) => appletIcon.setColorWhenPaused(...arg));
+    setChannelOnPanelHandler((...arg) => appletLabel.setVisibility(...arg));
     const configs = createConfig({
         uuid: __meta.uuid,
         instanceId,
-        onIconChanged: handleIconTypeChanged,
-        onIconColorPlayingChanged: (color) => {
-            appletIcon.setColorWhenPlaying(color);
-        },
-        onIconColorPausedChanged: (color) => {
-            appletIcon.setColorWhenPaused(color);
-        },
-        onChannelOnPanelChanged: (channelOnPanel) => {
-            appletLabel.setVisibility(channelOnPanel);
-        },
+        onIconChanged: () => { },
+        onIconColorPlayingChanged: () => { },
+        onIconColorPausedChanged: () => { },
+        onChannelOnPanelChanged: () => { },
         onMyStationsChanged: handleStationsUpdated,
     });
     // this is a workaround for now. Optimally the lastVolume should be saved persistently each time the volume is changed but this lead to significant performance issue on scrolling at the moment. However this shouldn't be the case as it is no problem to log the volume each time the volume changes (so it is a problem in the config implementation). As a workaround the volume is only saved persistently when the radio stops but the volume obviously can't be received anymore from dbus when the player has been already stopped ... 

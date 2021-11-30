@@ -7,13 +7,20 @@ const { panelManager } = imports.ui.main
 const { getAppletDefinition } = imports.ui.appletManager;
 
 interface Arguments {
-    instanceId: number
+    instanceId: number, 
+    iconType: AppletIcon, 
+    // only applied when iconType == Symbolic
+    colorWhenPlaying: string, 
+    colorWhenPaused: string
 }
 
 export function createAppletIcon(args: Arguments) {
 
     const {
-        instanceId
+        instanceId, 
+        iconType, 
+        colorWhenPlaying, 
+        colorWhenPaused
     } = args
 
     const appletDefinition = getAppletDefinition({
@@ -104,6 +111,10 @@ export function createAppletIcon(args: Arguments) {
     }
 
     panel.connect('icon-size-changed', () => updateIconSize())
+    setIconType(iconType)
+    setColorWhenPlaying(colorWhenPlaying)
+    setColorWhenPaused(colorWhenPaused)
+    
 
     return {
         actor: icon,
