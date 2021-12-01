@@ -213,13 +213,13 @@ const createConfigNew = (instanceId) => {
     // all settings are saved to this object
     const settingsObject = {};
     const appletSettings = new AppletSettings(settingsObject, __meta.uuid, instanceId);
-    let iconTypeHandler;
+    const iconTypeChangeHandler = [];
     let colorPlayingHandler;
     let colorPausedHandler;
     let channelOnPanelHandler;
     let keepVolumeHandler;
     let stationsHandler;
-    appletSettings.bind('icon-type', 'iconType', (...arg) => iconTypeHandler === null || iconTypeHandler === void 0 ? void 0 : iconTypeHandler(...arg));
+    appletSettings.bind('icon-type', 'iconType', (...arg) => iconTypeChangeHandler.forEach(changeHandler => changeHandler(...arg)));
     appletSettings.bind('color-on', 'symbolicIconColorWhenPlaying', (...arg) => colorPlayingHandler === null || colorPlayingHandler === void 0 ? void 0 : colorPlayingHandler(...arg));
     appletSettings.bind('color-paused', 'symbolicIconColorWhenPaused', (...arg) => colorPausedHandler === null || colorPausedHandler === void 0 ? void 0 : colorPausedHandler(...arg));
     appletSettings.bind('channel-on-panel', 'channelNameOnPanel', (...arg) => channelOnPanelHandler === null || channelOnPanelHandler === void 0 ? void 0 : channelOnPanelHandler(...arg));
@@ -237,8 +237,8 @@ const createConfigNew = (instanceId) => {
     return {
         settingsObject,
         getInitialVolume,
-        setIconTypeChangeHandler: (newIconTypeChangeHandler) => {
-            iconTypeHandler = newIconTypeChangeHandler;
+        addIconTypeChangeHandler: (newIconTypeChangeHandler) => {
+            iconTypeChangeHandler.push(newIconTypeChangeHandler);
         },
         setColorPlayingChangeHandler: (newColorPlayingHandler) => {
             colorPlayingHandler = newColorPlayingHandler;
@@ -5291,7 +5291,7 @@ function main(args) {
     // this is a workaround for now. Optimally the lastVolume should be saved persistently each time the volume is changed but this lead to significant performance issue on scrolling at the moment. However this shouldn't be the case as it is no problem to log the volume each time the volume changes (so it is a problem in the config implementation). As a workaround the volume is only saved persistently when the radio stops but the volume obviously can't be received anymore from dbus when the player has been already stopped ... 
     let lastVolume;
     let installationInProgress = false;
-    const { settingsObject: configNew, setIconTypeChangeHandler, setColorPlayingChangeHandler: setColorPlayingHandler, setColorWhenPausedChangeHandler: setColorWhenPausedHandler, setChannelOnPanelChangeHandler: setChannelOnPanelHandler, setStationsListChangeHandler: setStationsHandler, getInitialVolume } = createConfigNew(instanceId);
+    const { settingsObject: configNew, addIconTypeChangeHandler, setColorPlayingChangeHandler: setColorPlayingHandler, setColorWhenPausedChangeHandler: setColorWhenPausedHandler, setChannelOnPanelChangeHandler: setChannelOnPanelHandler, setStationsListChangeHandler: setStationsHandler, getInitialVolume } = createConfigNew(instanceId);
     const channelStore = new ChannelStore(configNew.userStations);
     const mpvHandler = createMpvHandler({
         getInitialVolume: getInitialVolume,
@@ -5331,19 +5331,10 @@ function main(args) {
         onRightClick: () => popupMenu === null || popupMenu === void 0 ? void 0 : popupMenu.close()
     });
     const popupMenu = (0,cinnamonpopup/* createPopupMenu */.S)({ launcher: applet.actor });
-    setIconTypeChangeHandler((...arg) => appletIcon.setIconType(...arg));
+    addIconTypeChangeHandler((...arg) => appletIcon.setIconType(...arg));
     setColorPlayingHandler((...arg) => appletIcon.setColorWhenPlaying(...arg));
     setColorWhenPausedHandler((...arg) => appletIcon.setColorWhenPaused(...arg));
     setChannelOnPanelHandler((...arg) => appletLabel.setVisibility(...arg));
-    const configs = createConfig({
-        uuid: __meta.uuid,
-        instanceId,
-        onIconChanged: () => { },
-        onIconColorPlayingChanged: () => { },
-        onIconColorPausedChanged: () => { },
-        onChannelOnPanelChanged: () => { },
-        onMyStationsChanged: () => { },
-    });
     const appletTooltip = createAppletTooltip({
         applet,
         orientation,
@@ -5355,6 +5346,7 @@ function main(args) {
         initialChannelName,
         initialPlaybackStatus
     });
+    setStationsHandler(handleStationsUpdated);
     const volumeSlider = createVolumeSlider({
         onVolumeChanged: (volume) => mpvHandler === null || mpvHandler === void 0 ? void 0 : mpvHandler.setVolume(volume)
     });

@@ -35,14 +35,15 @@ export const createConfigNew = (instanceId: number) => {
 
     const appletSettings = new AppletSettings(settingsObject, __meta.uuid, instanceId)
 
-    let iconTypeHandler: ChangeHandler<AppletIcon> | undefined
+    const iconTypeChangeHandler: ChangeHandler<AppletIcon> [] = []
+
     let colorPlayingHandler: ChangeHandler<string> | undefined
     let colorPausedHandler: ChangeHandler<string> | undefined
     let channelOnPanelHandler: ChangeHandler<boolean> | undefined
     let keepVolumeHandler: ChangeHandler<boolean> | undefined
     let stationsHandler: ChangeHandler<Channel[]> | undefined
 
-    appletSettings.bind<AppletIcon>('icon-type', 'iconType', (...arg) => iconTypeHandler?.(...arg))
+    appletSettings.bind<AppletIcon>('icon-type', 'iconType', (...arg) => iconTypeChangeHandler.forEach(changeHandler => changeHandler(...arg)))
     appletSettings.bind<string>('color-on', 'symbolicIconColorWhenPlaying', (...arg) => colorPlayingHandler?.(...arg))
     appletSettings.bind<string>('color-paused', 'symbolicIconColorWhenPaused', (...arg) => colorPausedHandler?.(...arg))
     appletSettings.bind<boolean>('channel-on-panel', 'channelNameOnPanel', (...arg) => channelOnPanelHandler?.(...arg))
@@ -72,8 +73,8 @@ export const createConfigNew = (instanceId: number) => {
 
         getInitialVolume, 
 
-        setIconTypeChangeHandler: (newIconTypeChangeHandler: ChangeHandler<AppletIcon>) => {
-            iconTypeHandler = newIconTypeChangeHandler
+        addIconTypeChangeHandler: (newIconTypeChangeHandler: ChangeHandler<AppletIcon>) => {
+            iconTypeChangeHandler.push(newIconTypeChangeHandler)
         },
 
         setColorPlayingChangeHandler: (newColorPlayingHandler: ChangeHandler<string>) => {

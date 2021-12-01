@@ -52,7 +52,7 @@ export function main(args: Arguments): imports.ui.applet.Applet {
 
     const {
         settingsObject: configNew,
-        setIconTypeChangeHandler,
+        addIconTypeChangeHandler,
         setColorPlayingChangeHandler: setColorPlayingHandler,
         setColorWhenPausedChangeHandler: setColorWhenPausedHandler,
         setChannelOnPanelChangeHandler: setChannelOnPanelHandler,
@@ -107,21 +107,11 @@ export function main(args: Arguments): imports.ui.applet.Applet {
     const popupMenu = createPopupMenu({ launcher: applet.actor })
 
 
-    setIconTypeChangeHandler((...arg) => appletIcon.setIconType(...arg))
+    addIconTypeChangeHandler((...arg) => appletIcon.setIconType(...arg))
+    
     setColorPlayingHandler((...arg) => appletIcon.setColorWhenPlaying(...arg))
     setColorWhenPausedHandler((...arg) => appletIcon.setColorWhenPaused(...arg))
     setChannelOnPanelHandler((...arg) => appletLabel.setVisibility(...arg))
-
-
-    const configs = createConfig({
-        uuid: __meta.uuid,
-        instanceId,
-        onIconChanged: () => { },
-        onIconColorPlayingChanged: () => { },
-        onIconColorPausedChanged: () => { },
-        onChannelOnPanelChanged: () => { },
-        onMyStationsChanged: () => {},
-    })
 
     const appletTooltip = createAppletTooltip({
         applet,
@@ -136,6 +126,8 @@ export function main(args: Arguments): imports.ui.applet.Applet {
         initialChannelName, 
         initialPlaybackStatus
     })
+
+    setStationsHandler(handleStationsUpdated)
 
     const volumeSlider = createVolumeSlider({
         onVolumeChanged: (volume) => mpvHandler?.setVolume(volume)
