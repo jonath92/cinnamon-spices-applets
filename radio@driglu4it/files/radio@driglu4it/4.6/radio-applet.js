@@ -240,16 +240,16 @@ const createConfigNew = (instanceId) => {
         setIconTypeChangeHandler: (newIconTypeChangeHandler) => {
             iconTypeHandler = newIconTypeChangeHandler;
         },
-        setColorPlayingHandler: (newColorPlayingHandler) => {
+        setColorPlayingChangeHandler: (newColorPlayingHandler) => {
             colorPlayingHandler = newColorPlayingHandler;
         },
-        setColorWhenPausedHandler: (newColorPausedHandler) => {
+        setColorWhenPausedChangeHandler: (newColorPausedHandler) => {
             colorPausedHandler = newColorPausedHandler;
         },
-        setChannelOnPanelHandler: (newChannelOnPanelHandler) => {
+        setChannelOnPanelChangeHandler: (newChannelOnPanelHandler) => {
             channelOnPanelHandler = newChannelOnPanelHandler;
         },
-        setStationsHandler: (newStationHandler) => {
+        setStationsListChangeHandler: (newStationHandler) => {
             stationsHandler = newStationHandler;
         }
         // setIcon
@@ -911,6 +911,7 @@ function createMpvHandler(args) {
         setPosition,
         deactivateAllListener,
         getPlaybackStatus,
+        getVolume,
         getCurrentUrl: () => currentUrl,
         // it is very confusing but dbus must be returned!
         // Otherwilse all listeners stop working after about 20 seconds which is fucking difficult to debug
@@ -1644,16 +1645,16 @@ function createAppletLabel(props) {
 
 const { PanelItemTooltip } = imports.ui.tooltips;
 function createAppletTooltip(args) {
-    const { orientation, applet } = args;
+    const { orientation, applet, initialVolume } = args;
     // @ts-ignore
     const tooltip = new PanelItemTooltip(applet, null, orientation);
-    setDefaultTooltip();
     function setVolume(volume) {
         tooltip.set_text(`Volume: ${volume.toString()} %`);
     }
     function setDefaultTooltip() {
         tooltip.set_text(DEFAULT_TOOLTIP_TXT);
     }
+    initialVolume ? setVolume(initialVolume) : setDefaultTooltip();
     return {
         setVolume,
         setDefaultTooltip
@@ -5286,7 +5287,10 @@ const { BoxLayout: src_BoxLayout } = imports.gi.St;
 function main(args) {
     const { orientation, panelHeight, instanceId } = args;
     initPolyfills();
-    const { settingsObject: configNew, setIconTypeChangeHandler, setColorPlayingHandler, setColorWhenPausedHandler, setChannelOnPanelHandler, setStationsHandler, getInitialVolume } = createConfigNew(instanceId);
+    // this is a workaround for now. Optimally the lastVolume should be saved persistently each time the volume is changed but this lead to significant performance issue on scrolling at the moment. However this shouldn't be the case as it is no problem to log the volume each time the volume changes (so it is a problem in the config implementation). As a workaround the volume is only saved persistently when the radio stops but the volume obviously can't be received anymore from dbus when the player has been already stopped ... 
+    let lastVolume;
+    let installationInProgress = false;
+    const { settingsObject: configNew, setIconTypeChangeHandler, setColorPlayingChangeHandler: setColorPlayingHandler, setColorWhenPausedChangeHandler: setColorWhenPausedHandler, setChannelOnPanelChangeHandler: setChannelOnPanelHandler, setStationsListChangeHandler: setStationsHandler, getInitialVolume } = createConfigNew(instanceId);
     const channelStore = new ChannelStore(configNew.userStations);
     const mpvHandler = createMpvHandler({
         getInitialVolume: getInitialVolume,
@@ -5310,6 +5314,20 @@ function main(args) {
         visible: configNew.channelNameOnPanel,
         initialChannel: channelStore.getChannelName(mpvHandler.getCurrentUrl())
     });
+    const applet = createApplet({
+        icon: appletIcon.actor,
+        label: appletLabel.actor,
+        instanceId,
+        orientation,
+        panelHeight,
+        onClick: handleAppletClicked,
+        onScroll: handleScroll,
+        onMiddleClick: () => mpvHandler.togglePlayPause(),
+        onAppletMoved: () => mpvHandler.deactivateAllListener(),
+        onAppletRemoved: handleAppletRemoved,
+        onRightClick: () => popupMenu === null || popupMenu === void 0 ? void 0 : popupMenu.close()
+    });
+    const popupMenu = (0,cinnamonpopup/* createPopupMenu */.S)({ launcher: applet.actor });
     setIconTypeChangeHandler((...arg) => appletIcon.setIconType(...arg));
     setColorPlayingHandler((...arg) => appletIcon.setColorWhenPlaying(...arg));
     setColorWhenPausedHandler((...arg) => appletIcon.setColorWhenPaused(...arg));
@@ -5323,25 +5341,10 @@ function main(args) {
         onChannelOnPanelChanged: () => { },
         onMyStationsChanged: handleStationsUpdated,
     });
-    // this is a workaround for now. Optimally the lastVolume should be saved persistently each time the volume is changed but this lead to significant performance issue on scrolling at the moment. However this shouldn't be the case as it is no problem to log the volume each time the volume changes (so it is a problem in the config implementation). As a workaround the volume is only saved persistently when the radio stops but the volume obviously can't be received anymore from dbus when the player has been already stopped ... 
-    let lastVolume;
-    let installationInProgress = false;
-    const applet = createApplet({
-        icon: appletIcon.actor,
-        label: appletLabel.actor,
-        instanceId,
-        orientation,
-        panelHeight,
-        onClick: handleAppletClicked,
-        onScroll: handleScroll,
-        onMiddleClick: () => mpvHandler === null || mpvHandler === void 0 ? void 0 : mpvHandler.togglePlayPause(),
-        onAppletMoved: () => mpvHandler === null || mpvHandler === void 0 ? void 0 : mpvHandler.deactivateAllListener(),
-        onAppletRemoved: handleAppletRemoved,
-        onRightClick: () => popupMenu === null || popupMenu === void 0 ? void 0 : popupMenu.close()
-    });
     const appletTooltip = createAppletTooltip({
         applet,
-        orientation
+        orientation,
+        initialVolume: mpvHandler.getVolume()
     });
     const channelList = createChannelList({
         stationNames: channelStore.activatedChannelNames,
@@ -5350,7 +5353,6 @@ function main(args) {
     const volumeSlider = createVolumeSlider({
         onVolumeChanged: (volume) => mpvHandler === null || mpvHandler === void 0 ? void 0 : mpvHandler.setVolume(volume)
     });
-    const popupMenu = (0,cinnamonpopup/* createPopupMenu */.S)({ launcher: applet.actor });
     const infoSection = createInfoSection();
     //toolbar
     const playPauseBtn = createPlayPauseButton({

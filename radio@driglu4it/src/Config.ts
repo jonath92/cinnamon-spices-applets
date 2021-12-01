@@ -76,19 +76,19 @@ export const createConfigNew = (instanceId: number) => {
             iconTypeHandler = newIconTypeChangeHandler
         },
 
-        setColorPlayingHandler: (newColorPlayingHandler: ChangeHandler<string>) => {
+        setColorPlayingChangeHandler: (newColorPlayingHandler: ChangeHandler<string>) => {
             colorPlayingHandler = newColorPlayingHandler
         },
 
-        setColorWhenPausedHandler: (newColorPausedHandler: ChangeHandler<string>) => {
+        setColorWhenPausedChangeHandler: (newColorPausedHandler: ChangeHandler<string>) => {
             colorPausedHandler = newColorPausedHandler
         }, 
 
-        setChannelOnPanelHandler: (newChannelOnPanelHandler: ChangeHandler<boolean>) => {
+        setChannelOnPanelChangeHandler: (newChannelOnPanelHandler: ChangeHandler<boolean>) => {
             channelOnPanelHandler = newChannelOnPanelHandler
         }, 
 
-        setStationsHandler: (newStationHandler: ChangeHandler<Channel[]>) => {
+        setStationsListChangeHandler: (newStationHandler: ChangeHandler<Channel[]>) => {
             stationsHandler = newStationHandler
         }
 

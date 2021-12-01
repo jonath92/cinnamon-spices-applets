@@ -48,13 +48,18 @@ export function main(args: Arguments): imports.ui.applet.Applet {
 
     initPolyfills()
 
+    // this is a workaround for now. Optimally the lastVolume should be saved persistently each time the volume is changed but this lead to significant performance issue on scrolling at the moment. However this shouldn't be the case as it is no problem to log the volume each time the volume changes (so it is a problem in the config implementation). As a workaround the volume is only saved persistently when the radio stops but the volume obviously can't be received anymore from dbus when the player has been already stopped ... 
+    let lastVolume: number
+
+    let installationInProgress = false
+
     const {
         settingsObject: configNew,
         setIconTypeChangeHandler,
-        setColorPlayingHandler,
-        setColorWhenPausedHandler,
-        setChannelOnPanelHandler, 
-        setStationsHandler, 
+        setColorPlayingChangeHandler: setColorPlayingHandler,
+        setColorWhenPausedChangeHandler: setColorWhenPausedHandler,
+        setChannelOnPanelChangeHandler: setChannelOnPanelHandler,
+        setStationsListChangeHandler: setStationsHandler,
         getInitialVolume
     } = createConfigNew(instanceId)
 
@@ -76,14 +81,31 @@ export function main(args: Arguments): imports.ui.applet.Applet {
         instanceId,
         iconType: configNew.iconType,
         colorWhenPlaying: configNew.symbolicIconColorWhenPlaying,
-        colorWhenPaused: configNew.symbolicIconColorWhenPaused, 
+        colorWhenPaused: configNew.symbolicIconColorWhenPaused,
         playbackstatus: mpvHandler.getPlaybackStatus()
     })
 
-    const appletLabel = createAppletLabel({ 
-        visible: configNew.channelNameOnPanel, 
-        initialChannel: channelStore.getChannelName(mpvHandler.getCurrentUrl()) 
+    const appletLabel = createAppletLabel({
+        visible: configNew.channelNameOnPanel,
+        initialChannel: channelStore.getChannelName(mpvHandler.getCurrentUrl())
     })
+
+    const applet = createApplet({
+        icon: appletIcon.actor,
+        label: appletLabel.actor,
+        instanceId,
+        orientation,
+        panelHeight,
+        onClick: handleAppletClicked,
+        onScroll: handleScroll,
+        onMiddleClick: () => mpvHandler.togglePlayPause(),
+        onAppletMoved: () => mpvHandler.deactivateAllListener(),
+        onAppletRemoved: handleAppletRemoved,
+        onRightClick: () => popupMenu?.close()
+    })
+
+    const popupMenu = createPopupMenu({ launcher: applet.actor })
+
 
     setIconTypeChangeHandler((...arg) => appletIcon.setIconType(...arg))
     setColorPlayingHandler((...arg) => appletIcon.setColorWhenPlaying(...arg))
@@ -97,33 +119,16 @@ export function main(args: Arguments): imports.ui.applet.Applet {
         onIconChanged: () => { },
         onIconColorPlayingChanged: () => { },
         onIconColorPausedChanged: () => { },
-        onChannelOnPanelChanged: () => {},
+        onChannelOnPanelChanged: () => { },
         onMyStationsChanged: handleStationsUpdated,
     })
 
 
-    // this is a workaround for now. Optimally the lastVolume should be saved persistently each time the volume is changed but this lead to significant performance issue on scrolling at the moment. However this shouldn't be the case as it is no problem to log the volume each time the volume changes (so it is a problem in the config implementation). As a workaround the volume is only saved persistently when the radio stops but the volume obviously can't be received anymore from dbus when the player has been already stopped ... 
-    let lastVolume: number
-
-    let installationInProgress = false
-
-    const applet = createApplet({
-        icon: appletIcon.actor,
-        label: appletLabel.actor,
-        instanceId,
-        orientation,
-        panelHeight,
-        onClick: handleAppletClicked,
-        onScroll: handleScroll,
-        onMiddleClick: () => mpvHandler?.togglePlayPause(),
-        onAppletMoved: () => mpvHandler?.deactivateAllListener(),
-        onAppletRemoved: handleAppletRemoved,
-        onRightClick: () => popupMenu?.close()
-    })
 
     const appletTooltip = createAppletTooltip({
         applet,
-        orientation
+        orientation, 
+        initialVolume: mpvHandler.getVolume()
     })
 
 
@@ -138,7 +143,6 @@ export function main(args: Arguments): imports.ui.applet.Applet {
         onVolumeChanged: (volume) => mpvHandler?.setVolume(volume)
     })
 
-    const popupMenu = createPopupMenu({ launcher: applet.actor })
     const infoSection = createInfoSection()
 
     //toolbar

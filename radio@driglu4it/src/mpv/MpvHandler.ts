@@ -409,6 +409,7 @@ export function createMpvHandler(args: Arguments) {
         setPosition,
         deactivateAllListener,
         getPlaybackStatus,
+        getVolume, 
         getCurrentUrl: () => currentUrl,
         // it is very confusing but dbus must be returned!
         // Otherwilse all listeners stop working after about 20 seconds which is fucking difficult to debug
