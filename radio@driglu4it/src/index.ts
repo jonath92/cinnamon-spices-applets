@@ -27,17 +27,14 @@ import { createSeeker } from './ui/Seeker';
 import { VOLUME_DELTA } from './consts';
 import { initPolyfills } from './polyfill';
 
-const { ScrollDirection } = imports.gi.Clutter;
-const { getAppletDefinition } = imports.ui.appletManager;
-const { panelManager } = imports.ui.main
 const { BoxLayout } = imports.gi.St
+const { ScrollDirection } = imports.gi.Clutter;
 
 interface Arguments {
     orientation: imports.gi.St.Side,
     panelHeight: number,
     instanceId: number
 }
-
 
 export function main(args: Arguments): imports.ui.applet.Applet {
     const {
@@ -77,6 +74,8 @@ export function main(args: Arguments): imports.ui.applet.Applet {
         onUrlChanged: handleUrlChanged
     })
 
+    const initialChannelName =  channelStore.getChannelName(mpvHandler.getCurrentUrl())
+
     const appletIcon = createAppletIcon({
         instanceId,
         iconType: configNew.iconType,
@@ -87,7 +86,7 @@ export function main(args: Arguments): imports.ui.applet.Applet {
 
     const appletLabel = createAppletLabel({
         visible: configNew.channelNameOnPanel,
-        initialChannel: channelStore.getChannelName(mpvHandler.getCurrentUrl())
+        initialChannelName
     })
 
     const applet = createApplet({
@@ -120,7 +119,7 @@ export function main(args: Arguments): imports.ui.applet.Applet {
         onIconColorPlayingChanged: () => { },
         onIconColorPausedChanged: () => { },
         onChannelOnPanelChanged: () => { },
-        onMyStationsChanged: handleStationsUpdated,
+        onMyStationsChanged: () => {},
     })
 
 
@@ -132,8 +131,6 @@ export function main(args: Arguments): imports.ui.applet.Applet {
     })
 
 
-
-
     const channelList = createChannelList({
         stationNames: channelStore.activatedChannelNames,
         onChannelClicked: handleChannelClicked
@@ -143,7 +140,10 @@ export function main(args: Arguments): imports.ui.applet.Applet {
         onVolumeChanged: (volume) => mpvHandler?.setVolume(volume)
     })
 
-    const infoSection = createInfoSection()
+    const infoSection = createInfoSection({
+        initialChannelName,  
+        initialSongTitle: mpvHandler.getCurrentTitle()
+    })
 
     //toolbar
     const playPauseBtn = createPlayPauseButton({
@@ -288,7 +288,8 @@ export function main(args: Arguments): imports.ui.applet.Applet {
 
         const channelName = url ? channelStore.getChannelName(url) : null
 
-        appletLabel.setText(channelName)
+        if (typeof channelName !== 'undefined' )
+            appletLabel.setText(channelName)
 
         channelName && channelList.setCurrentChannel(channelName)
         channelName && infoSection.setChannel(channelName)

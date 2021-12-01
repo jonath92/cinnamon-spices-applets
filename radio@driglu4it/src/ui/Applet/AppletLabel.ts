@@ -4,12 +4,12 @@ const { ActorAlign } = imports.gi.Clutter
 
 interface Props {
     visible: boolean, 
-    initialChannel: string | null
+    initialChannelName?: string
 }
 
 export function createAppletLabel(props: Props) {
 
-    const { visible: initialVisible, initialChannel } = props
+    const { visible: initialVisible, initialChannelName } = props
 
     const label = new Label({
         reactive: true,
@@ -51,7 +51,7 @@ export function createAppletLabel(props: Props) {
     }
 
     setVisibility(initialVisible)
-    setText(initialChannel)
+    initialChannelName && setText(initialChannelName)
 
     return {
         actor: label,

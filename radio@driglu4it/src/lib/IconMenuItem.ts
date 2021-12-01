@@ -4,7 +4,7 @@ import { limitString } from "../functions/limitString"
 const { Icon, IconType, Label, BoxLayout } = imports.gi.St
 
 interface Arguments {
-    text?: string,
+    initialText?: string,
     iconName?: string,
     onActivated?: () => void
     maxCharNumber: number,
@@ -13,7 +13,7 @@ interface Arguments {
 export function createIconMenuItem(args: Arguments) {
 
     const {
-        text,
+        initialText,
         maxCharNumber,
         iconName,
         onActivated
@@ -28,7 +28,7 @@ export function createIconMenuItem(args: Arguments) {
     })
 
     iconName && setIconName(iconName)
-    text && setText(text)
+    initialText && setText(initialText)
 
     function setIconName(name: string | null | undefined) {
 

@@ -2,10 +2,17 @@ import * as consts from "../consts";
 import { createIconMenuItem } from "../lib/IconMenuItem";
 const { BoxLayout } = imports.gi.St
 
-export function createInfoSection() {
+interface Arguments {
+    initialSongTitle?: string, 
+    initialChannelName?: string
+}
 
-    const channelInfoItem = createInfoItem(consts.RADIO_SYMBOLIC_ICON_NAME)
-    const songInfoItem = createInfoItem(consts.SONG_INFO_ICON_NAME)
+export function createInfoSection(args: Arguments) {
+
+    const {initialChannelName, initialSongTitle} = args
+
+    const channelInfoItem = createInfoItem(consts.RADIO_SYMBOLIC_ICON_NAME, initialChannelName)
+    const songInfoItem = createInfoItem(consts.SONG_INFO_ICON_NAME, initialSongTitle)
 
     const infoSection = new BoxLayout({
         vertical: true
@@ -15,10 +22,12 @@ export function createInfoSection() {
         infoSection.add_child(infoItem.actor)
     })
 
-    function createInfoItem(iconName: string) {
+    function createInfoItem(iconName: string, initialText?: string) {
+
         const iconMenuItem = createIconMenuItem({
             iconName,
             maxCharNumber: consts.MAX_STRING_LENGTH,
+            initialText
         })
 
         return iconMenuItem

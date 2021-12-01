@@ -319,9 +319,9 @@ class ChannelStore {
     // TODO: what is when two Channels have the same Name or Url? :O
     getChannelName(channelUrl) {
         if (!channelUrl)
-            return null;
+            return undefined;
         const channel = this._channelList.find(cnl => cnl.url === channelUrl);
-        return channel ? channel.name : null;
+        return channel ? channel.name : undefined;
     }
     getChannelUrl(channelName) {
         const channel = this._channelList.find(cnl => cnl.name === channelName);
@@ -497,14 +497,14 @@ function limitString(text, maxCharNumber) {
 
 const { Icon: IconMenuItem_Icon, IconType, Label: IconMenuItem_Label, BoxLayout: IconMenuItem_BoxLayout } = imports.gi.St;
 function createIconMenuItem(args) {
-    const { text, maxCharNumber, iconName, onActivated } = args;
+    const { initialText, maxCharNumber, iconName, onActivated } = args;
     let icon;
     let label;
     const container = new IconMenuItem_BoxLayout({
         style_class: 'popup-menu-item'
     });
     iconName && setIconName(iconName);
-    text && setText(text);
+    initialText && setText(initialText);
     function setIconName(name) {
         if (icon && !name) {
             container.remove_child(icon);
@@ -556,7 +556,7 @@ function createChannelMenuItem(args) {
     ]);
     const iconMenuItem = createIconMenuItem({
         maxCharNumber: MAX_STRING_LENGTH,
-        text: channelName,
+        initialText: channelName,
         onActivated: () => onActivated(channelName)
     });
     function setPlaybackStatus(playbackStatus) {
@@ -1254,19 +1254,21 @@ function createStopBtn(args) {
 
 
 const { BoxLayout: InfoSection_BoxLayout } = imports.gi.St;
-function createInfoSection() {
-    const channelInfoItem = createInfoItem(RADIO_SYMBOLIC_ICON_NAME);
-    const songInfoItem = createInfoItem(SONG_INFO_ICON_NAME);
+function createInfoSection(args) {
+    const { initialChannelName, initialSongTitle } = args;
+    const channelInfoItem = createInfoItem(RADIO_SYMBOLIC_ICON_NAME, initialChannelName);
+    const songInfoItem = createInfoItem(SONG_INFO_ICON_NAME, initialSongTitle);
     const infoSection = new InfoSection_BoxLayout({
         vertical: true
     });
     [channelInfoItem, songInfoItem].forEach(infoItem => {
         infoSection.add_child(infoItem.actor);
     });
-    function createInfoItem(iconName) {
+    function createInfoItem(iconName, initialText) {
         const iconMenuItem = createIconMenuItem({
             iconName,
             maxCharNumber: MAX_STRING_LENGTH,
+            initialText
         });
         return iconMenuItem;
     }
@@ -1600,7 +1602,7 @@ const { Label: AppletLabel_Label } = imports.gi.St;
 const { EllipsizeMode } = imports.gi.Pango;
 const { ActorAlign: AppletLabel_ActorAlign } = imports.gi.Clutter;
 function createAppletLabel(props) {
-    const { visible: initialVisible, initialChannel } = props;
+    const { visible: initialVisible, initialChannelName } = props;
     const label = new AppletLabel_Label({
         reactive: true,
         track_hover: true,
@@ -1633,7 +1635,7 @@ function createAppletLabel(props) {
             setText(text);
     }
     setVisibility(initialVisible);
-    setText(initialChannel);
+    initialChannelName && setText(initialChannelName);
     return {
         actor: label,
         setVisibility,
@@ -1646,7 +1648,6 @@ function createAppletLabel(props) {
 const { PanelItemTooltip } = imports.ui.tooltips;
 function createAppletTooltip(args) {
     const { orientation, applet, initialVolume } = args;
-    // @ts-ignore
     const tooltip = new PanelItemTooltip(applet, null, orientation);
     function setVolume(volume) {
         tooltip.set_text(`Volume: ${volume.toString()} %`);
@@ -5280,10 +5281,8 @@ function initPolyfills() {
 
 
 
-const { ScrollDirection: src_ScrollDirection } = imports.gi.Clutter;
-const { getAppletDefinition: src_getAppletDefinition } = imports.ui.appletManager;
-const { panelManager: src_panelManager } = imports.ui.main;
 const { BoxLayout: src_BoxLayout } = imports.gi.St;
+const { ScrollDirection: src_ScrollDirection } = imports.gi.Clutter;
 function main(args) {
     const { orientation, panelHeight, instanceId } = args;
     initPolyfills();
@@ -5303,6 +5302,7 @@ function main(args) {
         lastUrl: configNew.lastUrl,
         onUrlChanged: handleUrlChanged
     });
+    const initialChannelName = channelStore.getChannelName(mpvHandler.getCurrentUrl());
     const appletIcon = createAppletIcon({
         instanceId,
         iconType: configNew.iconType,
@@ -5312,7 +5312,7 @@ function main(args) {
     });
     const appletLabel = createAppletLabel({
         visible: configNew.channelNameOnPanel,
-        initialChannel: channelStore.getChannelName(mpvHandler.getCurrentUrl())
+        initialChannelName
     });
     const applet = createApplet({
         icon: appletIcon.actor,
@@ -5339,7 +5339,7 @@ function main(args) {
         onIconColorPlayingChanged: () => { },
         onIconColorPausedChanged: () => { },
         onChannelOnPanelChanged: () => { },
-        onMyStationsChanged: handleStationsUpdated,
+        onMyStationsChanged: () => { },
     });
     const appletTooltip = createAppletTooltip({
         applet,
@@ -5353,7 +5353,10 @@ function main(args) {
     const volumeSlider = createVolumeSlider({
         onVolumeChanged: (volume) => mpvHandler === null || mpvHandler === void 0 ? void 0 : mpvHandler.setVolume(volume)
     });
-    const infoSection = createInfoSection();
+    const infoSection = createInfoSection({
+        initialChannelName,
+        initialSongTitle: mpvHandler.getCurrentTitle()
+    });
     //toolbar
     const playPauseBtn = createPlayPauseButton({
         onClick: () => mpvHandler.togglePlayPause()
@@ -5463,7 +5466,8 @@ function main(args) {
     }
     function handleUrlChanged(url) {
         const channelName = url ? channelStore.getChannelName(url) : null;
-        appletLabel.setText(channelName);
+        if (typeof channelName !== 'undefined')
+            appletLabel.setText(channelName);
         channelName && channelList.setCurrentChannel(channelName);
         channelName && infoSection.setChannel(channelName);
         configNew.lastUrl = url;

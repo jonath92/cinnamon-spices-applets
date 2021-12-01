@@ -28,11 +28,11 @@ export class ChannelStore {
     // TODO: what is when two Channels have the same Name or Url? :O
     public getChannelName(channelUrl: string | null) {
 
-        if (!channelUrl) return null
+        if (!channelUrl) return undefined
 
         const channel = this._channelList.find(cnl => cnl.url === channelUrl)
         
-        return channel ? channel.name : null
+        return channel ? channel.name : undefined
     }
 
     public getChannelUrl(channelName: string) {

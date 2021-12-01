@@ -16,7 +16,6 @@ export function createAppletTooltip(args: Arguments) {
         initialVolume
     } = args
 
-    // @ts-ignore
     const tooltip = new PanelItemTooltip(applet, null, orientation)
 
     function setVolume(volume: number) {

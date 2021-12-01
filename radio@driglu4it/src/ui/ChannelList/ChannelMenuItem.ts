@@ -25,7 +25,7 @@ export function createChannelMenuItem(args: Arguments) {
 
     const iconMenuItem = createIconMenuItem({
         maxCharNumber: consts.MAX_STRING_LENGTH,
-        text: channelName,
+        initialText: channelName,
         onActivated: () => onActivated(channelName)
     })
 
