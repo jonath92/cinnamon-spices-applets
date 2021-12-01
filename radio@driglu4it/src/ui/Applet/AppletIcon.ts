@@ -60,17 +60,9 @@ export function createAppletIcon(args: Arguments) {
 
         if (!iconType) return
 
-        let iconTypeEnum: imports.gi.St.IconType
-        let iconName: string
-        normalIconType = iconType
-
-        if (iconType === 'SYMBOLIC') {
-            iconName = RADIO_SYMBOLIC_ICON_NAME
-            iconTypeEnum = IconTypeEnum.SYMBOLIC
-        } else {
-            iconName = `radioapplet-${iconType.toLowerCase()}`
-            iconTypeEnum = IconTypeEnum.FULLCOLOR
-        }
+        const [iconTypeEnum, iconName] = iconType === 'SYMBOLIC' ? 
+            [IconTypeEnum.SYMBOLIC, RADIO_SYMBOLIC_ICON_NAME] : 
+            [IconTypeEnum.FULLCOLOR, `radioapplet-${iconType.toLowerCase()}`]
 
         setIconTypeInternal(iconTypeEnum, iconName)
     }

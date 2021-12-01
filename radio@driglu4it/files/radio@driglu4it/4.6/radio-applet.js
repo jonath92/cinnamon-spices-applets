@@ -1502,17 +1502,9 @@ function createAppletIcon(args) {
     function setIconType(iconType) {
         if (!iconType)
             return;
-        let iconTypeEnum;
-        let iconName;
-        normalIconType = iconType;
-        if (iconType === 'SYMBOLIC') {
-            iconName = RADIO_SYMBOLIC_ICON_NAME;
-            iconTypeEnum = IconTypeEnum.SYMBOLIC;
-        }
-        else {
-            iconName = `radioapplet-${iconType.toLowerCase()}`;
-            iconTypeEnum = IconTypeEnum.FULLCOLOR;
-        }
+        const [iconTypeEnum, iconName] = iconType === 'SYMBOLIC' ?
+            [IconTypeEnum.SYMBOLIC, RADIO_SYMBOLIC_ICON_NAME] :
+            [IconTypeEnum.FULLCOLOR, `radioapplet-${iconType.toLowerCase()}`];
         setIconTypeInternal(iconTypeEnum, iconName);
     }
     function updateIconSize() {
