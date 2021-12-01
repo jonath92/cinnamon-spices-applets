@@ -574,7 +574,7 @@ function createChannelMenuItem(args) {
 
 
 function createChannelList(args) {
-    const { stationNames, onChannelClicked } = args;
+    const { stationNames, initialChannelName, initialPlaybackStatus, onChannelClicked } = args;
     const subMenu = createSubMenu({ text: 'My Stations' });
     let currentChannelName;
     let playbackStatus = 'Stopped';
@@ -617,6 +617,8 @@ function createChannelList(args) {
         currentChannelName = name;
     }
     setStationNames(stationNames);
+    initialChannelName && setCurrentChannel(initialChannelName);
+    initialPlaybackStatus && setPlaybackStatus(initialPlaybackStatus);
     return {
         actor: subMenu.actor,
         setPlaybackStatus,
@@ -1519,7 +1521,7 @@ const { IconType: IconTypeEnum } = imports.gi.St;
 const { panelManager } = imports.ui.main;
 const { getAppletDefinition } = imports.ui.appletManager;
 function createAppletIcon(args) {
-    const { instanceId, iconType, colorWhenPlaying, colorWhenPaused, playbackstatus } = args;
+    const { instanceId, iconType, colorWhenPlaying, colorWhenPaused, initialPlaybackStatus } = args;
     const appletDefinition = getAppletDefinition({
         applet_id: instanceId,
     });
@@ -1587,7 +1589,7 @@ function createAppletIcon(args) {
     setIconType(iconType);
     setColorWhenPlaying(colorWhenPlaying);
     setColorWhenPaused(colorWhenPaused);
-    setPlaybackStatus(playbackstatus);
+    setPlaybackStatus(initialPlaybackStatus);
     return {
         actor: icon,
         setPlaybackStatus,
@@ -5303,12 +5305,13 @@ function main(args) {
         onUrlChanged: handleUrlChanged
     });
     const initialChannelName = channelStore.getChannelName(mpvHandler.getCurrentUrl());
+    const initialPlaybackStatus = mpvHandler.getPlaybackStatus();
     const appletIcon = createAppletIcon({
         instanceId,
         iconType: configNew.iconType,
         colorWhenPlaying: configNew.symbolicIconColorWhenPlaying,
         colorWhenPaused: configNew.symbolicIconColorWhenPaused,
-        playbackstatus: mpvHandler.getPlaybackStatus()
+        initialPlaybackStatus
     });
     const appletLabel = createAppletLabel({
         visible: configNew.channelNameOnPanel,
@@ -5348,7 +5351,9 @@ function main(args) {
     });
     const channelList = createChannelList({
         stationNames: channelStore.activatedChannelNames,
-        onChannelClicked: handleChannelClicked
+        onChannelClicked: handleChannelClicked,
+        initialChannelName,
+        initialPlaybackStatus
     });
     const volumeSlider = createVolumeSlider({
         onVolumeChanged: (volume) => mpvHandler === null || mpvHandler === void 0 ? void 0 : mpvHandler.setVolume(volume)
@@ -5381,7 +5386,7 @@ function main(args) {
     });
     const radioActiveSection = new src_BoxLayout({
         vertical: true,
-        visible: false
+        visible: initialPlaybackStatus !== 'Stopped'
     });
     [
         infoSection.actor,

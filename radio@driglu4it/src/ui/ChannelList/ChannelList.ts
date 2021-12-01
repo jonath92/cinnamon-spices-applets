@@ -4,13 +4,17 @@ import { AdvancedPlaybackStatus } from "../../types";
 
 interface Arguments {
     stationNames: string[],
-    onChannelClicked: (name: string) => void
+    onChannelClicked: (name: string) => void, 
+    initialChannelName?: string, 
+    initialPlaybackStatus?: AdvancedPlaybackStatus
 }
 
 export function createChannelList(args: Arguments) {
 
     const {
         stationNames,
+        initialChannelName, 
+        initialPlaybackStatus, 
         onChannelClicked
     } = args
 
@@ -71,6 +75,8 @@ export function createChannelList(args: Arguments) {
     }
 
     setStationNames(stationNames)
+    initialChannelName && setCurrentChannel(initialChannelName)
+    initialPlaybackStatus && setPlaybackStatus(initialPlaybackStatus)
 
     return {
         actor: subMenu.actor,

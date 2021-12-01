@@ -75,13 +75,14 @@ export function main(args: Arguments): imports.ui.applet.Applet {
     })
 
     const initialChannelName =  channelStore.getChannelName(mpvHandler.getCurrentUrl())
+    const initialPlaybackStatus = mpvHandler.getPlaybackStatus()
 
     const appletIcon = createAppletIcon({
         instanceId,
         iconType: configNew.iconType,
         colorWhenPlaying: configNew.symbolicIconColorWhenPlaying,
         colorWhenPaused: configNew.symbolicIconColorWhenPaused,
-        playbackstatus: mpvHandler.getPlaybackStatus()
+        initialPlaybackStatus
     })
 
     const appletLabel = createAppletLabel({
@@ -122,8 +123,6 @@ export function main(args: Arguments): imports.ui.applet.Applet {
         onMyStationsChanged: () => {},
     })
 
-
-
     const appletTooltip = createAppletTooltip({
         applet,
         orientation, 
@@ -133,7 +132,9 @@ export function main(args: Arguments): imports.ui.applet.Applet {
 
     const channelList = createChannelList({
         stationNames: channelStore.activatedChannelNames,
-        onChannelClicked: handleChannelClicked
+        onChannelClicked: handleChannelClicked, 
+        initialChannelName, 
+        initialPlaybackStatus
     })
 
     const volumeSlider = createVolumeSlider({
@@ -174,8 +175,8 @@ export function main(args: Arguments): imports.ui.applet.Applet {
     })
 
     const radioActiveSection = new BoxLayout({
-        vertical: true,
-        visible: false
+        vertical: true, 
+        visible: initialPlaybackStatus !== 'Stopped'
     });
 
     [

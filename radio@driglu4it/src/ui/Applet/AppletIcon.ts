@@ -12,7 +12,7 @@ interface Arguments {
     // only applied when iconType == Symbolic
     colorWhenPlaying: string, 
     colorWhenPaused: string, 
-    playbackstatus: AdvancedPlaybackStatus
+    initialPlaybackStatus: AdvancedPlaybackStatus
 }
 
 export function createAppletIcon(args: Arguments) {
@@ -22,7 +22,7 @@ export function createAppletIcon(args: Arguments) {
         iconType, 
         colorWhenPlaying, 
         colorWhenPaused, 
-        playbackstatus
+        initialPlaybackStatus
     } = args
 
     const appletDefinition = getAppletDefinition({
@@ -116,7 +116,7 @@ export function createAppletIcon(args: Arguments) {
     setIconType(iconType)
     setColorWhenPlaying(colorWhenPlaying)
     setColorWhenPaused(colorWhenPaused)
-    setPlaybackStatus(playbackstatus)
+    setPlaybackStatus(initialPlaybackStatus)
     
     return {
         actor: icon,
