@@ -209,7 +209,7 @@ __webpack_require__.d(__webpack_exports__, {
 
 ;// CONCATENATED MODULE: ./src/Config.ts
 const { AppletSettings } = imports.ui.settings;
-const createConfigNew = (instanceId) => {
+const createConfig = (instanceId) => {
     // all settings are saved to this object
     const settingsObject = {};
     const appletSettings = new AppletSettings(settingsObject, __meta.uuid, instanceId);
@@ -254,50 +254,6 @@ const createConfigNew = (instanceId) => {
         }
         // setIcon
     };
-};
-const createConfig = (args) => {
-    const { uuid, instanceId, onIconChanged, onIconColorPlayingChanged, onIconColorPausedChanged, onChannelOnPanelChanged, onMyStationsChanged, } = args;
-    // all settings are saved to this object
-    const settingsObject = {
-        get initialVolume() { return getInitialVolume(); }
-    };
-    const appletSettings = new AppletSettings(settingsObject, uuid, instanceId);
-    appletSettings.bind('icon-type', 'iconType', 
-    // @ts-ignore
-    (iconType) => onIconChanged(iconType));
-    appletSettings.bind('color-on', 'symbolicIconColorWhenPlaying', 
-    // @ts-ignore
-    (newColor) => onIconColorPlayingChanged(newColor));
-    appletSettings.bind('color-paused', 'symbolicIconColorWhenPaused', 
-    // @ts-ignore
-    (newColor) => onIconColorPausedChanged(newColor));
-    appletSettings.bind('channel-on-panel', 'channelNameOnPanel', 
-    // @ts-ignore
-    (channelOnPanel) => onChannelOnPanelChanged(channelOnPanel));
-    appletSettings.bind('keep-volume-between-sessions', "keepVolume");
-    appletSettings.bind('initial-volume', 'customInitVolume');
-    appletSettings.bind('last-volume', 'lastVolume');
-    // @ts-ignore
-    appletSettings.bind('tree', "userStations", onMyStationsChanged);
-    appletSettings.bind('last-url', 'lastUrl');
-    appletSettings.bind('music-download-dir-select', 'musicDownloadDir', () => handleMusicDirChanged());
-    function getInitialVolume() {
-        const { keepVolume, lastVolume, customInitVolume } = settingsObject;
-        let initialVolume = keepVolume ? lastVolume : customInitVolume;
-        return initialVolume;
-    }
-    function handleMusicDirChanged() {
-        // By Default the value is set to ~/Music/Radio but when changing to another location and back again to the default value in the settings dialog, the music dir is set to null instead of the default value again. As workaround the music dir is set programmatically to default value again if value is set to null (and the settings dialog can't be opened anymore). 
-        if (settingsObject.musicDownloadDir === null) {
-            settingsObject.musicDownloadDir = "~/Music/Radio";
-        }
-    }
-    onIconChanged(settingsObject.iconType);
-    onIconColorPlayingChanged(settingsObject.symbolicIconColorWhenPlaying);
-    onIconColorPausedChanged(settingsObject.symbolicIconColorWhenPaused);
-    onChannelOnPanelChanged(settingsObject.channelNameOnPanel);
-    // TODO also onMyStationChanged should be called (and removed as arg from  ChannelStore)
-    return settingsObject;
 };
 
 ;// CONCATENATED MODULE: ./src/ChannelStore.ts
@@ -1521,7 +1477,8 @@ const { IconType: IconTypeEnum } = imports.gi.St;
 const { panelManager } = imports.ui.main;
 const { getAppletDefinition } = imports.ui.appletManager;
 function createAppletIcon(args) {
-    const { instanceId, iconType, colorWhenPlaying, colorWhenPaused, initialPlaybackStatus } = args;
+    const { instanceId, initialPlaybackStatus, configs } = args;
+    const { settingsObject } = configs;
     const appletDefinition = getAppletDefinition({
         applet_id: instanceId,
     });
@@ -1586,9 +1543,9 @@ function createAppletIcon(args) {
         icon.set_style(style);
     }
     panel.connect('icon-size-changed', () => updateIconSize());
-    setIconType(iconType);
-    setColorWhenPlaying(colorWhenPlaying);
-    setColorWhenPaused(colorWhenPaused);
+    setIconType(settingsObject.iconType);
+    setColorWhenPlaying(settingsObject.symbolicIconColorWhenPlaying);
+    setColorWhenPaused(settingsObject.symbolicIconColorWhenPaused);
     setPlaybackStatus(initialPlaybackStatus);
     return {
         actor: icon,
@@ -5291,7 +5248,8 @@ function main(args) {
     // this is a workaround for now. Optimally the lastVolume should be saved persistently each time the volume is changed but this lead to significant performance issue on scrolling at the moment. However this shouldn't be the case as it is no problem to log the volume each time the volume changes (so it is a problem in the config implementation). As a workaround the volume is only saved persistently when the radio stops but the volume obviously can't be received anymore from dbus when the player has been already stopped ... 
     let lastVolume;
     let installationInProgress = false;
-    const { settingsObject: configNew, addIconTypeChangeHandler, setColorPlayingChangeHandler: setColorPlayingHandler, setColorWhenPausedChangeHandler: setColorWhenPausedHandler, setChannelOnPanelChangeHandler: setChannelOnPanelHandler, setStationsListChangeHandler: setStationsHandler, getInitialVolume } = createConfigNew(instanceId);
+    const configs = createConfig(instanceId);
+    const { settingsObject: configNew, addIconTypeChangeHandler, setColorPlayingChangeHandler: setColorPlayingHandler, setColorWhenPausedChangeHandler: setColorWhenPausedHandler, setChannelOnPanelChangeHandler: setChannelOnPanelHandler, setStationsListChangeHandler: setStationsHandler, getInitialVolume } = configs;
     const channelStore = new ChannelStore(configNew.userStations);
     const mpvHandler = createMpvHandler({
         getInitialVolume: getInitialVolume,
@@ -5308,10 +5266,8 @@ function main(args) {
     const initialPlaybackStatus = mpvHandler.getPlaybackStatus();
     const appletIcon = createAppletIcon({
         instanceId,
-        iconType: configNew.iconType,
-        colorWhenPlaying: configNew.symbolicIconColorWhenPlaying,
-        colorWhenPaused: configNew.symbolicIconColorWhenPaused,
-        initialPlaybackStatus
+        initialPlaybackStatus,
+        configs
     });
     const appletLabel = createAppletLabel({
         visible: configNew.channelNameOnPanel,

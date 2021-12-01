@@ -1,3 +1,4 @@
+import { createConfig } from "Config"
 import { RADIO_SYMBOLIC_ICON_NAME, LOADING_ICON_NAME } from "../../consts"
 import { AdvancedPlaybackStatus, AppletIcon } from "../../types"
 
@@ -7,23 +8,20 @@ const { panelManager } = imports.ui.main
 const { getAppletDefinition } = imports.ui.appletManager;
 
 interface Arguments {
-    instanceId: number, 
-    iconType: AppletIcon, 
-    // only applied when iconType == Symbolic
-    colorWhenPlaying: string, 
-    colorWhenPaused: string, 
-    initialPlaybackStatus: AdvancedPlaybackStatus
+    instanceId: number,
+    initialPlaybackStatus: AdvancedPlaybackStatus,
+    configs: ReturnType<typeof createConfig>
 }
 
 export function createAppletIcon(args: Arguments) {
 
     const {
-        instanceId, 
-        iconType, 
-        colorWhenPlaying, 
-        colorWhenPaused, 
-        initialPlaybackStatus
+        instanceId,
+        initialPlaybackStatus,
+        configs
     } = args
+
+    const { settingsObject } = configs
 
     const appletDefinition = getAppletDefinition({
         applet_id: instanceId,
@@ -113,11 +111,11 @@ export function createAppletIcon(args: Arguments) {
     }
 
     panel.connect('icon-size-changed', () => updateIconSize())
-    setIconType(iconType)
-    setColorWhenPlaying(colorWhenPlaying)
-    setColorWhenPaused(colorWhenPaused)
+    setIconType(settingsObject.iconType)
+    setColorWhenPlaying(settingsObject.symbolicIconColorWhenPlaying)
+    setColorWhenPaused(settingsObject.symbolicIconColorWhenPaused)
     setPlaybackStatus(initialPlaybackStatus)
-    
+
     return {
         actor: icon,
         setPlaybackStatus,

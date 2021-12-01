@@ -1,4 +1,4 @@
-import { createConfig, createConfigNew } from './Config';
+import { createConfig } from './Config';
 import { ChannelStore } from './ChannelStore';
 import { createChannelList } from './ui/ChannelList/ChannelList';
 import { AdvancedPlaybackStatus, Channel, AppletIcon } from './types';
@@ -50,6 +50,8 @@ export function main(args: Arguments): imports.ui.applet.Applet {
 
     let installationInProgress = false
 
+    const configs = createConfig(instanceId)
+
     const {
         settingsObject: configNew,
         addIconTypeChangeHandler,
@@ -58,7 +60,7 @@ export function main(args: Arguments): imports.ui.applet.Applet {
         setChannelOnPanelChangeHandler: setChannelOnPanelHandler,
         setStationsListChangeHandler: setStationsHandler,
         getInitialVolume
-    } = createConfigNew(instanceId)
+    } = configs
 
     const channelStore = new ChannelStore(configNew.userStations)
 
@@ -79,10 +81,8 @@ export function main(args: Arguments): imports.ui.applet.Applet {
 
     const appletIcon = createAppletIcon({
         instanceId,
-        iconType: configNew.iconType,
-        colorWhenPlaying: configNew.symbolicIconColorWhenPlaying,
-        colorWhenPaused: configNew.symbolicIconColorWhenPaused,
-        initialPlaybackStatus
+        initialPlaybackStatus, 
+        configs
     })
 
     const appletLabel = createAppletLabel({
@@ -108,7 +108,7 @@ export function main(args: Arguments): imports.ui.applet.Applet {
 
 
     addIconTypeChangeHandler((...arg) => appletIcon.setIconType(...arg))
-    
+
     setColorPlayingHandler((...arg) => appletIcon.setColorWhenPlaying(...arg))
     setColorWhenPausedHandler((...arg) => appletIcon.setColorWhenPaused(...arg))
     setChannelOnPanelHandler((...arg) => appletLabel.setVisibility(...arg))
