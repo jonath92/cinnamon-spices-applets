@@ -21,7 +21,7 @@ export function createAppletIcon(args: Arguments) {
         configs
     } = args
 
-    const { settingsObject } = configs
+    const { settingsObject, addIconTypeChangeHandler } = configs
 
     const appletDefinition = getAppletDefinition({
         applet_id: instanceId,
@@ -103,17 +103,19 @@ export function createAppletIcon(args: Arguments) {
     }
 
     panel.connect('icon-size-changed', () => updateIconSize())
+    
     setIconType(settingsObject.iconType)
     setColorWhenPlaying(settingsObject.symbolicIconColorWhenPlaying)
     setColorWhenPaused(settingsObject.symbolicIconColorWhenPaused)
     setPlaybackStatus(initialPlaybackStatus)
+
+    addIconTypeChangeHandler((newValue) => setIconType(newValue))
 
     return {
         actor: icon,
         setPlaybackStatus,
         setColorWhenPlaying,
         setColorWhenPaused,
-        setIconType,
     }
 
 }

@@ -107,8 +107,6 @@ export function main(args: Arguments): imports.ui.applet.Applet {
     const popupMenu = createPopupMenu({ launcher: applet.actor })
 
 
-    addIconTypeChangeHandler((...arg) => appletIcon.setIconType(...arg))
-
     setColorPlayingHandler((...arg) => appletIcon.setColorWhenPlaying(...arg))
     setColorWhenPausedHandler((...arg) => appletIcon.setColorWhenPaused(...arg))
     setChannelOnPanelHandler((...arg) => appletLabel.setVisibility(...arg))
@@ -235,10 +233,6 @@ export function main(args: Arguments): imports.ui.applet.Applet {
         appletTooltip.setVolume(volume)
 
         lastVolume = volume
-    }
-
-    function handleIconTypeChanged(iconType: AppletIcon) {
-        appletIcon.setIconType(iconType)
     }
 
     function handleStationsUpdated(stations: Channel[]) {

@@ -1478,7 +1478,7 @@ const { panelManager } = imports.ui.main;
 const { getAppletDefinition } = imports.ui.appletManager;
 function createAppletIcon(args) {
     const { instanceId, initialPlaybackStatus, configs } = args;
-    const { settingsObject } = configs;
+    const { settingsObject, addIconTypeChangeHandler } = configs;
     const appletDefinition = getAppletDefinition({
         applet_id: instanceId,
     });
@@ -1539,12 +1539,12 @@ function createAppletIcon(args) {
     setColorWhenPlaying(settingsObject.symbolicIconColorWhenPlaying);
     setColorWhenPaused(settingsObject.symbolicIconColorWhenPaused);
     setPlaybackStatus(initialPlaybackStatus);
+    addIconTypeChangeHandler((newValue) => setIconType(newValue));
     return {
         actor: icon,
         setPlaybackStatus,
         setColorWhenPlaying,
         setColorWhenPaused,
-        setIconType,
     };
 }
 
@@ -5279,7 +5279,6 @@ function main(args) {
         onRightClick: () => popupMenu === null || popupMenu === void 0 ? void 0 : popupMenu.close()
     });
     const popupMenu = (0,cinnamonpopup/* createPopupMenu */.S)({ launcher: applet.actor });
-    addIconTypeChangeHandler((...arg) => appletIcon.setIconType(...arg));
     setColorPlayingHandler((...arg) => appletIcon.setColorWhenPlaying(...arg));
     setColorWhenPausedHandler((...arg) => appletIcon.setColorWhenPaused(...arg));
     setChannelOnPanelHandler((...arg) => appletLabel.setVisibility(...arg));
@@ -5378,9 +5377,6 @@ function main(args) {
         volumeSlider.setVolume(volume);
         appletTooltip.setVolume(volume);
         lastVolume = volume;
-    }
-    function handleIconTypeChanged(iconType) {
-        appletIcon.setIconType(iconType);
     }
     function handleStationsUpdated(stations) {
         const stationsChanged = channelStore.checkListChanged(stations);

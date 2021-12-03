@@ -2,16 +2,6 @@ import { Channel, AppletIcon } from "./types";
 
 const { AppletSettings } = imports.ui.settings;
 
-interface Arguments {
-    uuid: string,
-    instanceId: number,
-    onIconChanged: (iconType: AppletIcon) => void,
-    onIconColorPlayingChanged: (color: string) => void,
-    onIconColorPausedChanged: (color: string) => void,
-    onChannelOnPanelChanged: (channelOnPanel: boolean) => void,
-    onMyStationsChanged: (stations: Channel[]) => void,
-}
-
 interface Settings {
     iconType: AppletIcon,
     symbolicIconColorWhenPlaying: string,
@@ -43,14 +33,25 @@ export const createConfig = (instanceId: number) => {
     let keepVolumeHandler: ChangeHandler<boolean> | undefined
     let stationsHandler: ChangeHandler<Channel[]> | undefined
 
-    appletSettings.bind<AppletIcon>('icon-type', 'iconType', (...arg) => iconTypeChangeHandler.forEach(changeHandler => changeHandler(...arg)))
-    appletSettings.bind<string>('color-on', 'symbolicIconColorWhenPlaying', (...arg) => colorPlayingHandler?.(...arg))
-    appletSettings.bind<string>('color-paused', 'symbolicIconColorWhenPaused', (...arg) => colorPausedHandler?.(...arg))
-    appletSettings.bind<boolean>('channel-on-panel', 'channelNameOnPanel', (...arg) => channelOnPanelHandler?.(...arg))
-    appletSettings.bind<boolean>('keep-volume-between-sessions', 'keepVolume', (...arg) => keepVolumeHandler?.(...arg))
+    appletSettings.bind<AppletIcon>('icon-type', 'iconType', 
+        (...arg) => iconTypeChangeHandler.forEach(changeHandler => changeHandler(...arg)))
+
+    appletSettings.bind<string>('color-on', 'symbolicIconColorWhenPlaying', 
+        (...arg) => colorPlayingHandler?.(...arg))
+
+    appletSettings.bind<string>('color-paused', 'symbolicIconColorWhenPaused', 
+        (...arg) => colorPausedHandler?.(...arg))
+
+    appletSettings.bind<boolean>('channel-on-panel', 'channelNameOnPanel', 
+        (...arg) => channelOnPanelHandler?.(...arg))
+
+    appletSettings.bind<boolean>('keep-volume-between-sessions', 'keepVolume', 
+        (...arg) => keepVolumeHandler?.(...arg))
+
     appletSettings.bind('initial-volume', 'customInitVolume')
     appletSettings.bind('last-volume', 'lastVolume')
-    appletSettings.bind<Channel[]>('tree', 'userStations', (...arg) => stationsHandler?.(...arg))
+    appletSettings.bind<Channel[]>('tree', 'userStations', 
+        (...arg) => stationsHandler?.(...arg))
     appletSettings.bind('last-url', 'lastUrl')
     appletSettings.bind('music-download-dir-select', 'musicDownloadDir')
 
