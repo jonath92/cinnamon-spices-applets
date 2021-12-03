@@ -214,14 +214,14 @@ const createConfig = (instanceId) => {
     const settingsObject = {};
     const appletSettings = new AppletSettings(settingsObject, __meta.uuid, instanceId);
     const iconTypeChangeHandler = [];
-    let colorPlayingHandler;
-    let colorPausedHandler;
+    const colorPlayingChangeHander = [];
+    const colorPausedHandler = [];
     let channelOnPanelHandler;
     let keepVolumeHandler;
     let stationsHandler;
     appletSettings.bind('icon-type', 'iconType', (...arg) => iconTypeChangeHandler.forEach(changeHandler => changeHandler(...arg)));
-    appletSettings.bind('color-on', 'symbolicIconColorWhenPlaying', (...arg) => colorPlayingHandler === null || colorPlayingHandler === void 0 ? void 0 : colorPlayingHandler(...arg));
-    appletSettings.bind('color-paused', 'symbolicIconColorWhenPaused', (...arg) => colorPausedHandler === null || colorPausedHandler === void 0 ? void 0 : colorPausedHandler(...arg));
+    appletSettings.bind('color-on', 'symbolicIconColorWhenPlaying', (...arg) => colorPlayingChangeHander.forEach(changeHandler => changeHandler(...arg)));
+    appletSettings.bind('color-paused', 'symbolicIconColorWhenPaused', (...arg) => colorPausedHandler.forEach(changeHandler => changeHandler(...arg)));
     appletSettings.bind('channel-on-panel', 'channelNameOnPanel', (...arg) => channelOnPanelHandler === null || channelOnPanelHandler === void 0 ? void 0 : channelOnPanelHandler(...arg));
     appletSettings.bind('keep-volume-between-sessions', 'keepVolume', (...arg) => keepVolumeHandler === null || keepVolumeHandler === void 0 ? void 0 : keepVolumeHandler(...arg));
     appletSettings.bind('initial-volume', 'customInitVolume');
@@ -240,11 +240,11 @@ const createConfig = (instanceId) => {
         addIconTypeChangeHandler: (newIconTypeChangeHandler) => {
             iconTypeChangeHandler.push(newIconTypeChangeHandler);
         },
-        setColorPlayingChangeHandler: (newColorPlayingHandler) => {
-            colorPlayingHandler = newColorPlayingHandler;
+        addColorPlayingChangeHandler: (newColorPlayingHandler) => {
+            colorPlayingChangeHander.push(newColorPlayingHandler);
         },
-        setColorWhenPausedChangeHandler: (newColorPausedHandler) => {
-            colorPausedHandler = newColorPausedHandler;
+        addColorPausedChangeHandler: (newColorPausedHandler) => {
+            colorPausedHandler.push(newColorPausedHandler);
         },
         setChannelOnPanelChangeHandler: (newChannelOnPanelHandler) => {
             channelOnPanelHandler = newChannelOnPanelHandler;
@@ -1478,7 +1478,7 @@ const { panelManager } = imports.ui.main;
 const { getAppletDefinition } = imports.ui.appletManager;
 function createAppletIcon(args) {
     const { instanceId, initialPlaybackStatus, configs } = args;
-    const { settingsObject, addIconTypeChangeHandler } = configs;
+    const { settingsObject, addIconTypeChangeHandler, addColorPlayingChangeHandler, addColorPausedChangeHandler } = configs;
     const appletDefinition = getAppletDefinition({
         applet_id: instanceId,
     });
@@ -1540,11 +1540,11 @@ function createAppletIcon(args) {
     setColorWhenPaused(settingsObject.symbolicIconColorWhenPaused);
     setPlaybackStatus(initialPlaybackStatus);
     addIconTypeChangeHandler((newValue) => setIconType(newValue));
+    addColorPlayingChangeHandler((newValue) => setColorWhenPlaying(newValue));
+    addColorPausedChangeHandler((newValue) => setColorWhenPaused(newValue));
     return {
         actor: icon,
         setPlaybackStatus,
-        setColorWhenPlaying,
-        setColorWhenPaused,
     };
 }
 
@@ -5241,7 +5241,7 @@ function main(args) {
     let lastVolume;
     let installationInProgress = false;
     const configs = createConfig(instanceId);
-    const { settingsObject: configNew, addIconTypeChangeHandler, setColorPlayingChangeHandler: setColorPlayingHandler, setColorWhenPausedChangeHandler: setColorWhenPausedHandler, setChannelOnPanelChangeHandler: setChannelOnPanelHandler, setStationsListChangeHandler: setStationsHandler, getInitialVolume } = configs;
+    const { settingsObject: configNew, setChannelOnPanelChangeHandler: setChannelOnPanelHandler, setStationsListChangeHandler: setStationsHandler, getInitialVolume } = configs;
     const channelStore = new ChannelStore(configNew.userStations);
     const mpvHandler = createMpvHandler({
         getInitialVolume: getInitialVolume,
@@ -5279,8 +5279,6 @@ function main(args) {
         onRightClick: () => popupMenu === null || popupMenu === void 0 ? void 0 : popupMenu.close()
     });
     const popupMenu = (0,cinnamonpopup/* createPopupMenu */.S)({ launcher: applet.actor });
-    setColorPlayingHandler((...arg) => appletIcon.setColorWhenPlaying(...arg));
-    setColorWhenPausedHandler((...arg) => appletIcon.setColorWhenPaused(...arg));
     setChannelOnPanelHandler((...arg) => appletLabel.setVisibility(...arg));
     const appletTooltip = createAppletTooltip({
         applet,

@@ -54,9 +54,6 @@ export function main(args: Arguments): imports.ui.applet.Applet {
 
     const {
         settingsObject: configNew,
-        addIconTypeChangeHandler,
-        setColorPlayingChangeHandler: setColorPlayingHandler,
-        setColorWhenPausedChangeHandler: setColorWhenPausedHandler,
         setChannelOnPanelChangeHandler: setChannelOnPanelHandler,
         setStationsListChangeHandler: setStationsHandler,
         getInitialVolume
@@ -107,8 +104,6 @@ export function main(args: Arguments): imports.ui.applet.Applet {
     const popupMenu = createPopupMenu({ launcher: applet.actor })
 
 
-    setColorPlayingHandler((...arg) => appletIcon.setColorWhenPlaying(...arg))
-    setColorWhenPausedHandler((...arg) => appletIcon.setColorWhenPaused(...arg))
     setChannelOnPanelHandler((...arg) => appletLabel.setVisibility(...arg))
 
     const appletTooltip = createAppletTooltip({

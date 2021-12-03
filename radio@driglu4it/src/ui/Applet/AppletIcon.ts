@@ -21,7 +21,12 @@ export function createAppletIcon(args: Arguments) {
         configs
     } = args
 
-    const { settingsObject, addIconTypeChangeHandler } = configs
+    const { 
+        settingsObject, 
+        addIconTypeChangeHandler, 
+        addColorPlayingChangeHandler, 
+        addColorPausedChangeHandler 
+    } = configs
 
     const appletDefinition = getAppletDefinition({
         applet_id: instanceId,
@@ -110,12 +115,12 @@ export function createAppletIcon(args: Arguments) {
     setPlaybackStatus(initialPlaybackStatus)
 
     addIconTypeChangeHandler((newValue) => setIconType(newValue))
+    addColorPlayingChangeHandler((newValue) => setColorWhenPlaying(newValue))
+    addColorPausedChangeHandler((newValue) => setColorWhenPaused(newValue))
 
     return {
         actor: icon,
         setPlaybackStatus,
-        setColorWhenPlaying,
-        setColorWhenPaused,
     }
 
 }

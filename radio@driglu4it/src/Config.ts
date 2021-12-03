@@ -26,9 +26,9 @@ export const createConfig = (instanceId: number) => {
     const appletSettings = new AppletSettings(settingsObject, __meta.uuid, instanceId)
 
     const iconTypeChangeHandler: ChangeHandler<AppletIcon> [] = []
+    const colorPlayingChangeHander: ChangeHandler<string> [] = []
+    const colorPausedHandler: ChangeHandler<string> [] = []
 
-    let colorPlayingHandler: ChangeHandler<string> | undefined
-    let colorPausedHandler: ChangeHandler<string> | undefined
     let channelOnPanelHandler: ChangeHandler<boolean> | undefined
     let keepVolumeHandler: ChangeHandler<boolean> | undefined
     let stationsHandler: ChangeHandler<Channel[]> | undefined
@@ -37,10 +37,10 @@ export const createConfig = (instanceId: number) => {
         (...arg) => iconTypeChangeHandler.forEach(changeHandler => changeHandler(...arg)))
 
     appletSettings.bind<string>('color-on', 'symbolicIconColorWhenPlaying', 
-        (...arg) => colorPlayingHandler?.(...arg))
+        (...arg) => colorPlayingChangeHander.forEach(changeHandler => changeHandler(...arg)))
 
     appletSettings.bind<string>('color-paused', 'symbolicIconColorWhenPaused', 
-        (...arg) => colorPausedHandler?.(...arg))
+        (...arg) => colorPausedHandler.forEach(changeHandler => changeHandler(...arg)))
 
     appletSettings.bind<boolean>('channel-on-panel', 'channelNameOnPanel', 
         (...arg) => channelOnPanelHandler?.(...arg))
@@ -78,12 +78,12 @@ export const createConfig = (instanceId: number) => {
             iconTypeChangeHandler.push(newIconTypeChangeHandler)
         },
 
-        setColorPlayingChangeHandler: (newColorPlayingHandler: ChangeHandler<string>) => {
-            colorPlayingHandler = newColorPlayingHandler
+        addColorPlayingChangeHandler: (newColorPlayingHandler: ChangeHandler<string>) => {
+            colorPlayingChangeHander.push(newColorPlayingHandler)
         },
 
-        setColorWhenPausedChangeHandler: (newColorPausedHandler: ChangeHandler<string>) => {
-            colorPausedHandler = newColorPausedHandler
+        addColorPausedChangeHandler: (newColorPausedHandler: ChangeHandler<string>) => {
+            colorPausedHandler.push(newColorPausedHandler)
         }, 
 
         setChannelOnPanelChangeHandler: (newChannelOnPanelHandler: ChangeHandler<boolean>) => {
