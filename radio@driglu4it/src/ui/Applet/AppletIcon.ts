@@ -10,7 +10,7 @@ const { getAppletDefinition } = imports.ui.appletManager;
 interface Arguments {
     instanceId: number,
     initialPlaybackStatus: AdvancedPlaybackStatus,
-    configs: ReturnType<typeof createConfig>
+    configs: ReturnType<typeof createConfig>, 
 }
 
 export function createAppletIcon(args: Arguments) {
@@ -108,15 +108,17 @@ export function createAppletIcon(args: Arguments) {
     }
 
     panel.connect('icon-size-changed', () => updateIconSize())
-    
-    setIconType(settingsObject.iconType)
-    setColorWhenPlaying(settingsObject.symbolicIconColorWhenPlaying)
-    setColorWhenPaused(settingsObject.symbolicIconColorWhenPaused)
-    setPlaybackStatus(initialPlaybackStatus)
 
     addIconTypeChangeHandler((newValue) => setIconType(newValue))
     addColorPlayingChangeHandler((newValue) => setColorWhenPlaying(newValue))
     addColorPausedChangeHandler((newValue) => setColorWhenPaused(newValue))
+
+    
+    setColorWhenPlaying(settingsObject.symbolicIconColorWhenPlaying)
+    setColorWhenPaused(settingsObject.symbolicIconColorWhenPaused)
+    setPlaybackStatus(initialPlaybackStatus)
+
+
 
     return {
         actor: icon,

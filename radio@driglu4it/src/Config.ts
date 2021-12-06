@@ -76,6 +76,7 @@ export const createConfig = (instanceId: number) => {
 
         addIconTypeChangeHandler: (newIconTypeChangeHandler: ChangeHandler<AppletIcon>) => {
             iconTypeChangeHandler.push(newIconTypeChangeHandler)
+            newIconTypeChangeHandler(settingsObject.iconType)
         },
 
         addColorPlayingChangeHandler: (newColorPlayingHandler: ChangeHandler<string>) => {

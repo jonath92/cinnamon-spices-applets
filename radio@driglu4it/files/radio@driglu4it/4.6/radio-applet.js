@@ -239,6 +239,7 @@ const createConfig = (instanceId) => {
         getInitialVolume,
         addIconTypeChangeHandler: (newIconTypeChangeHandler) => {
             iconTypeChangeHandler.push(newIconTypeChangeHandler);
+            newIconTypeChangeHandler(settingsObject.iconType);
         },
         addColorPlayingChangeHandler: (newColorPlayingHandler) => {
             colorPlayingChangeHander.push(newColorPlayingHandler);
@@ -1535,13 +1536,12 @@ function createAppletIcon(args) {
         icon.set_style(style);
     }
     panel.connect('icon-size-changed', () => updateIconSize());
-    setIconType(settingsObject.iconType);
-    setColorWhenPlaying(settingsObject.symbolicIconColorWhenPlaying);
-    setColorWhenPaused(settingsObject.symbolicIconColorWhenPaused);
-    setPlaybackStatus(initialPlaybackStatus);
     addIconTypeChangeHandler((newValue) => setIconType(newValue));
     addColorPlayingChangeHandler((newValue) => setColorWhenPlaying(newValue));
     addColorPausedChangeHandler((newValue) => setColorWhenPaused(newValue));
+    setColorWhenPlaying(settingsObject.symbolicIconColorWhenPlaying);
+    setColorWhenPaused(settingsObject.symbolicIconColorWhenPaused);
+    setPlaybackStatus(initialPlaybackStatus);
     return {
         actor: icon,
         setPlaybackStatus,
