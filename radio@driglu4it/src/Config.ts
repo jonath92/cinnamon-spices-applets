@@ -1,4 +1,4 @@
-import { Channel, AppletIcon } from "./types";
+import { Channel, AppletIcon, ChangeHandler } from "./types";
 
 const { AppletSettings } = imports.ui.settings;
 
@@ -16,7 +16,6 @@ interface Settings {
     musicDownloadDir: string
 }
 
-type ChangeHandler<T> = (newValue: T) => void
 
 export const createConfig = (instanceId: number) => {
 
@@ -76,19 +75,18 @@ export const createConfig = (instanceId: number) => {
 
         addIconTypeChangeHandler: (newIconTypeChangeHandler: ChangeHandler<AppletIcon>) => {
             iconTypeChangeHandler.push(newIconTypeChangeHandler)
-            newIconTypeChangeHandler(settingsObject.iconType)
         },
 
-        addColorPlayingChangeHandler: (newColorPlayingHandler: ChangeHandler<string>) => {
-            colorPlayingChangeHander.push(newColorPlayingHandler)
+        addColorPlayingChangeHandler: (newColorPlayingChangeHandler: ChangeHandler<string>) => {
+            colorPlayingChangeHander.push(newColorPlayingChangeHandler)
         },
 
-        addColorPausedChangeHandler: (newColorPausedHandler: ChangeHandler<string>) => {
-            colorPausedHandler.push(newColorPausedHandler)
+        addColorPausedChangeHandler: (newColorPausedChangeHandler: ChangeHandler<string>) => {
+            colorPausedHandler.push(newColorPausedChangeHandler)
         }, 
 
-        setChannelOnPanelChangeHandler: (newChannelOnPanelHandler: ChangeHandler<boolean>) => {
-            channelOnPanelHandler = newChannelOnPanelHandler
+        setChannelOnPanelChangeHandler: (newChannelOnPanelChangeHandler: ChangeHandler<boolean>) => {
+            channelOnPanelHandler = newChannelOnPanelChangeHandler
         }, 
 
         setStationsListChangeHandler: (newStationHandler: ChangeHandler<Channel[]>) => {

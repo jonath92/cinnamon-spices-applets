@@ -2,6 +2,9 @@ export type PlayPause = "Playing" | "Paused"
 export type PlaybackStatus = PlayPause | "Stopped"
 export type AdvancedPlaybackStatus = PlaybackStatus | 'Loading'
 
+export type ChangeHandler<T> = (newValue: T) => void
+
+
 export interface Channel {
     name: string,
     url: string,

@@ -239,16 +239,15 @@ const createConfig = (instanceId) => {
         getInitialVolume,
         addIconTypeChangeHandler: (newIconTypeChangeHandler) => {
             iconTypeChangeHandler.push(newIconTypeChangeHandler);
-            newIconTypeChangeHandler(settingsObject.iconType);
         },
-        addColorPlayingChangeHandler: (newColorPlayingHandler) => {
-            colorPlayingChangeHander.push(newColorPlayingHandler);
+        addColorPlayingChangeHandler: (newColorPlayingChangeHandler) => {
+            colorPlayingChangeHander.push(newColorPlayingChangeHandler);
         },
-        addColorPausedChangeHandler: (newColorPausedHandler) => {
-            colorPausedHandler.push(newColorPausedHandler);
+        addColorPausedChangeHandler: (newColorPausedChangeHandler) => {
+            colorPausedHandler.push(newColorPausedChangeHandler);
         },
-        setChannelOnPanelChangeHandler: (newChannelOnPanelHandler) => {
-            channelOnPanelHandler = newChannelOnPanelHandler;
+        setChannelOnPanelChangeHandler: (newChannelOnPanelChangeHandler) => {
+            channelOnPanelHandler = newChannelOnPanelChangeHandler;
         },
         setStationsListChangeHandler: (newStationHandler) => {
             stationsHandler = newStationHandler;
@@ -591,13 +590,14 @@ const { spawnCommandLine } = imports.misc.util;
 // see https://lazka.github.io/pgi-docs/Cvc-1.0/index.html
 const { MixerControl } = imports.gi.Cvc;
 function createMpvHandler(args) {
-    const { onPlaybackstatusChanged, onUrlChanged, onVolumeChanged, onTitleChanged, onLengthChanged, onPositionChanged, checkUrlValid, lastUrl, getInitialVolume, } = args;
+    const { onUrlChanged, onVolumeChanged, onTitleChanged, onLengthChanged, onPositionChanged, checkUrlValid, lastUrl, getInitialVolume, } = args;
     const dbus = getDBus();
     const mediaServerPlayer = getDBusProxyWithOwner(MEDIA_PLAYER_2_PLAYER_NAME, MPV_MPRIS_BUS_NAME);
     const mediaProps = getDBusProperties(MPV_MPRIS_BUS_NAME, MEDIA_PLAYER_2_PATH);
     const control = new MixerControl({ name: __meta.name });
     let cvcStream;
     let isLoading = false;
+    const playbackStatusChangeHandler = [];
     control.open();
     control.connect('stream-added', (ctrl, id) => {
         const addedStream = control.lookup_stream_id(id);
@@ -646,7 +646,7 @@ function createMpvHandler(args) {
             mediaPropsListenerId && mediaProps.disconnectSignal(mediaPropsListenerId);
             seekListenerId && mediaServerPlayer.disconnectSignal(seekListenerId);
             mediaPropsListenerId = seekListenerId = currentUrl = null;
-            onPlaybackstatusChanged('Stopped');
+            playbackStatusChangeHandler.forEach(handler => handler('Stopped'));
         }
     });
     function deactivateAllListener() {
@@ -692,13 +692,13 @@ function createMpvHandler(args) {
         currentLength = lengthInSeconds;
         if (startLoading) {
             isLoading = true;
-            onPlaybackstatusChanged('Loading');
+            playbackStatusChangeHandler.forEach(handler => handler('Loading'));
         }
         if (finishedLoading || bufferExceeded) {
             isLoading = false;
             const position = finishedLoading ? 0 : getPosition();
             handlePositionChanged(position);
-            onPlaybackstatusChanged(getPlaybackStatus());
+            playbackStatusChangeHandler.forEach(handler => handler(getPlaybackStatus()));
             bufferExceeded = false;
         }
     }
@@ -715,7 +715,7 @@ function createMpvHandler(args) {
             const position = Math.min(getPosition(), currentLength);
             onPositionChanged(position);
             if (position === currentLength) {
-                onPlaybackstatusChanged('Loading');
+                playbackStatusChangeHandler.forEach(handler => handler('Loading'));
                 bufferExceeded = true;
                 stopPositionTimer();
             }
@@ -729,7 +729,7 @@ function createMpvHandler(args) {
     }
     function handleMprisPlaybackStatusChanged(playbackStatus) {
         if (currentLength !== 0) {
-            onPlaybackstatusChanged(playbackStatus);
+            playbackStatusChangeHandler.forEach(handler => handler(playbackStatus));
             playbackStatus === 'Paused' ? stopPositionTimer()
                 : handlePositionChanged(getPosition());
         }
@@ -872,6 +872,10 @@ function createMpvHandler(args) {
         getPlaybackStatus,
         getVolume,
         getCurrentUrl: () => currentUrl,
+        addPlaybackStatusChangeHandler: (changeHandler) => {
+            playbackStatusChangeHandler.push(changeHandler);
+            changeHandler(getPlaybackStatus());
+        },
         // it is very confusing but dbus must be returned!
         // Otherwilse all listeners stop working after about 20 seconds which is fucking difficult to debug
         dbus
@@ -1478,74 +1482,41 @@ const { IconType: IconTypeEnum } = imports.gi.St;
 const { panelManager } = imports.ui.main;
 const { getAppletDefinition } = imports.ui.appletManager;
 function createAppletIcon(args) {
-    const { instanceId, initialPlaybackStatus, configs } = args;
+    const { instanceId, configs, mpvHandler: mpvPlayer } = args;
     const { settingsObject, addIconTypeChangeHandler, addColorPlayingChangeHandler, addColorPausedChangeHandler } = configs;
+    const { symbolicIconColorWhenPaused, symbolicIconColorWhenPlaying } = settingsObject;
+    const { getPlaybackStatus, addPlaybackStatusChangeHandler } = mpvPlayer;
+    const playbackStatusStyleMap = new Map([
+        ['Stopped', ' '],
+        ['Loading', ' '],
+        ['Paused', `color: ${symbolicIconColorWhenPaused}`],
+        ['Playing', `color: ${symbolicIconColorWhenPlaying}`]
+    ]);
     const appletDefinition = getAppletDefinition({
         applet_id: instanceId,
     });
     const locationLabel = appletDefinition.location_label;
     const panel = panelManager.panels.find(panel => (panel === null || panel === void 0 ? void 0 : panel.panelId) === appletDefinition.panelId);
-    let playbackStatus;
-    const playbackStatusStyleMap = new Map([
-        ['Stopped', ' '],
-        ['Loading', ' ']
-    ]);
     const icon = new AppletIcon_Icon({});
-    let normalIconType;
-    // the icon type passed from outside is overriten when the playbackstatus is 'loading' 
-    function setIconTypeInternal(iconTypeEnum, iconName) {
-        icon.style_class = iconTypeEnum === IconTypeEnum.SYMBOLIC ?
-            'system-status-icon' : 'applet-icon';
+    function setRefreshIcon() {
+        const playbackStatus = getPlaybackStatus();
+        const defaultIconType = settingsObject.iconType;
+        const useSymbolicIcon = defaultIconType === 'SYMBOLIC' || playbackStatus === 'Loading';
+        const [iconTypeEnum, iconName, style_class] = useSymbolicIcon ?
+            [IconTypeEnum.SYMBOLIC, RADIO_SYMBOLIC_ICON_NAME, 'system-status-icon'] :
+            [IconTypeEnum.FULLCOLOR, `radioapplet-${defaultIconType.toLowerCase()}`, 'applet-icon'];
         icon.icon_name = iconName;
         icon.icon_type = iconTypeEnum;
+        icon.style_class = style_class;
         icon.icon_size = panel.getPanelZoneIconSize(locationLabel, iconTypeEnum);
+        icon.style = playbackStatusStyleMap.get(playbackStatus);
     }
-    function setIconType(iconType) {
-        if (!iconType)
-            return;
-        const [iconTypeEnum, iconName] = iconType === 'SYMBOLIC' ?
-            [IconTypeEnum.SYMBOLIC, RADIO_SYMBOLIC_ICON_NAME] :
-            [IconTypeEnum.FULLCOLOR, `radioapplet-${iconType.toLowerCase()}`];
-        setIconTypeInternal(iconTypeEnum, iconName);
-    }
-    function updateIconSize() {
-        const iconSize = panel.getPanelZoneIconSize(locationLabel, icon.icon_type);
-        icon.icon_size = iconSize;
-    }
-    function setColorWhenPaused(color) {
-        playbackStatusStyleMap.set('Paused', `color: ${color}`);
-        if (playbackStatus)
-            setPlaybackStatus(playbackStatus);
-    }
-    function setColorWhenPlaying(color) {
-        playbackStatusStyleMap.set('Playing', `color: ${color}`);
-        if (playbackStatus)
-            setPlaybackStatus(playbackStatus);
-    }
-    function setPlaybackStatus(newPlaybackStatus) {
-        playbackStatus = newPlaybackStatus;
-        const style = playbackStatusStyleMap.get(playbackStatus);
-        if (newPlaybackStatus === 'Loading') {
-            setIconTypeInternal(IconTypeEnum.SYMBOLIC, LOADING_ICON_NAME);
-        }
-        else {
-            setIconType(normalIconType);
-        }
-        if (!style)
-            return;
-        icon.set_style(style);
-    }
-    panel.connect('icon-size-changed', () => updateIconSize());
-    addIconTypeChangeHandler((newValue) => setIconType(newValue));
-    addColorPlayingChangeHandler((newValue) => setColorWhenPlaying(newValue));
-    addColorPausedChangeHandler((newValue) => setColorWhenPaused(newValue));
-    setColorWhenPlaying(settingsObject.symbolicIconColorWhenPlaying);
-    setColorWhenPaused(settingsObject.symbolicIconColorWhenPaused);
-    setPlaybackStatus(initialPlaybackStatus);
-    return {
-        actor: icon,
-        setPlaybackStatus,
-    };
+    panel.connect('icon-size-changed', () => setRefreshIcon());
+    addIconTypeChangeHandler(() => setRefreshIcon());
+    addPlaybackStatusChangeHandler(() => setRefreshIcon());
+    addColorPlayingChangeHandler(() => setRefreshIcon());
+    addColorPausedChangeHandler(() => setRefreshIcon());
+    return icon;
 }
 
 ;// CONCATENATED MODULE: ./src/ui/Applet/AppletLabel.ts
@@ -5250,7 +5221,7 @@ function main(args) {
         onPositionChanged: handlePositionChanged,
         checkUrlValid: (url) => channelStore.checkUrlValid(url),
         onTitleChanged: handleTitleChanged,
-        onPlaybackstatusChanged: handlePlaybackstatusChanged,
+        // onPlaybackstatusChanged: handlePlaybackstatusChanged,
         lastUrl: configNew.lastUrl,
         onUrlChanged: handleUrlChanged
     });
@@ -5258,15 +5229,15 @@ function main(args) {
     const initialPlaybackStatus = mpvHandler.getPlaybackStatus();
     const appletIcon = createAppletIcon({
         instanceId,
-        initialPlaybackStatus,
-        configs
+        configs,
+        mpvHandler
     });
     const appletLabel = createAppletLabel({
         visible: configNew.channelNameOnPanel,
         initialChannelName
     });
     const applet = createApplet({
-        icon: appletIcon.actor,
+        icon: appletIcon,
         label: appletLabel.actor,
         instanceId,
         orientation,
@@ -5398,7 +5369,6 @@ function main(args) {
         if (playbackstatus !== 'Stopped' && !radioActiveSection.visible)
             radioActiveSection.show();
         channelList.setPlaybackStatus(playbackstatus);
-        appletIcon.setPlaybackStatus(playbackstatus);
         if (playbackstatus === 'Playing' || playbackstatus === 'Paused') {
             playPauseBtn.setPlaybackStatus(playbackstatus);
         }

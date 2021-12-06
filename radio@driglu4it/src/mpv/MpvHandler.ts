@@ -1,4 +1,4 @@
-import { PlayPause, AdvancedPlaybackStatus } from '../types'
+import { PlayPause, AdvancedPlaybackStatus, ChangeHandler } from '../types'
 import { MPV_MPRIS_BUS_NAME, MEDIA_PLAYER_2_PATH, MPRIS_PLUGIN_PATH, MAX_VOLUME, MEDIA_PLAYER_2_NAME, MEDIA_PLAYER_2_PLAYER_NAME, MPV_CVC_NAME } from '../consts'
 import { MprisMediaPlayerDbus, MprisPropsDbus, PlaybackStatus } from '../types';
 const { getDBusProperties, getDBus, getDBusProxyWithOwner } = imports.misc.interfaces
@@ -8,7 +8,6 @@ const { MixerControl } = imports.gi.Cvc;
 
 
 export interface Arguments {
-    onPlaybackstatusChanged: (playbackStatus: AdvancedPlaybackStatus) => void,
     onUrlChanged: (url: string) => void,
     onVolumeChanged: (volume: number) => void,
     onTitleChanged: (title: string) => void,
@@ -27,7 +26,6 @@ export interface Arguments {
 
 export function createMpvHandler(args: Arguments) {
     const {
-        onPlaybackstatusChanged,
         onUrlChanged,
         onVolumeChanged,
         onTitleChanged,
@@ -50,6 +48,8 @@ export function createMpvHandler(args: Arguments) {
     const control = new MixerControl({ name: __meta.name })
     let cvcStream: imports.gi.Cvc.MixerStream
     let isLoading: boolean = false
+
+    const playbackStatusChangeHandler: ChangeHandler<AdvancedPlaybackStatus>[] = []
 
     control.open()
     control.connect('stream-added', (ctrl, id) => {
@@ -117,7 +117,7 @@ export function createMpvHandler(args: Arguments) {
             mediaPropsListenerId && mediaProps.disconnectSignal(mediaPropsListenerId)
             seekListenerId && mediaServerPlayer.disconnectSignal(seekListenerId)
             mediaPropsListenerId = seekListenerId = currentUrl = null
-            onPlaybackstatusChanged('Stopped')
+            playbackStatusChangeHandler.forEach(handler => handler('Stopped'))
         }
     })
 
@@ -175,14 +175,14 @@ export function createMpvHandler(args: Arguments) {
 
         if (startLoading) {
             isLoading = true
-            onPlaybackstatusChanged('Loading')
+            playbackStatusChangeHandler.forEach(handler => handler('Loading'))
         }
 
         if (finishedLoading || bufferExceeded) {
             isLoading = false
             const position = finishedLoading ? 0 : getPosition()
             handlePositionChanged(position)
-            onPlaybackstatusChanged(getPlaybackStatus())
+            playbackStatusChangeHandler.forEach(handler => handler(getPlaybackStatus()))
             bufferExceeded = false
         }
     }
@@ -206,7 +206,7 @@ export function createMpvHandler(args: Arguments) {
             onPositionChanged(position)
 
             if (position === currentLength) {
-                onPlaybackstatusChanged('Loading')
+                playbackStatusChangeHandler.forEach(handler => handler('Loading'))
                 bufferExceeded = true
                 stopPositionTimer()
             }
@@ -223,7 +223,7 @@ export function createMpvHandler(args: Arguments) {
 
     function handleMprisPlaybackStatusChanged(playbackStatus: PlayPause) {
         if (currentLength !== 0) {
-            onPlaybackstatusChanged(playbackStatus)
+            playbackStatusChangeHandler.forEach(handler =>  handler(playbackStatus))
 
             playbackStatus === 'Paused' ? stopPositionTimer()
                 : handlePositionChanged(getPosition())
@@ -411,6 +411,10 @@ export function createMpvHandler(args: Arguments) {
         getPlaybackStatus,
         getVolume, 
         getCurrentUrl: () => currentUrl,
+        addPlaybackStatusChangeHandler: (changeHandler: ChangeHandler<AdvancedPlaybackStatus>) => {
+            playbackStatusChangeHandler.push(changeHandler)
+            changeHandler(getPlaybackStatus())
+        },
         // it is very confusing but dbus must be returned!
         // Otherwilse all listeners stop working after about 20 seconds which is fucking difficult to debug
         dbus

@@ -68,7 +68,7 @@ export function main(args: Arguments): imports.ui.applet.Applet {
         onPositionChanged: handlePositionChanged,
         checkUrlValid: (url) => channelStore.checkUrlValid(url),
         onTitleChanged: handleTitleChanged,
-        onPlaybackstatusChanged: handlePlaybackstatusChanged,
+        // onPlaybackstatusChanged: handlePlaybackstatusChanged,
         lastUrl: configNew.lastUrl,
         onUrlChanged: handleUrlChanged
     })
@@ -78,8 +78,8 @@ export function main(args: Arguments): imports.ui.applet.Applet {
 
     const appletIcon = createAppletIcon({
         instanceId,
-        initialPlaybackStatus, 
-        configs
+        configs, 
+        mpvHandler
     })
 
     const appletLabel = createAppletLabel({
@@ -88,7 +88,7 @@ export function main(args: Arguments): imports.ui.applet.Applet {
     })
 
     const applet = createApplet({
-        icon: appletIcon.actor,
+        icon: appletIcon,
         label: appletLabel.actor,
         instanceId,
         orientation,
@@ -258,7 +258,6 @@ export function main(args: Arguments): imports.ui.applet.Applet {
             radioActiveSection.show()
 
         channelList.setPlaybackStatus(playbackstatus)
-        appletIcon.setPlaybackStatus(playbackstatus)
 
         if (playbackstatus === 'Playing' || playbackstatus === 'Paused') {
             playPauseBtn.setPlaybackStatus(playbackstatus)
