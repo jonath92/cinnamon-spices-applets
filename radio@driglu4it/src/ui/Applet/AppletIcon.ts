@@ -18,26 +18,21 @@ export function createAppletIcon(args: Arguments) {
 
     const {
         instanceId,
-        configs,
-        mpvHandler: mpvPlayer
+        configs: {
+            settingsObject: {
+                symbolicIconColorWhenPaused,
+                symbolicIconColorWhenPlaying,
+                iconType: defaultIconType
+            },
+            addIconTypeChangeHandler,
+            addColorPlayingChangeHandler,
+            addColorPausedChangeHandler
+        },
+        mpvHandler: {
+            getPlaybackStatus,
+            addPlaybackStatusChangeHandler
+        }
     } = args
-
-    const {
-        settingsObject,
-        addIconTypeChangeHandler,
-        addColorPlayingChangeHandler,
-        addColorPausedChangeHandler
-    } = configs
-
-    const { symbolicIconColorWhenPaused, symbolicIconColorWhenPlaying } = settingsObject
-    const { getPlaybackStatus, addPlaybackStatusChangeHandler } = mpvPlayer
-
-    const playbackStatusStyleMap = new Map<AdvancedPlaybackStatus, string>([
-        ['Stopped', ' '],
-        ['Loading', ' '],
-        ['Paused', `color: ${symbolicIconColorWhenPaused}`],
-        ['Playing', `color: ${symbolicIconColorWhenPlaying}`]
-    ])
 
     const appletDefinition = getAppletDefinition({
         applet_id: instanceId,
@@ -51,23 +46,42 @@ export function createAppletIcon(args: Arguments) {
 
     const icon = new Icon({})
 
-    function setRefreshIcon() {
+    function getStyle(props: { playbackStatus: AdvancedPlaybackStatus }): string {
+        const { playbackStatus: playbackstatus } = props
+
+        if (playbackstatus === 'Paused')
+            return `color: ${symbolicIconColorWhenPaused}`
+
+        if (playbackstatus === 'Playing')
+            return `color: ${symbolicIconColorWhenPlaying}`
+
+        return ' '
+    }
+
+    function getIconName(props: { isLoading: boolean }): string {
+        const { isLoading } = props
+
+        if (isLoading) return LOADING_ICON_NAME
+
+        if (defaultIconType === 'SYMBOLIC') return RADIO_SYMBOLIC_ICON_NAME
+
+        return `radioapplet-${defaultIconType.toLowerCase()}`
+    }
+
+    function setRefreshIcon(): void {
 
         const playbackStatus = getPlaybackStatus()
-        const defaultIconType = settingsObject.iconType
-
         const useSymbolicIcon = defaultIconType === 'SYMBOLIC' || playbackStatus === 'Loading'
 
-        const [iconTypeEnum, iconName, style_class] = useSymbolicIcon ?
-            [IconTypeEnum.SYMBOLIC, RADIO_SYMBOLIC_ICON_NAME, 'system-status-icon'] :
-            [IconTypeEnum.FULLCOLOR, `radioapplet-${defaultIconType.toLowerCase()}`, 'applet-icon']
+        const [iconTypeEnum, style_class] = useSymbolicIcon ?
+            [IconTypeEnum.SYMBOLIC, 'system-status-icon'] :
+            [IconTypeEnum.FULLCOLOR,  'applet-icon']
 
-        icon.icon_name = iconName
+        icon.icon_name = getIconName({isLoading: playbackStatus === 'Loading'})
         icon.icon_type = iconTypeEnum
         icon.style_class = style_class
         icon.icon_size = panel.getPanelZoneIconSize(locationLabel, iconTypeEnum)
-        icon.style = playbackStatusStyleMap.get(playbackStatus)!
-
+        icon.style = getStyle({ playbackStatus })
     }
 
     panel.connect('icon-size-changed', () => setRefreshIcon())

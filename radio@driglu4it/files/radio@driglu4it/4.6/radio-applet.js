@@ -1482,34 +1482,40 @@ const { IconType: IconTypeEnum } = imports.gi.St;
 const { panelManager } = imports.ui.main;
 const { getAppletDefinition } = imports.ui.appletManager;
 function createAppletIcon(args) {
-    const { instanceId, configs, mpvHandler: mpvPlayer } = args;
-    const { settingsObject, addIconTypeChangeHandler, addColorPlayingChangeHandler, addColorPausedChangeHandler } = configs;
-    const { symbolicIconColorWhenPaused, symbolicIconColorWhenPlaying } = settingsObject;
-    const { getPlaybackStatus, addPlaybackStatusChangeHandler } = mpvPlayer;
-    const playbackStatusStyleMap = new Map([
-        ['Stopped', ' '],
-        ['Loading', ' '],
-        ['Paused', `color: ${symbolicIconColorWhenPaused}`],
-        ['Playing', `color: ${symbolicIconColorWhenPlaying}`]
-    ]);
+    const { instanceId, configs: { settingsObject: { symbolicIconColorWhenPaused, symbolicIconColorWhenPlaying, iconType: defaultIconType }, addIconTypeChangeHandler, addColorPlayingChangeHandler, addColorPausedChangeHandler }, mpvHandler: { getPlaybackStatus, addPlaybackStatusChangeHandler } } = args;
     const appletDefinition = getAppletDefinition({
         applet_id: instanceId,
     });
     const locationLabel = appletDefinition.location_label;
     const panel = panelManager.panels.find(panel => (panel === null || panel === void 0 ? void 0 : panel.panelId) === appletDefinition.panelId);
     const icon = new AppletIcon_Icon({});
+    function getStyle(props) {
+        const { playbackStatus: playbackstatus } = props;
+        if (playbackstatus === 'Paused')
+            return `color: ${symbolicIconColorWhenPaused}`;
+        if (playbackstatus === 'Playing')
+            return `color: ${symbolicIconColorWhenPlaying}`;
+        return ' ';
+    }
+    function getIconName(props) {
+        const { isLoading } = props;
+        if (isLoading)
+            return LOADING_ICON_NAME;
+        if (defaultIconType === 'SYMBOLIC')
+            return RADIO_SYMBOLIC_ICON_NAME;
+        return `radioapplet-${defaultIconType.toLowerCase()}`;
+    }
     function setRefreshIcon() {
         const playbackStatus = getPlaybackStatus();
-        const defaultIconType = settingsObject.iconType;
         const useSymbolicIcon = defaultIconType === 'SYMBOLIC' || playbackStatus === 'Loading';
-        const [iconTypeEnum, iconName, style_class] = useSymbolicIcon ?
-            [IconTypeEnum.SYMBOLIC, RADIO_SYMBOLIC_ICON_NAME, 'system-status-icon'] :
-            [IconTypeEnum.FULLCOLOR, `radioapplet-${defaultIconType.toLowerCase()}`, 'applet-icon'];
-        icon.icon_name = iconName;
+        const [iconTypeEnum, style_class] = useSymbolicIcon ?
+            [IconTypeEnum.SYMBOLIC, 'system-status-icon'] :
+            [IconTypeEnum.FULLCOLOR, 'applet-icon'];
+        icon.icon_name = getIconName({ isLoading: playbackStatus === 'Loading' });
         icon.icon_type = iconTypeEnum;
         icon.style_class = style_class;
         icon.icon_size = panel.getPanelZoneIconSize(locationLabel, iconTypeEnum);
-        icon.style = playbackStatusStyleMap.get(playbackStatus);
+        icon.style = getStyle({ playbackStatus });
     }
     panel.connect('icon-size-changed', () => setRefreshIcon());
     addIconTypeChangeHandler(() => setRefreshIcon());
