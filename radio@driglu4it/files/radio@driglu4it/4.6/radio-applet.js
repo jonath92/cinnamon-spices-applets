@@ -219,7 +219,10 @@ const createConfig = (instanceId) => {
     let channelOnPanelHandler;
     let keepVolumeHandler;
     let stationsHandler;
-    appletSettings.bind('icon-type', 'iconType', (...arg) => iconTypeChangeHandler.forEach(changeHandler => changeHandler(...arg)));
+    appletSettings.bind('icon-type', 'iconType', (...arg) => {
+        global.log('iconType changed');
+        iconTypeChangeHandler.forEach(changeHandler => changeHandler(...arg));
+    });
     appletSettings.bind('color-on', 'symbolicIconColorWhenPlaying', (...arg) => colorPlayingChangeHander.forEach(changeHandler => changeHandler(...arg)));
     appletSettings.bind('color-paused', 'symbolicIconColorWhenPaused', (...arg) => colorPausedHandler.forEach(changeHandler => changeHandler(...arg)));
     appletSettings.bind('channel-on-panel', 'channelNameOnPanel', (...arg) => channelOnPanelHandler === null || channelOnPanelHandler === void 0 ? void 0 : channelOnPanelHandler(...arg));
@@ -1482,7 +1485,7 @@ const { IconType: IconTypeEnum } = imports.gi.St;
 const { panelManager } = imports.ui.main;
 const { getAppletDefinition } = imports.ui.appletManager;
 function createAppletIcon(args) {
-    const { instanceId, configs: { settingsObject: { symbolicIconColorWhenPaused, symbolicIconColorWhenPlaying, iconType: defaultIconType }, addIconTypeChangeHandler, addColorPlayingChangeHandler, addColorPausedChangeHandler }, mpvHandler: { getPlaybackStatus, addPlaybackStatusChangeHandler } } = args;
+    const { instanceId, configs: { settingsObject, addIconTypeChangeHandler, addColorPlayingChangeHandler, addColorPausedChangeHandler }, mpvHandler: { getPlaybackStatus, addPlaybackStatusChangeHandler } } = args;
     const appletDefinition = getAppletDefinition({
         applet_id: instanceId,
     });
@@ -1492,13 +1495,14 @@ function createAppletIcon(args) {
     function getStyle(props) {
         const { playbackStatus: playbackstatus } = props;
         if (playbackstatus === 'Paused')
-            return `color: ${symbolicIconColorWhenPaused}`;
+            return `color: ${settingsObject.symbolicIconColorWhenPaused}`;
         if (playbackstatus === 'Playing')
-            return `color: ${symbolicIconColorWhenPlaying}`;
+            return `color: ${settingsObject.symbolicIconColorWhenPlaying}`;
         return ' ';
     }
     function getIconName(props) {
         const { isLoading } = props;
+        const defaultIconType = settingsObject.iconType;
         if (isLoading)
             return LOADING_ICON_NAME;
         if (defaultIconType === 'SYMBOLIC')
@@ -1507,6 +1511,7 @@ function createAppletIcon(args) {
     }
     function setRefreshIcon() {
         const playbackStatus = getPlaybackStatus();
+        const defaultIconType = settingsObject.iconType;
         const useSymbolicIcon = defaultIconType === 'SYMBOLIC' || playbackStatus === 'Loading';
         const [iconTypeEnum, style_class] = useSymbolicIcon ?
             [IconTypeEnum.SYMBOLIC, 'system-status-icon'] :

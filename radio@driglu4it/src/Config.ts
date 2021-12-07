@@ -33,7 +33,8 @@ export const createConfig = (instanceId: number) => {
     let stationsHandler: ChangeHandler<Channel[]> | undefined
 
     appletSettings.bind<AppletIcon>('icon-type', 'iconType', 
-        (...arg) => iconTypeChangeHandler.forEach(changeHandler => changeHandler(...arg)))
+        (...arg) => iconTypeChangeHandler.forEach(changeHandler => changeHandler(...arg))
+    )
 
     appletSettings.bind<string>('color-on', 'symbolicIconColorWhenPlaying', 
         (...arg) => colorPlayingChangeHander.forEach(changeHandler => changeHandler(...arg)))
