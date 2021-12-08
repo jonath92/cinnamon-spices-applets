@@ -42,6 +42,8 @@ export function createAppletIcon(args: Arguments) {
 
     const icon = new Icon({})
 
+    icon.bind_property
+
     function getStyle(props: { playbackStatus: AdvancedPlaybackStatus }): string {
         const { playbackStatus: playbackstatus } = props
 
