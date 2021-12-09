@@ -216,16 +216,13 @@ const createConfig = (instanceId) => {
     const iconTypeChangeHandler = [];
     const colorPlayingChangeHander = [];
     const colorPausedHandler = [];
-    let channelOnPanelHandler;
+    const channelOnPanelHandler = [];
     let keepVolumeHandler;
     let stationsHandler;
-    appletSettings.bind('icon-type', 'iconType', (...arg) => {
-        global.log('iconType changed');
-        iconTypeChangeHandler.forEach(changeHandler => changeHandler(...arg));
-    });
+    appletSettings.bind('icon-type', 'iconType', (...arg) => iconTypeChangeHandler.forEach(changeHandler => changeHandler(...arg)));
     appletSettings.bind('color-on', 'symbolicIconColorWhenPlaying', (...arg) => colorPlayingChangeHander.forEach(changeHandler => changeHandler(...arg)));
     appletSettings.bind('color-paused', 'symbolicIconColorWhenPaused', (...arg) => colorPausedHandler.forEach(changeHandler => changeHandler(...arg)));
-    appletSettings.bind('channel-on-panel', 'channelNameOnPanel', (...arg) => channelOnPanelHandler === null || channelOnPanelHandler === void 0 ? void 0 : channelOnPanelHandler(...arg));
+    appletSettings.bind('channel-on-panel', 'channelNameOnPanel', (...arg) => channelOnPanelHandler.forEach(changeHandler => changeHandler(...arg)));
     appletSettings.bind('keep-volume-between-sessions', 'keepVolume', (...arg) => keepVolumeHandler === null || keepVolumeHandler === void 0 ? void 0 : keepVolumeHandler(...arg));
     appletSettings.bind('initial-volume', 'customInitVolume');
     appletSettings.bind('last-volume', 'lastVolume');
@@ -249,8 +246,8 @@ const createConfig = (instanceId) => {
         addColorPausedChangeHandler: (newColorPausedChangeHandler) => {
             colorPausedHandler.push(newColorPausedChangeHandler);
         },
-        setChannelOnPanelChangeHandler: (newChannelOnPanelChangeHandler) => {
-            channelOnPanelHandler = newChannelOnPanelChangeHandler;
+        addChannelOnPanelChangeHandler: (channelOnPanelChangeHandler) => {
+            channelOnPanelHandler.push(channelOnPanelChangeHandler);
         },
         setStationsListChangeHandler: (newStationHandler) => {
             stationsHandler = newStationHandler;
@@ -261,8 +258,9 @@ const createConfig = (instanceId) => {
 
 ;// CONCATENATED MODULE: ./src/ChannelStore.ts
 class ChannelStore {
-    constructor(channelList) {
+    constructor(channelList, mpvPlayer) {
         this._channelList = channelList;
+        this._mpvPlayer = mpvPlayer;
     }
     set channelList(channelList) {
         this._channelList = channelList.flatMap(channel => {
@@ -274,6 +272,10 @@ class ChannelStore {
     }
     get activatedChannelNames() {
         return this._channelList.map(channel => channel.name);
+    }
+    getcurrentChannel() {
+        const currentURl = this._mpvPlayer.getCurrentUrl();
+        return currentURl ? this._channelList.find(cnl => cnl.url === currentURl) : undefined;
     }
     // TODO: what is when two Channels have the same Name or Url? :O
     getChannelName(channelUrl) {
@@ -1535,45 +1537,33 @@ const { Label: AppletLabel_Label } = imports.gi.St;
 const { EllipsizeMode } = imports.gi.Pango;
 const { ActorAlign: AppletLabel_ActorAlign } = imports.gi.Clutter;
 function createAppletLabel(props) {
-    const { visible: initialVisible, initialChannelName } = props;
+    var _a;
+    const { configs: { settingsObject, addChannelOnPanelChangeHandler }, channelStore: { getcurrentChannel } } = props;
     const label = new AppletLabel_Label({
         reactive: true,
         track_hover: true,
         style_class: 'applet-label',
         y_align: AppletLabel_ActorAlign.CENTER,
         y_expand: false,
-        visible: false
+        visible: settingsObject.channelNameOnPanel,
+        text: ((_a = getcurrentChannel()) === null || _a === void 0 ? void 0 : _a.name) || ''
     });
     // No idea why needed but without the label is not shown 
     label.clutter_text.ellipsize = EllipsizeMode.NONE;
-    let visible;
-    let text;
-    /**
-     *
-     * @param newValue text to show on the label. The text however is only visible in the GUI when visible is true. It is also shown no text when passing null for text but in that case the text is shown again when calling this function again with a string (i.e this function is intended to be used with null when the text shall only temporarily be hidden)
-     *
-     */
-    function setText(newValue) {
-        text = newValue;
-        if (!visible)
-            return;
-        label.show();
-        newValue ? label.text = ` ${newValue}` : label.hide();
-    }
-    function setVisibility(newValue) {
-        visible = newValue;
-        if (text)
-            label.visible = newValue;
-        if (visible && text)
-            setText(text);
-    }
-    setVisibility(initialVisible);
-    initialChannelName && setText(initialChannelName);
-    return {
-        actor: label,
-        setVisibility,
-        setText,
-    };
+    // /**
+    //  * 
+    //  * @param newValue text to show on the label. The text however is only visible in the GUI when visible is true. It is also shown no text when passing null for text but in that case the text is shown again when calling this function again with a string (i.e this function is intended to be used with null when the text shall only temporarily be hidden)    
+    //  * 
+    //  */
+    // function setText(newValue: string | null) {
+    //     text = newValue
+    //     if (!visible) return
+    //     label.show()
+    //     newValue ? label.text = ` ${newValue}` : label.hide()
+    // }
+    //initialChannelName && setText(initialChannelName)
+    addChannelOnPanelChangeHandler((channelOnPanel) => label.visible = channelOnPanel);
+    return label;
 }
 
 ;// CONCATENATED MODULE: ./src/ui/Applet/AppletTooltip.ts
@@ -5186,7 +5176,20 @@ function initPolyfills() {
     }
 }
 
+;// CONCATENATED MODULE: ./src/ChannelStoreNew.ts
+function createChannelStoreNew(props) {
+    const { mpvHandler: { getCurrentUrl }, configs: { settingsObject } } = props;
+    const getcurrentChannel = () => {
+        const currentUrl = getCurrentUrl();
+        return currentUrl ? settingsObject.userStations.find(cnl => cnl.url === currentUrl) : undefined;
+    };
+    return {
+        getcurrentChannel
+    };
+}
+
 ;// CONCATENATED MODULE: ./src/index.ts
+
 
 
 
@@ -5223,8 +5226,7 @@ function main(args) {
     let lastVolume;
     let installationInProgress = false;
     const configs = createConfig(instanceId);
-    const { settingsObject: configNew, setChannelOnPanelChangeHandler: setChannelOnPanelHandler, setStationsListChangeHandler: setStationsHandler, getInitialVolume } = configs;
-    const channelStore = new ChannelStore(configNew.userStations);
+    const { settingsObject: configNew, setStationsListChangeHandler: setStationsHandler, getInitialVolume } = configs;
     const mpvHandler = createMpvHandler({
         getInitialVolume: getInitialVolume,
         onVolumeChanged: handleVolumeChanged,
@@ -5236,6 +5238,8 @@ function main(args) {
         lastUrl: configNew.lastUrl,
         onUrlChanged: handleUrlChanged
     });
+    const channelStore = new ChannelStore(configNew.userStations, mpvHandler);
+    const channelStoreNew = createChannelStoreNew({ mpvHandler, configs });
     const initialChannelName = channelStore.getChannelName(mpvHandler.getCurrentUrl());
     const initialPlaybackStatus = mpvHandler.getPlaybackStatus();
     const appletIcon = createAppletIcon({
@@ -5244,12 +5248,12 @@ function main(args) {
         mpvHandler
     });
     const appletLabel = createAppletLabel({
-        visible: configNew.channelNameOnPanel,
-        initialChannelName
+        configs,
+        channelStore: channelStoreNew
     });
     const applet = createApplet({
         icon: appletIcon,
-        label: appletLabel.actor,
+        label: appletLabel,
         instanceId,
         orientation,
         panelHeight,
@@ -5261,7 +5265,6 @@ function main(args) {
         onRightClick: () => popupMenu === null || popupMenu === void 0 ? void 0 : popupMenu.close()
     });
     const popupMenu = (0,cinnamonpopup/* createPopupMenu */.S)({ launcher: applet.actor });
-    setChannelOnPanelHandler((...arg) => appletLabel.setVisibility(...arg));
     const appletTooltip = createAppletTooltip({
         applet,
         orientation,
@@ -5373,7 +5376,6 @@ function main(args) {
             radioActiveSection.hide();
             configNew.lastVolume = lastVolume;
             configNew.lastUrl = null;
-            appletLabel.setText(null);
             appletTooltip.setDefaultTooltip();
             popupMenu.close();
         }
@@ -5386,8 +5388,6 @@ function main(args) {
     }
     function handleUrlChanged(url) {
         const channelName = url ? channelStore.getChannelName(url) : null;
-        if (typeof channelName !== 'undefined')
-            appletLabel.setText(channelName);
         channelName && channelList.setCurrentChannel(channelName);
         channelName && infoSection.setChannel(channelName);
         configNew.lastUrl = url;

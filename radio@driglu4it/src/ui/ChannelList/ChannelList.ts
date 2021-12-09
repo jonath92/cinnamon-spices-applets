@@ -5,7 +5,7 @@ import { AdvancedPlaybackStatus } from "../../types";
 interface Arguments {
     stationNames: string[],
     onChannelClicked: (name: string) => void, 
-    initialChannelName?: string, 
+    initialChannelName?: string | undefined, 
     initialPlaybackStatus?: AdvancedPlaybackStatus
 }
 

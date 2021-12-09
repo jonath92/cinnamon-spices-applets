@@ -1,5 +1,4 @@
 import { Channel, AppletIcon, ChangeHandler } from "./types";
-const { Object, Value } = imports.gi.GObject
 const { AppletSettings } = imports.ui.settings;
 
 interface Settings {
@@ -16,7 +15,6 @@ interface Settings {
     musicDownloadDir: string
 }
 
-
 export const createConfig = (instanceId: number) => {
 
     // all settings are saved to this object
@@ -26,8 +24,8 @@ export const createConfig = (instanceId: number) => {
     const iconTypeChangeHandler: ChangeHandler<AppletIcon>[] = []
     const colorPlayingChangeHander: ChangeHandler<string>[] = []
     const colorPausedHandler: ChangeHandler<string>[] = []
+    const channelOnPanelHandler: ChangeHandler<boolean>[] = []
 
-    let channelOnPanelHandler: ChangeHandler<boolean> | undefined
     let keepVolumeHandler: ChangeHandler<boolean> | undefined
     let stationsHandler: ChangeHandler<Channel[]> | undefined
 
@@ -42,7 +40,7 @@ export const createConfig = (instanceId: number) => {
         (...arg) => colorPausedHandler.forEach(changeHandler => changeHandler(...arg)))
 
     appletSettings.bind<boolean>('channel-on-panel', 'channelNameOnPanel',
-        (...arg) => channelOnPanelHandler?.(...arg))
+        (...arg) => channelOnPanelHandler.forEach(changeHandler => changeHandler(...arg)))
 
     appletSettings.bind<boolean>('keep-volume-between-sessions', 'keepVolume',
         (...arg) => keepVolumeHandler?.(...arg))
@@ -85,8 +83,8 @@ export const createConfig = (instanceId: number) => {
             colorPausedHandler.push(newColorPausedChangeHandler)
         },
 
-        setChannelOnPanelChangeHandler: (newChannelOnPanelChangeHandler: ChangeHandler<boolean>) => {
-            channelOnPanelHandler = newChannelOnPanelChangeHandler
+        addChannelOnPanelChangeHandler: (channelOnPanelChangeHandler: ChangeHandler<boolean>) => {
+            channelOnPanelHandler.push(channelOnPanelChangeHandler)
         },
 
         setStationsListChangeHandler: (newStationHandler: ChangeHandler<Channel[]>) => {

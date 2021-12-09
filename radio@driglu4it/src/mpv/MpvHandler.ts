@@ -411,6 +411,8 @@ export function createMpvHandler(args: Arguments) {
         getPlaybackStatus,
         getVolume, 
         getCurrentUrl: () => currentUrl,
+
+        
         addPlaybackStatusChangeHandler: (changeHandler: ChangeHandler<AdvancedPlaybackStatus>) => {
             playbackStatusChangeHandler.push(changeHandler)
             changeHandler(getPlaybackStatus())

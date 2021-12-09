@@ -1,11 +1,13 @@
+import { createMpvHandler } from 'mpv/MpvHandler'
 import { Channel } from './types'
 
 export class ChannelStore {
     private _channelList: Channel[]
+    private _mpvPlayer: ReturnType<typeof createMpvHandler>
 
-    constructor(channelList: Channel[]) {
+    constructor(channelList: Channel[], mpvPlayer: ReturnType<typeof createMpvHandler>) {
         this._channelList = channelList
-
+        this._mpvPlayer = mpvPlayer
     }
 
     public set channelList(channelList: Channel[]) {
@@ -24,6 +26,13 @@ export class ChannelStore {
     public get activatedChannelNames() {
         return this._channelList.map(channel => channel.name)
     }
+
+    public getcurrentChannel(): Channel | undefined {
+        const currentURl = this._mpvPlayer.getCurrentUrl()
+
+        return currentURl ? this._channelList.find(cnl => cnl.url === currentURl): undefined
+    }
+
 
     // TODO: what is when two Channels have the same Name or Url? :O
     public getChannelName(channelUrl: string | null) {

@@ -3,8 +3,8 @@ import { createIconMenuItem } from "../lib/IconMenuItem";
 const { BoxLayout } = imports.gi.St
 
 interface Arguments {
-    initialSongTitle?: string, 
-    initialChannelName?: string
+    initialSongTitle?: string | undefined, 
+    initialChannelName?: string | undefined
 }
 
 export function createInfoSection(args: Arguments) {

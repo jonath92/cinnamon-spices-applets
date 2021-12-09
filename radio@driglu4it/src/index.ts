@@ -26,6 +26,7 @@ import { notify } from './ui/Notifications/GenericNotification';
 import { createSeeker } from './ui/Seeker';
 import { VOLUME_DELTA } from './consts';
 import { initPolyfills } from './polyfill';
+import { createChannelStoreNew } from './ChannelStoreNew';
 
 const { BoxLayout } = imports.gi.St
 const { ScrollDirection } = imports.gi.Clutter;
@@ -54,12 +55,9 @@ export function main(args: Arguments): imports.ui.applet.Applet {
 
     const {
         settingsObject: configNew,
-        setChannelOnPanelChangeHandler: setChannelOnPanelHandler,
         setStationsListChangeHandler: setStationsHandler,
         getInitialVolume
     } = configs
-
-    const channelStore = new ChannelStore(configNew.userStations)
 
     const mpvHandler = createMpvHandler({
         getInitialVolume: getInitialVolume,
@@ -73,6 +71,9 @@ export function main(args: Arguments): imports.ui.applet.Applet {
         onUrlChanged: handleUrlChanged
     })
 
+    const channelStore = new ChannelStore(configNew.userStations, mpvHandler)
+    const channelStoreNew = createChannelStoreNew({mpvHandler, configs})
+
     const initialChannelName =  channelStore.getChannelName(mpvHandler.getCurrentUrl())
     const initialPlaybackStatus = mpvHandler.getPlaybackStatus()
 
@@ -83,13 +84,13 @@ export function main(args: Arguments): imports.ui.applet.Applet {
     })
 
     const appletLabel = createAppletLabel({
-        visible: configNew.channelNameOnPanel,
-        initialChannelName
+        configs, 
+        channelStore: channelStoreNew
     })
 
     const applet = createApplet({
         icon: appletIcon,
-        label: appletLabel.actor,
+        label: appletLabel,
         instanceId,
         orientation,
         panelHeight,
@@ -103,8 +104,6 @@ export function main(args: Arguments): imports.ui.applet.Applet {
 
     const popupMenu = createPopupMenu({ launcher: applet.actor })
 
-
-    setChannelOnPanelHandler((...arg) => appletLabel.setVisibility(...arg))
 
     const appletTooltip = createAppletTooltip({
         applet,
@@ -249,7 +248,6 @@ export function main(args: Arguments): imports.ui.applet.Applet {
             radioActiveSection.hide()
             configNew.lastVolume = lastVolume
             configNew.lastUrl = null
-            appletLabel.setText(null)
             appletTooltip.setDefaultTooltip()
             popupMenu.close()
         }
@@ -268,9 +266,6 @@ export function main(args: Arguments): imports.ui.applet.Applet {
     function handleUrlChanged(url: string) {
 
         const channelName = url ? channelStore.getChannelName(url) : null
-
-        if (typeof channelName !== 'undefined' )
-            appletLabel.setText(channelName)
 
         channelName && channelList.setCurrentChannel(channelName)
         channelName && infoSection.setChannel(channelName)

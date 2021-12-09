@@ -4,7 +4,7 @@ import { limitString } from "../functions/limitString"
 const { Icon, IconType, Label, BoxLayout } = imports.gi.St
 
 interface Arguments {
-    initialText?: string,
+    initialText?: string | undefined,
     iconName?: string,
     onActivated?: () => void
     maxCharNumber: number,
