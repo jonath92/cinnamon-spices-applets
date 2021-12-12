@@ -593,7 +593,9 @@ const { MixerControl } = imports.gi.Cvc;
 function createMpvHandler(args) {
     const { onUrlChanged, onVolumeChanged, onTitleChanged, onLengthChanged, onPositionChanged, 
     // checkUrlValid,
-    lastUrl, configs: { settingsObject, getInitialVolume } } = args;
+    configs: { settingsObject, getInitialVolume, } } = args;
+    /** the lastUrl is used to determine if mpv is initially (i.e. on cinnamon restart) running for radio purposes and not for something else. It is not sufficient to get the url from a dbus interface and check if the url is valid because some streams (such as .pls streams) change their url dynamically. This approach in not 100% foolproof but probably the best possible approach */
+    const lastUrl = settingsObject.lastUrl;
     const dbus = getDBus();
     const mediaServerPlayer = getDBusProxyWithOwner(MEDIA_PLAYER_2_PLAYER_NAME, MPV_MPRIS_BUS_NAME);
     const mediaProps = getDBusProperties(MPV_MPRIS_BUS_NAME, MEDIA_PLAYER_2_PATH);
@@ -5218,14 +5220,13 @@ function main(args) {
     let lastVolume;
     let installationInProgress = false;
     const configs = createConfig(instanceId);
-    const { settingsObject: configNew, setStationsListChangeHandler: setStationsHandler, getInitialVolume } = configs;
+    const { settingsObject: configNew, setStationsListChangeHandler: setStationsHandler, } = configs;
     const mpvHandler = createMpvHandler({
         onVolumeChanged: handleVolumeChanged,
         onLengthChanged: hanldeLengthChanged,
         onPositionChanged: handlePositionChanged,
         onTitleChanged: handleTitleChanged,
         // onPlaybackstatusChanged: handlePlaybackstatusChanged,
-        lastUrl: configNew.lastUrl,
         onUrlChanged: handleUrlChanged,
         configs
     });

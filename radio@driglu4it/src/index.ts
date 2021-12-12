@@ -55,7 +55,6 @@ export function main(args: Arguments): imports.ui.applet.Applet {
     const {
         settingsObject: configNew,
         setStationsListChangeHandler: setStationsHandler,
-        getInitialVolume
     } = configs
 
     const mpvHandler = createMpvHandler({
@@ -64,7 +63,6 @@ export function main(args: Arguments): imports.ui.applet.Applet {
         onPositionChanged: handlePositionChanged,
         onTitleChanged: handleTitleChanged,
         // onPlaybackstatusChanged: handlePlaybackstatusChanged,
-        lastUrl: configNew.lastUrl,
         onUrlChanged: handleUrlChanged, 
         configs
     })

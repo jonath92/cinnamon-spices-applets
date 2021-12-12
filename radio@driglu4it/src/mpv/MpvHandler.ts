@@ -17,8 +17,8 @@ export interface Arguments {
     /** position in seconds */
     onPositionChanged: (position: number) => void,
     // checkUrlValid: (url: string) => boolean,
-    /** the lastUrl is used to determine if mpv is initially (i.e. on cinnamon restart) running for radio purposes and not for something else. It is not sufficient to get the url from a dbus interface and check if the url is valid because some streams (such as .pls streams) change their url dynamically. This approach in not 100% foolproof but probably the best possible approach */
-    lastUrl: string | null,
+
+    //lastUrl: string | null,
 
     configs: ReturnType<typeof createConfig>
 }
@@ -31,12 +31,14 @@ export function createMpvHandler(args: Arguments) {
         onLengthChanged,
         onPositionChanged,
         // checkUrlValid,
-        lastUrl,
         configs: {
-            settingsObject, 
-            getInitialVolume
+            settingsObject,
+            getInitialVolume,
         }
     } = args
+
+    /** the lastUrl is used to determine if mpv is initially (i.e. on cinnamon restart) running for radio purposes and not for something else. It is not sufficient to get the url from a dbus interface and check if the url is valid because some streams (such as .pls streams) change their url dynamically. This approach in not 100% foolproof but probably the best possible approach */
+    const lastUrl = settingsObject.lastUrl
 
     const dbus = getDBus()
 
@@ -406,7 +408,7 @@ export function createMpvHandler(args: Arguments) {
     }
 
     function getCurrentChannel(): string | undefined {
-        const currentChannel =  currentUrl ? settingsObject.userStations.find(cnl => cnl.url === currentUrl) : undefined
+        const currentChannel = currentUrl ? settingsObject.userStations.find(cnl => cnl.url === currentUrl) : undefined
 
         return currentChannel?.name
     }
@@ -423,7 +425,7 @@ export function createMpvHandler(args: Arguments) {
         getPlaybackStatus,
         getVolume,
         // getCurrentUrl: () => currentUrl,
-        getCurrentChannel, 
+        getCurrentChannel,
 
 
         addPlaybackStatusChangeHandler: (changeHandler: ChangeHandler<AdvancedPlaybackStatus>) => {
