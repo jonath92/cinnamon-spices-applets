@@ -9,7 +9,7 @@ const { MixerControl } = imports.gi.Cvc;
 
 
 export interface Arguments {
-    onUrlChanged: (url: string) => void,
+    // onUrlChanged: (url: string) => void,
     onVolumeChanged: (volume: number) => void,
     onTitleChanged: (title: string) => void,
     /** length in seconds */
@@ -18,14 +18,12 @@ export interface Arguments {
     onPositionChanged: (position: number) => void,
     // checkUrlValid: (url: string) => boolean,
 
-    //lastUrl: string | null,
-
     configs: ReturnType<typeof createConfig>
 }
 
 export function createMpvHandler(args: Arguments) {
     const {
-        onUrlChanged,
+        // onUrlChanged,
         onVolumeChanged,
         onTitleChanged,
         onLengthChanged,
@@ -53,6 +51,8 @@ export function createMpvHandler(args: Arguments) {
     let isLoading: boolean = false
 
     const playbackStatusChangeHandler: ChangeHandler<AdvancedPlaybackStatus>[] = []
+    // executed when the url changes including when set to a falsy vlaue due to radio stopped
+    const channelNameChangeHandler: ChangeHandler<string | undefined>[] = []
 
     control.open()
     control.connect('stream-added', (ctrl, id) => {
@@ -121,6 +121,7 @@ export function createMpvHandler(args: Arguments) {
             seekListenerId && mediaServerPlayer.disconnectSignal(seekListenerId)
             mediaPropsListenerId = seekListenerId = currentUrl = null
             playbackStatusChangeHandler.forEach(handler => handler('Stopped'))
+            channelNameChangeHandler.forEach(handler => handler(undefined))
         }
     })
 
@@ -245,7 +246,7 @@ export function createMpvHandler(args: Arguments) {
         if (positionTimerId) stopPositionTimer()
         onPositionChanged(0)
 
-        onUrlChanged(newUrl)
+        channelNameChangeHandler.forEach(changeHandler => changeHandler(getCurrentChannel()))
     }
 
     function handleMprisVolumeChanged(mprisVolume: number): void {
@@ -430,8 +431,13 @@ export function createMpvHandler(args: Arguments) {
 
         addPlaybackStatusChangeHandler: (changeHandler: ChangeHandler<AdvancedPlaybackStatus>) => {
             playbackStatusChangeHandler.push(changeHandler)
-            changeHandler(getPlaybackStatus())
         },
+
+        addChannelChangeHandler: (changeHandler: ChangeHandler<string | undefined>) => {
+            channelNameChangeHandler.push(changeHandler)
+        },
+
+
         // it is very confusing but dbus must be returned!
         // Otherwilse all listeners stop working after about 20 seconds which is fucking difficult to debug
         dbus

@@ -63,7 +63,6 @@ export function main(args: Arguments): imports.ui.applet.Applet {
         onPositionChanged: handlePositionChanged,
         onTitleChanged: handleTitleChanged,
         // onPlaybackstatusChanged: handlePlaybackstatusChanged,
-        onUrlChanged: handleUrlChanged, 
         configs
     })
 

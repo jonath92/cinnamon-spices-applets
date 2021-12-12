@@ -591,7 +591,9 @@ const { spawnCommandLine } = imports.misc.util;
 // see https://lazka.github.io/pgi-docs/Cvc-1.0/index.html
 const { MixerControl } = imports.gi.Cvc;
 function createMpvHandler(args) {
-    const { onUrlChanged, onVolumeChanged, onTitleChanged, onLengthChanged, onPositionChanged, 
+    const { 
+    // onUrlChanged,
+    onVolumeChanged, onTitleChanged, onLengthChanged, onPositionChanged, 
     // checkUrlValid,
     configs: { settingsObject, getInitialVolume, } } = args;
     /** the lastUrl is used to determine if mpv is initially (i.e. on cinnamon restart) running for radio purposes and not for something else. It is not sufficient to get the url from a dbus interface and check if the url is valid because some streams (such as .pls streams) change their url dynamically. This approach in not 100% foolproof but probably the best possible approach */
@@ -603,6 +605,8 @@ function createMpvHandler(args) {
     let cvcStream;
     let isLoading = false;
     const playbackStatusChangeHandler = [];
+    // executed when the url changes including when set to a falsy vlaue due to radio stopped
+    const channelNameChangeHandler = [];
     control.open();
     control.connect('stream-added', (ctrl, id) => {
         const addedStream = control.lookup_stream_id(id);
@@ -652,6 +656,7 @@ function createMpvHandler(args) {
             seekListenerId && mediaServerPlayer.disconnectSignal(seekListenerId);
             mediaPropsListenerId = seekListenerId = currentUrl = null;
             playbackStatusChangeHandler.forEach(handler => handler('Stopped'));
+            channelNameChangeHandler.forEach(handler => handler(undefined));
         }
     });
     function deactivateAllListener() {
@@ -748,7 +753,7 @@ function createMpvHandler(args) {
         if (positionTimerId)
             stopPositionTimer();
         onPositionChanged(0);
-        onUrlChanged(newUrl);
+        channelNameChangeHandler.forEach(changeHandler => changeHandler(getCurrentChannel()));
     }
     function handleMprisVolumeChanged(mprisVolume) {
         if (mprisVolume * 100 > MAX_VOLUME) {
@@ -887,7 +892,9 @@ function createMpvHandler(args) {
         getCurrentChannel,
         addPlaybackStatusChangeHandler: (changeHandler) => {
             playbackStatusChangeHandler.push(changeHandler);
-            changeHandler(getPlaybackStatus());
+        },
+        addChannelChangeHandler: (changeHandler) => {
+            channelNameChangeHandler.push(changeHandler);
         },
         // it is very confusing but dbus must be returned!
         // Otherwilse all listeners stop working after about 20 seconds which is fucking difficult to debug
@@ -1537,6 +1544,7 @@ function createAppletIcon(args) {
     addPlaybackStatusChangeHandler(() => setRefreshIcon());
     addColorPlayingChangeHandler(() => setRefreshIcon());
     addColorPausedChangeHandler(() => setRefreshIcon());
+    setRefreshIcon();
     return icon;
 }
 
@@ -1545,7 +1553,7 @@ const { Label: AppletLabel_Label } = imports.gi.St;
 const { EllipsizeMode } = imports.gi.Pango;
 const { ActorAlign: AppletLabel_ActorAlign } = imports.gi.Clutter;
 function createAppletLabel(props) {
-    const { configs: { settingsObject, addChannelOnPanelChangeHandler }, mpvHandler: { getCurrentChannel } } = props;
+    const { configs: { settingsObject, addChannelOnPanelChangeHandler }, mpvHandler: { getCurrentChannel, addChannelChangeHandler } } = props;
     const label = new AppletLabel_Label({
         reactive: true,
         track_hover: true,
@@ -1570,6 +1578,7 @@ function createAppletLabel(props) {
     // }
     //initialChannelName && setText(initialChannelName)
     addChannelOnPanelChangeHandler((channelOnPanel) => label.visible = channelOnPanel);
+    addChannelChangeHandler((channel) => label.set_text(channel || ''));
     return label;
 }
 
@@ -5227,7 +5236,6 @@ function main(args) {
         onPositionChanged: handlePositionChanged,
         onTitleChanged: handleTitleChanged,
         // onPlaybackstatusChanged: handlePlaybackstatusChanged,
-        onUrlChanged: handleUrlChanged,
         configs
     });
     const channelStore = new ChannelStore(configNew.userStations, mpvHandler);

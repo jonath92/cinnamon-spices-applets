@@ -87,6 +87,8 @@ export function createAppletIcon(args: Arguments) {
     addColorPlayingChangeHandler(() => setRefreshIcon())
     addColorPausedChangeHandler(() => setRefreshIcon())
 
+    setRefreshIcon()
+
     return icon
 
 }

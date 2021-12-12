@@ -19,7 +19,8 @@ export function createAppletLabel(props: Props) {
             addChannelOnPanelChangeHandler
         }, 
         mpvHandler: {
-            getCurrentChannel
+            getCurrentChannel, 
+            addChannelChangeHandler
         }
 
     } = props
@@ -37,24 +38,8 @@ export function createAppletLabel(props: Props) {
     // No idea why needed but without the label is not shown 
     label.clutter_text.ellipsize = EllipsizeMode.NONE
 
-    // /**
-    //  * 
-    //  * @param newValue text to show on the label. The text however is only visible in the GUI when visible is true. It is also shown no text when passing null for text but in that case the text is shown again when calling this function again with a string (i.e this function is intended to be used with null when the text shall only temporarily be hidden)    
-    //  * 
-    //  */
-    // function setText(newValue: string | null) {
-
-    //     text = newValue
-
-    //     if (!visible) return
-
-    //     label.show()
-    //     newValue ? label.text = ` ${newValue}` : label.hide()
-    // }
-
-    //initialChannelName && setText(initialChannelName)
-
     addChannelOnPanelChangeHandler((channelOnPanel) => label.visible = channelOnPanel)
+    addChannelChangeHandler((channel) => label.set_text(channel || ''))
 
     return label
 }
