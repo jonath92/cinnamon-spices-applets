@@ -1,5 +1,6 @@
 import { createConfig } from "Config";
 import { createMpvHandler } from "mpv/MpvHandler";
+import { ChangeHandler, Channel } from "types";
 
 interface Properties {
     mpvHandler: ReturnType<typeof createMpvHandler>,
@@ -16,15 +17,18 @@ export function createChannelStoreNew(props: Properties) {
         }
     } = props
 
-    const getcurrentChannel = () => {
+    const channelChangeHandler: ChangeHandler<Channel>[] = []  
+
+    const getCurrentChannel = (): Channel | undefined => {
         const currentUrl = getCurrentUrl()
 
         return currentUrl ? settingsObject.userStations.find(cnl => cnl.url === currentUrl) : undefined
-
     }
 
+
+
     return {
-        getcurrentChannel
+        getCurrentChannel
     }
 
 }

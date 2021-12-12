@@ -595,7 +595,9 @@ const { spawnCommandLine } = imports.misc.util;
 // see https://lazka.github.io/pgi-docs/Cvc-1.0/index.html
 const { MixerControl } = imports.gi.Cvc;
 function createMpvHandler(args) {
-    const { onUrlChanged, onVolumeChanged, onTitleChanged, onLengthChanged, onPositionChanged, checkUrlValid, lastUrl, getInitialVolume, } = args;
+    const { onUrlChanged, onVolumeChanged, onTitleChanged, onLengthChanged, onPositionChanged, 
+    // checkUrlValid,
+    lastUrl, getInitialVolume, configs: { settingsObject } } = args;
     const dbus = getDBus();
     const mediaServerPlayer = getDBusProxyWithOwner(MEDIA_PLAYER_2_PLAYER_NAME, MPV_MPRIS_BUS_NAME);
     const mediaProps = getDBusProperties(MPV_MPRIS_BUS_NAME, MEDIA_PLAYER_2_PATH);
@@ -682,6 +684,9 @@ function createMpvHandler(args) {
             url && newUrlValid && url !== currentUrl && handleUrlChanged(url);
             title && onTitleChanged(title);
         });
+    }
+    function checkUrlValid(channelUrl) {
+        return settingsObject.userStations.some(cnl => cnl.url === channelUrl);
     }
     function activateSeekListener() {
         seekListenerId = mediaServerPlayer.connectSignal('Seeked', (id, sender, value) => {
@@ -1538,7 +1543,7 @@ const { EllipsizeMode } = imports.gi.Pango;
 const { ActorAlign: AppletLabel_ActorAlign } = imports.gi.Clutter;
 function createAppletLabel(props) {
     var _a;
-    const { configs: { settingsObject, addChannelOnPanelChangeHandler }, channelStore: { getcurrentChannel } } = props;
+    const { configs: { settingsObject, addChannelOnPanelChangeHandler }, channelStore: { getCurrentChannel: getcurrentChannel } } = props;
     const label = new AppletLabel_Label({
         reactive: true,
         track_hover: true,
@@ -5179,12 +5184,13 @@ function initPolyfills() {
 ;// CONCATENATED MODULE: ./src/ChannelStoreNew.ts
 function createChannelStoreNew(props) {
     const { mpvHandler: { getCurrentUrl }, configs: { settingsObject } } = props;
-    const getcurrentChannel = () => {
+    const channelChangeHandler = [];
+    const getCurrentChannel = () => {
         const currentUrl = getCurrentUrl();
         return currentUrl ? settingsObject.userStations.find(cnl => cnl.url === currentUrl) : undefined;
     };
     return {
-        getcurrentChannel
+        getCurrentChannel
     };
 }
 
@@ -5232,11 +5238,11 @@ function main(args) {
         onVolumeChanged: handleVolumeChanged,
         onLengthChanged: hanldeLengthChanged,
         onPositionChanged: handlePositionChanged,
-        checkUrlValid: (url) => channelStore.checkUrlValid(url),
         onTitleChanged: handleTitleChanged,
         // onPlaybackstatusChanged: handlePlaybackstatusChanged,
         lastUrl: configNew.lastUrl,
-        onUrlChanged: handleUrlChanged
+        onUrlChanged: handleUrlChanged,
+        configs
     });
     const channelStore = new ChannelStore(configNew.userStations, mpvHandler);
     const channelStoreNew = createChannelStoreNew({ mpvHandler, configs });

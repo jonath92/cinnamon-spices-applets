@@ -20,7 +20,7 @@ export function createAppletLabel(props: Props) {
             addChannelOnPanelChangeHandler
         }, 
         channelStore: {
-            getcurrentChannel
+            getCurrentChannel: getcurrentChannel
         }
 
     } = props

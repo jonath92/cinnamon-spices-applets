@@ -1,6 +1,7 @@
 import { PlayPause, AdvancedPlaybackStatus, ChangeHandler } from '../types'
 import { MPV_MPRIS_BUS_NAME, MEDIA_PLAYER_2_PATH, MPRIS_PLUGIN_PATH, MAX_VOLUME, MEDIA_PLAYER_2_NAME, MEDIA_PLAYER_2_PLAYER_NAME, MPV_CVC_NAME } from '../consts'
 import { MprisMediaPlayerDbus, MprisPropsDbus, PlaybackStatus } from '../types';
+import { createConfig } from 'Config';
 const { getDBusProperties, getDBus, getDBusProxyWithOwner } = imports.misc.interfaces
 const { spawnCommandLine } = imports.misc.util;
 // see https://lazka.github.io/pgi-docs/Cvc-1.0/index.html
@@ -15,9 +16,11 @@ export interface Arguments {
     onLengthChanged: (length: number) => void,
     /** position in seconds */
     onPositionChanged: (position: number) => void,
-    checkUrlValid: (url: string) => boolean,
+    // checkUrlValid: (url: string) => boolean,
     /** the lastUrl is used to determine if mpv is initially (i.e. on cinnamon restart) running for radio purposes and not for something else. It is not sufficient to get the url from a dbus interface and check if the url is valid because some streams (such as .pls streams) change their url dynamically. This approach in not 100% foolproof but probably the best possible approach */
     lastUrl: string | null,
+
+    configs: ReturnType<typeof createConfig>
 
     // TODO make as setter
     getInitialVolume: { (): number }
@@ -31,10 +34,12 @@ export function createMpvHandler(args: Arguments) {
         onTitleChanged,
         onLengthChanged,
         onPositionChanged,
-        checkUrlValid,
+        // checkUrlValid,
         lastUrl,
         getInitialVolume,
-
+        configs: {
+            settingsObject
+        }
     } = args
 
     const dbus = getDBus()
@@ -155,6 +160,11 @@ export function createMpvHandler(args: Arguments) {
         )
     }
 
+    function checkUrlValid(channelUrl: string) {
+        return settingsObject.userStations.some(cnl => cnl.url === channelUrl)
+
+    }
+
     function activateSeekListener() {
         seekListenerId = mediaServerPlayer.connectSignal('Seeked', (id, sender, value) => {
             handlePositionChanged(microSecondsToRoundedSeconds(value))
@@ -223,7 +233,7 @@ export function createMpvHandler(args: Arguments) {
 
     function handleMprisPlaybackStatusChanged(playbackStatus: PlayPause) {
         if (currentLength !== 0) {
-            playbackStatusChangeHandler.forEach(handler =>  handler(playbackStatus))
+            playbackStatusChangeHandler.forEach(handler => handler(playbackStatus))
 
             playbackStatus === 'Paused' ? stopPositionTimer()
                 : handlePositionChanged(getPosition())
@@ -409,10 +419,10 @@ export function createMpvHandler(args: Arguments) {
         setPosition,
         deactivateAllListener,
         getPlaybackStatus,
-        getVolume, 
+        getVolume,
         getCurrentUrl: () => currentUrl,
 
-        
+
         addPlaybackStatusChangeHandler: (changeHandler: ChangeHandler<AdvancedPlaybackStatus>) => {
             playbackStatusChangeHandler.push(changeHandler)
             changeHandler(getPlaybackStatus())

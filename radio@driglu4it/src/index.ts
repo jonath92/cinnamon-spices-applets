@@ -64,11 +64,11 @@ export function main(args: Arguments): imports.ui.applet.Applet {
         onVolumeChanged: handleVolumeChanged,
         onLengthChanged: hanldeLengthChanged,
         onPositionChanged: handlePositionChanged,
-        checkUrlValid: (url) => channelStore.checkUrlValid(url),
         onTitleChanged: handleTitleChanged,
         // onPlaybackstatusChanged: handlePlaybackstatusChanged,
         lastUrl: configNew.lastUrl,
-        onUrlChanged: handleUrlChanged
+        onUrlChanged: handleUrlChanged, 
+        configs
     })
 
     const channelStore = new ChannelStore(configNew.userStations, mpvHandler)
