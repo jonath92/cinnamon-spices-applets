@@ -1,5 +1,4 @@
 import { ChannelStore } from "ChannelStore"
-import { createChannelStoreNew } from "ChannelStoreNew"
 import { createConfig } from "Config"
 import { createMpvHandler } from "mpv/MpvHandler"
 
@@ -9,7 +8,7 @@ const { ActorAlign } = imports.gi.Clutter
 
 interface Props {
     configs: ReturnType<typeof createConfig>, 
-    channelStore: ReturnType<typeof createChannelStoreNew>
+    mpvHandler: ReturnType<typeof createMpvHandler>
 }
 
 export function createAppletLabel(props: Props) {
@@ -19,8 +18,8 @@ export function createAppletLabel(props: Props) {
             settingsObject, 
             addChannelOnPanelChangeHandler
         }, 
-        channelStore: {
-            getCurrentChannel: getcurrentChannel
+        mpvHandler: {
+            getCurrentChannel
         }
 
     } = props
@@ -32,7 +31,7 @@ export function createAppletLabel(props: Props) {
         y_align: ActorAlign.CENTER,
         y_expand: false,
         visible: settingsObject.channelNameOnPanel,
-        text: getcurrentChannel()?.name || ''
+        text: getCurrentChannel() || ''
     })
 
     // No idea why needed but without the label is not shown 

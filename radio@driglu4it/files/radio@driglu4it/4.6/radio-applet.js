@@ -273,10 +273,6 @@ class ChannelStore {
     get activatedChannelNames() {
         return this._channelList.map(channel => channel.name);
     }
-    getcurrentChannel() {
-        const currentURl = this._mpvPlayer.getCurrentUrl();
-        return currentURl ? this._channelList.find(cnl => cnl.url === currentURl) : undefined;
-    }
     // TODO: what is when two Channels have the same Name or Url? :O
     getChannelName(channelUrl) {
         if (!channelUrl)
@@ -597,7 +593,7 @@ const { MixerControl } = imports.gi.Cvc;
 function createMpvHandler(args) {
     const { onUrlChanged, onVolumeChanged, onTitleChanged, onLengthChanged, onPositionChanged, 
     // checkUrlValid,
-    lastUrl, getInitialVolume, configs: { settingsObject } } = args;
+    lastUrl, configs: { settingsObject, getInitialVolume } } = args;
     const dbus = getDBus();
     const mediaServerPlayer = getDBusProxyWithOwner(MEDIA_PLAYER_2_PLAYER_NAME, MPV_MPRIS_BUS_NAME);
     const mediaProps = getDBusProperties(MPV_MPRIS_BUS_NAME, MEDIA_PLAYER_2_PATH);
@@ -870,6 +866,10 @@ function createMpvHandler(args) {
         const trackId = mediaServerPlayer.Metadata['mpris:trackid'].unpack();
         mediaServerPlayer === null || mediaServerPlayer === void 0 ? void 0 : mediaServerPlayer.SetPositionRemote(trackId, positioninMicroSeconds);
     }
+    function getCurrentChannel() {
+        const currentChannel = currentUrl ? settingsObject.userStations.find(cnl => cnl.url === currentUrl) : undefined;
+        return currentChannel === null || currentChannel === void 0 ? void 0 : currentChannel.name;
+    }
     return {
         increaseDecreaseVolume,
         setVolume: setMprisVolume,
@@ -881,7 +881,8 @@ function createMpvHandler(args) {
         deactivateAllListener,
         getPlaybackStatus,
         getVolume,
-        getCurrentUrl: () => currentUrl,
+        // getCurrentUrl: () => currentUrl,
+        getCurrentChannel,
         addPlaybackStatusChangeHandler: (changeHandler) => {
             playbackStatusChangeHandler.push(changeHandler);
             changeHandler(getPlaybackStatus());
@@ -1542,8 +1543,7 @@ const { Label: AppletLabel_Label } = imports.gi.St;
 const { EllipsizeMode } = imports.gi.Pango;
 const { ActorAlign: AppletLabel_ActorAlign } = imports.gi.Clutter;
 function createAppletLabel(props) {
-    var _a;
-    const { configs: { settingsObject, addChannelOnPanelChangeHandler }, channelStore: { getCurrentChannel: getcurrentChannel } } = props;
+    const { configs: { settingsObject, addChannelOnPanelChangeHandler }, mpvHandler: { getCurrentChannel } } = props;
     const label = new AppletLabel_Label({
         reactive: true,
         track_hover: true,
@@ -1551,7 +1551,7 @@ function createAppletLabel(props) {
         y_align: AppletLabel_ActorAlign.CENTER,
         y_expand: false,
         visible: settingsObject.channelNameOnPanel,
-        text: ((_a = getcurrentChannel()) === null || _a === void 0 ? void 0 : _a.name) || ''
+        text: getCurrentChannel() || ''
     });
     // No idea why needed but without the label is not shown 
     label.clutter_text.ellipsize = EllipsizeMode.NONE;
@@ -5181,21 +5181,7 @@ function initPolyfills() {
     }
 }
 
-;// CONCATENATED MODULE: ./src/ChannelStoreNew.ts
-function createChannelStoreNew(props) {
-    const { mpvHandler: { getCurrentUrl }, configs: { settingsObject } } = props;
-    const channelChangeHandler = [];
-    const getCurrentChannel = () => {
-        const currentUrl = getCurrentUrl();
-        return currentUrl ? settingsObject.userStations.find(cnl => cnl.url === currentUrl) : undefined;
-    };
-    return {
-        getCurrentChannel
-    };
-}
-
 ;// CONCATENATED MODULE: ./src/index.ts
-
 
 
 
@@ -5234,7 +5220,6 @@ function main(args) {
     const configs = createConfig(instanceId);
     const { settingsObject: configNew, setStationsListChangeHandler: setStationsHandler, getInitialVolume } = configs;
     const mpvHandler = createMpvHandler({
-        getInitialVolume: getInitialVolume,
         onVolumeChanged: handleVolumeChanged,
         onLengthChanged: hanldeLengthChanged,
         onPositionChanged: handlePositionChanged,
@@ -5245,8 +5230,7 @@ function main(args) {
         configs
     });
     const channelStore = new ChannelStore(configNew.userStations, mpvHandler);
-    const channelStoreNew = createChannelStoreNew({ mpvHandler, configs });
-    const initialChannelName = channelStore.getChannelName(mpvHandler.getCurrentUrl());
+    const initialChannelName = mpvHandler.getCurrentChannel();
     const initialPlaybackStatus = mpvHandler.getPlaybackStatus();
     const appletIcon = createAppletIcon({
         instanceId,
@@ -5255,7 +5239,7 @@ function main(args) {
     });
     const appletLabel = createAppletLabel({
         configs,
-        channelStore: channelStoreNew
+        mpvHandler
     });
     const applet = createApplet({
         icon: appletIcon,

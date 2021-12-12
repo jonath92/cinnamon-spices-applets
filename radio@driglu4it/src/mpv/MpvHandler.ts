@@ -21,10 +21,6 @@ export interface Arguments {
     lastUrl: string | null,
 
     configs: ReturnType<typeof createConfig>
-
-    // TODO make as setter
-    getInitialVolume: { (): number }
-
 }
 
 export function createMpvHandler(args: Arguments) {
@@ -36,9 +32,9 @@ export function createMpvHandler(args: Arguments) {
         onPositionChanged,
         // checkUrlValid,
         lastUrl,
-        getInitialVolume,
         configs: {
-            settingsObject
+            settingsObject, 
+            getInitialVolume
         }
     } = args
 
@@ -126,13 +122,13 @@ export function createMpvHandler(args: Arguments) {
         }
     })
 
-    function deactivateAllListener() {
+    function deactivateAllListener(): void {
         dbus.disconnectSignal(nameOwnerSignalId)
         if (mediaPropsListenerId) mediaProps?.disconnectSignal(mediaPropsListenerId)
         if (seekListenerId) mediaServerPlayer?.disconnectSignal(seekListenerId)
     }
 
-    function activateMprisPropsListener() {
+    function activateMprisPropsListener(): void {
         mediaPropsListenerId = mediaProps.connectSignal('PropertiesChanged',
             (proxy, nameOwner, [interfaceName, props]) => {
 
@@ -160,19 +156,19 @@ export function createMpvHandler(args: Arguments) {
         )
     }
 
-    function checkUrlValid(channelUrl: string) {
+    function checkUrlValid(channelUrl: string): boolean {
         return settingsObject.userStations.some(cnl => cnl.url === channelUrl)
 
     }
 
-    function activateSeekListener() {
+    function activateSeekListener(): void {
         seekListenerId = mediaServerPlayer.connectSignal('Seeked', (id, sender, value) => {
             handlePositionChanged(microSecondsToRoundedSeconds(value))
         })
     }
 
     /** @param length in microseconds */
-    function handleLengthChanged(length: number) {
+    function handleLengthChanged(length: number): void {
 
         const lengthInSeconds = microSecondsToRoundedSeconds(length);
 
@@ -198,14 +194,14 @@ export function createMpvHandler(args: Arguments) {
     }
 
     /**  @param position in seconds! */
-    function handlePositionChanged(position: number) {
+    function handlePositionChanged(position: number): void {
 
         stopPositionTimer()
         onPositionChanged(position)
         startPositionTimer()
     }
 
-    function startPositionTimer() {
+    function startPositionTimer(): void {
 
         if (getPlaybackStatus() !== 'Playing') return
 
@@ -223,7 +219,7 @@ export function createMpvHandler(args: Arguments) {
         }, 1000)
     }
 
-    function stopPositionTimer() {
+    function stopPositionTimer(): void {
 
         if (!positionTimerId) return
 
@@ -231,7 +227,7 @@ export function createMpvHandler(args: Arguments) {
         positionTimerId = null
     }
 
-    function handleMprisPlaybackStatusChanged(playbackStatus: PlayPause) {
+    function handleMprisPlaybackStatusChanged(playbackStatus: PlayPause): void {
         if (currentLength !== 0) {
             playbackStatusChangeHandler.forEach(handler => handler(playbackStatus))
 
@@ -240,7 +236,7 @@ export function createMpvHandler(args: Arguments) {
         }
     }
 
-    function handleUrlChanged(newUrl: string) {
+    function handleUrlChanged(newUrl: string): void {
         currentUrl = newUrl
         handleLengthChanged(0)
 
@@ -250,7 +246,7 @@ export function createMpvHandler(args: Arguments) {
         onUrlChanged(newUrl)
     }
 
-    function handleMprisVolumeChanged(mprisVolume: number) {
+    function handleMprisVolumeChanged(mprisVolume: number): void {
 
         if (mprisVolume * 100 > MAX_VOLUME) {
             mediaServerPlayer.Volume = MAX_VOLUME / 100
@@ -262,7 +258,7 @@ export function createMpvHandler(args: Arguments) {
         onVolumeChanged(normalizedVolume)
     }
 
-    function handleCvcVolumeChanged() {
+    function handleCvcVolumeChanged(): void {
         const normalizedVolume = Math.round(cvcStream.volume / control.get_vol_max_norm() * 100)
         setMprisVolume(normalizedVolume)
     }
@@ -285,7 +281,7 @@ export function createMpvHandler(args: Arguments) {
         return microSecondsToRoundedSeconds(positionMicroSeconds)
     }
 
-    function setUrl(url: string) {
+    function setUrl(url: string): void {
 
         if (getPlaybackStatus() === 'Stopped') {
 
@@ -307,7 +303,7 @@ export function createMpvHandler(args: Arguments) {
 
     }
 
-    function increaseDecreaseVolume(volumeChange: number) {
+    function increaseDecreaseVolume(volumeChange: number): void {
 
         const currentVolulume = getVolume()
 
@@ -324,7 +320,7 @@ export function createMpvHandler(args: Arguments) {
     }
 
     /** @param newVolume volume in percent */
-    function setMprisVolume(newVolume: number) {
+    function setMprisVolume(newVolume: number): void {
 
         if (getVolume() === newVolume || getPlaybackStatus() === 'Stopped') return
 
@@ -332,7 +328,7 @@ export function createMpvHandler(args: Arguments) {
     }
 
     /** @param newVolume volume in percent */
-    function setCvcVolume(newVolume: number) {
+    function setCvcVolume(newVolume: number): void {
         const newStreamVolume = newVolume / 100 * control.get_vol_max_norm()
 
         if (!cvcStream) return
@@ -344,13 +340,13 @@ export function createMpvHandler(args: Arguments) {
         cvcStream.push_volume()
     }
 
-    function togglePlayPause() {
+    function togglePlayPause(): void {
         if (getPlaybackStatus() === "Stopped") return
 
         mediaServerPlayer.PlayPauseSync()
     }
 
-    function stop() {
+    function stop(): void {
         if (getPlaybackStatus() === "Stopped") return
 
         mediaServerPlayer.StopSync()
@@ -365,7 +361,7 @@ export function createMpvHandler(args: Arguments) {
     /**
      * pauses all MediaPlayers with MPRIS Support except mpv
      */
-    function pauseAllOtherMediaPlayers() {
+    function pauseAllOtherMediaPlayers(): void {
 
         dbus.ListNamesSync()[0].forEach(busName => {
 
@@ -396,17 +392,23 @@ export function createMpvHandler(args: Arguments) {
         return Math.round(mediaServerPlayer.Volume * 100)
     }
 
-    function microSecondsToRoundedSeconds(microSeconds: number) {
+    function microSecondsToRoundedSeconds(microSeconds: number): number {
         const seconds = microSeconds / 1_000_000
         const secondsRounded = Math.round(seconds)
         return secondsRounded
     }
 
     /** @param newPosition in seconds */
-    function setPosition(newPosition: number) {
+    function setPosition(newPosition: number): void {
         const positioninMicroSeconds = Math.min(newPosition * 1_000_000, currentLength * 1_000_000)
         const trackId = mediaServerPlayer.Metadata['mpris:trackid'].unpack()
         mediaServerPlayer?.SetPositionRemote(trackId, positioninMicroSeconds)
+    }
+
+    function getCurrentChannel(): string | undefined {
+        const currentChannel =  currentUrl ? settingsObject.userStations.find(cnl => cnl.url === currentUrl) : undefined
+
+        return currentChannel?.name
     }
 
     return {
@@ -420,7 +422,8 @@ export function createMpvHandler(args: Arguments) {
         deactivateAllListener,
         getPlaybackStatus,
         getVolume,
-        getCurrentUrl: () => currentUrl,
+        // getCurrentUrl: () => currentUrl,
+        getCurrentChannel, 
 
 
         addPlaybackStatusChangeHandler: (changeHandler: ChangeHandler<AdvancedPlaybackStatus>) => {

@@ -26,7 +26,6 @@ import { notify } from './ui/Notifications/GenericNotification';
 import { createSeeker } from './ui/Seeker';
 import { VOLUME_DELTA } from './consts';
 import { initPolyfills } from './polyfill';
-import { createChannelStoreNew } from './ChannelStoreNew';
 
 const { BoxLayout } = imports.gi.St
 const { ScrollDirection } = imports.gi.Clutter;
@@ -60,7 +59,6 @@ export function main(args: Arguments): imports.ui.applet.Applet {
     } = configs
 
     const mpvHandler = createMpvHandler({
-        getInitialVolume: getInitialVolume,
         onVolumeChanged: handleVolumeChanged,
         onLengthChanged: hanldeLengthChanged,
         onPositionChanged: handlePositionChanged,
@@ -72,9 +70,8 @@ export function main(args: Arguments): imports.ui.applet.Applet {
     })
 
     const channelStore = new ChannelStore(configNew.userStations, mpvHandler)
-    const channelStoreNew = createChannelStoreNew({mpvHandler, configs})
 
-    const initialChannelName =  channelStore.getChannelName(mpvHandler.getCurrentUrl())
+    const initialChannelName =  mpvHandler.getCurrentChannel()
     const initialPlaybackStatus = mpvHandler.getPlaybackStatus()
 
     const appletIcon = createAppletIcon({
@@ -85,7 +82,7 @@ export function main(args: Arguments): imports.ui.applet.Applet {
 
     const appletLabel = createAppletLabel({
         configs, 
-        channelStore: channelStoreNew
+        mpvHandler
     })
 
     const applet = createApplet({

@@ -27,12 +27,6 @@ export class ChannelStore {
         return this._channelList.map(channel => channel.name)
     }
 
-    public getcurrentChannel(): Channel | undefined {
-        const currentURl = this._mpvPlayer.getCurrentUrl()
-
-        return currentURl ? this._channelList.find(cnl => cnl.url === currentURl): undefined
-    }
-
 
     // TODO: what is when two Channels have the same Name or Url? :O
     public getChannelName(channelUrl: string | null) {
