@@ -16,7 +16,7 @@ interface Arguments {
     onAppletRemoved: () => void
 }
 
-export function createApplet(args: Arguments) {
+export function createAppletContainer(args: Arguments) {
 
     const {
         orientation,

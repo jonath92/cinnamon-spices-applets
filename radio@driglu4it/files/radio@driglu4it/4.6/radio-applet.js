@@ -1459,11 +1459,11 @@ function copyText(text) {
     Clipboard.get_default().set_text(ClipboardType.CLIPBOARD, text);
 }
 
-;// CONCATENATED MODULE: ./src/ui/Applet/Applet.ts
+;// CONCATENATED MODULE: ./src/lib/AppletContainer.ts
 const { Applet, AllowedLayout } = imports.ui.applet;
 const { Bin } = imports.gi.St;
 const { EventType } = imports.gi.Clutter;
-function createApplet(args) {
+function createAppletContainer(args) {
     const { orientation, panelHeight, instanceId, icon, label, onClick, onScroll, onMiddleClick, onAppletMoved, onAppletRemoved, onRightClick } = args;
     const applet = new Applet(orientation, panelHeight, instanceId);
     let appletReloaded = false;
@@ -1497,14 +1497,13 @@ function createApplet(args) {
 
 ;// CONCATENATED MODULE: ./src/ui/Applet/AppletIcon.ts
 
-const { Icon: AppletIcon_Icon, IconType: AppletIcon_IconType } = imports.gi.St;
-const { IconType: IconTypeEnum } = imports.gi.St;
+const { Icon: AppletIcon_Icon, IconType: IconTypeEnum } = imports.gi.St;
 const { panelManager } = imports.ui.main;
 const { getAppletDefinition } = imports.ui.appletManager;
 function createAppletIcon(args) {
-    const { instanceId, configs: { settingsObject, addIconTypeChangeHandler, addColorPlayingChangeHandler, addColorPausedChangeHandler }, mpvHandler: { getPlaybackStatus, addPlaybackStatusChangeHandler } } = args;
+    const { configs: { settingsObject, addIconTypeChangeHandler, addColorPlayingChangeHandler, addColorPausedChangeHandler }, mpvHandler: { getPlaybackStatus, addPlaybackStatusChangeHandler } } = args;
     const appletDefinition = getAppletDefinition({
-        applet_id: instanceId,
+        applet_id: __meta.instanceId,
     });
     const locationLabel = appletDefinition.location_label;
     const panel = panelManager.panels.find(panel => (panel === null || panel === void 0 ? void 0 : panel.panelId) === appletDefinition.panelId);
@@ -1565,18 +1564,6 @@ function createAppletLabel(props) {
     });
     // No idea why needed but without the label is not shown 
     label.clutter_text.ellipsize = EllipsizeMode.NONE;
-    // /**
-    //  * 
-    //  * @param newValue text to show on the label. The text however is only visible in the GUI when visible is true. It is also shown no text when passing null for text but in that case the text is shown again when calling this function again with a string (i.e this function is intended to be used with null when the text shall only temporarily be hidden)    
-    //  * 
-    //  */
-    // function setText(newValue: string | null) {
-    //     text = newValue
-    //     if (!visible) return
-    //     label.show()
-    //     newValue ? label.text = ` ${newValue}` : label.hide()
-    // }
-    //initialChannelName && setText(initialChannelName)
     addChannelOnPanelChangeHandler((channelOnPanel) => label.visible = channelOnPanel);
     addChannelChangeHandler((channel) => label.set_text(channel || ''));
     return label;
@@ -5127,7 +5114,10 @@ function mapValues(object, iteratee) {
 ;// CONCATENATED MODULE: ./src/polyfill.ts
 
 const { Variant } = imports.gi.GLib;
-function initPolyfills() {
+function initPolyfills(props) {
+    const { instanceId } = props;
+    __meta.instanceId = instanceId;
+    global.log('meta instanceID:', __meta.instanceId);
     // included in LM 20.2 (cinnamon 5.0.4) but not in LM 20.0 (cinnamon 4.6.7). (20.1 not tested)
     // Copied from https://stackoverflow.com/a/17606289/11603006
     if (!String.prototype.hasOwnProperty('replaceAll')) {
@@ -5224,7 +5214,8 @@ const { BoxLayout: src_BoxLayout } = imports.gi.St;
 const { ScrollDirection: src_ScrollDirection } = imports.gi.Clutter;
 function main(args) {
     const { orientation, panelHeight, instanceId } = args;
-    initPolyfills();
+    // TODO: use the instanceId everywhere directly insteed of passing it
+    initPolyfills({ instanceId });
     // this is a workaround for now. Optimally the lastVolume should be saved persistently each time the volume is changed but this lead to significant performance issue on scrolling at the moment. However this shouldn't be the case as it is no problem to log the volume each time the volume changes (so it is a problem in the config implementation). As a workaround the volume is only saved persistently when the radio stops but the volume obviously can't be received anymore from dbus when the player has been already stopped ... 
     let lastVolume;
     let installationInProgress = false;
@@ -5242,7 +5233,6 @@ function main(args) {
     const initialChannelName = mpvHandler.getCurrentChannel();
     const initialPlaybackStatus = mpvHandler.getPlaybackStatus();
     const appletIcon = createAppletIcon({
-        instanceId,
         configs,
         mpvHandler
     });
@@ -5250,7 +5240,7 @@ function main(args) {
         configs,
         mpvHandler
     });
-    const applet = createApplet({
+    const applet = createAppletContainer({
         icon: appletIcon,
         label: appletLabel,
         instanceId,

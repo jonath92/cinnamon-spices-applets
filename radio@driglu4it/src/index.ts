@@ -15,7 +15,7 @@ import { createCopyButton } from './ui/Toolbar/CopyButton';
 import { downloadSongFromYoutube } from './functions/downloadFromYoutube';
 import { installMpvWithMpris } from './mpv/CheckInstallation';
 import { copyText } from './functions/copyText';
-import { createApplet } from './ui/Applet/Applet';
+import { createAppletContainer } from './lib/AppletContainer';
 import { createAppletIcon } from './ui/Applet/AppletIcon';
 import { createAppletLabel } from './ui/Applet/AppletLabel';
 import { createAppletTooltip } from './ui/Applet/AppletTooltip';
@@ -43,7 +43,9 @@ export function main(args: Arguments): imports.ui.applet.Applet {
         instanceId
     } = args
 
-    initPolyfills()
+    // TODO: use the instanceId everywhere directly insteed of passing it
+
+    initPolyfills({ instanceId })
 
     // this is a workaround for now. Optimally the lastVolume should be saved persistently each time the volume is changed but this lead to significant performance issue on scrolling at the moment. However this shouldn't be the case as it is no problem to log the volume each time the volume changes (so it is a problem in the config implementation). As a workaround the volume is only saved persistently when the radio stops but the volume obviously can't be received anymore from dbus when the player has been already stopped ... 
     let lastVolume: number
@@ -68,21 +70,20 @@ export function main(args: Arguments): imports.ui.applet.Applet {
 
     const channelStore = new ChannelStore(configNew.userStations, mpvHandler)
 
-    const initialChannelName =  mpvHandler.getCurrentChannel()
+    const initialChannelName = mpvHandler.getCurrentChannel()
     const initialPlaybackStatus = mpvHandler.getPlaybackStatus()
 
     const appletIcon = createAppletIcon({
-        instanceId,
-        configs, 
+        configs,
         mpvHandler
     })
 
     const appletLabel = createAppletLabel({
-        configs, 
+        configs,
         mpvHandler
     })
 
-    const applet = createApplet({
+    const applet = createAppletContainer({
         icon: appletIcon,
         label: appletLabel,
         instanceId,
@@ -101,15 +102,15 @@ export function main(args: Arguments): imports.ui.applet.Applet {
 
     const appletTooltip = createAppletTooltip({
         applet,
-        orientation, 
+        orientation,
         initialVolume: mpvHandler.getVolume()
     })
 
 
     const channelList = createChannelList({
         stationNames: channelStore.activatedChannelNames,
-        onChannelClicked: handleChannelClicked, 
-        initialChannelName, 
+        onChannelClicked: handleChannelClicked,
+        initialChannelName,
         initialPlaybackStatus
     })
 
@@ -120,7 +121,7 @@ export function main(args: Arguments): imports.ui.applet.Applet {
     })
 
     const infoSection = createInfoSection({
-        initialChannelName,  
+        initialChannelName,
         initialSongTitle: mpvHandler.getCurrentTitle()
     })
 
@@ -153,7 +154,7 @@ export function main(args: Arguments): imports.ui.applet.Applet {
     })
 
     const radioActiveSection = new BoxLayout({
-        vertical: true, 
+        vertical: true,
         visible: initialPlaybackStatus !== 'Stopped'
     });
 

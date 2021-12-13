@@ -25,6 +25,7 @@ export function createAppletLabel(props: Props) {
 
     } = props
 
+
     const label = new Label({
         reactive: true,
         track_hover: true,

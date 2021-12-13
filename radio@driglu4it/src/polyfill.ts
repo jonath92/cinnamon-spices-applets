@@ -24,9 +24,19 @@ declare global {
       thisArg?: This
     ): U[]
   }
+
+  interface Meta {
+    instanceId: number
+  }
 }
 
-export function initPolyfills() {
+export function initPolyfills(props: { instanceId: number }) {
+
+  const { instanceId } = props
+
+  __meta.instanceId = instanceId
+
+  global.log('meta instanceID:', __meta.instanceId)
 
   // included in LM 20.2 (cinnamon 5.0.4) but not in LM 20.0 (cinnamon 4.6.7). (20.1 not tested)
   // Copied from https://stackoverflow.com/a/17606289/11603006

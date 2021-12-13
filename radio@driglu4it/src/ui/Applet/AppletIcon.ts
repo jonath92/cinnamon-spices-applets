@@ -1,15 +1,13 @@
 import { createConfig } from "Config"
 import { createMpvHandler } from "mpv/MpvHandler"
 import { RADIO_SYMBOLIC_ICON_NAME, LOADING_ICON_NAME } from "../../consts"
-import { AdvancedPlaybackStatus, AppletIcon, PlayPause } from "../../types"
+import { AdvancedPlaybackStatus } from "../../types"
 
-const { Icon, IconType } = imports.gi.St
-const { IconType: IconTypeEnum } = imports.gi.St
+const { Icon, IconType: IconTypeEnum } = imports.gi.St
 const { panelManager } = imports.ui.main
 const { getAppletDefinition } = imports.ui.appletManager;
 
 interface Arguments {
-    instanceId: number,
     configs: ReturnType<typeof createConfig>,
     mpvHandler: ReturnType<typeof createMpvHandler>
 }
@@ -17,7 +15,6 @@ interface Arguments {
 export function createAppletIcon(args: Arguments) {
 
     const {
-        instanceId,
         configs: {
             settingsObject,
             addIconTypeChangeHandler,
@@ -31,7 +28,7 @@ export function createAppletIcon(args: Arguments) {
     } = args
 
     const appletDefinition = getAppletDefinition({
-        applet_id: instanceId,
+        applet_id: __meta.instanceId,
     })
 
     const locationLabel = appletDefinition.location_label
