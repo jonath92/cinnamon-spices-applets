@@ -1,13 +1,14 @@
 const { Applet, AllowedLayout } = imports.ui.applet
-const { Bin } = imports.gi.St
 const { EventType } = imports.gi.Clutter
+const { panelManager } = imports.ui.main
+const { getAppletDefinition } = imports.ui.appletManager;
+const { PanelLoc } = imports.ui.panel
+const { Side } = imports.gi.St
 
 interface Arguments {
     icon: imports.gi.St.Icon,
     label: imports.gi.St.Label,
-    orientation: imports.gi.St.Side,
     panelHeight: number,
-    instanceId: number,
     onClick: () => void,
     onScroll: (scrollDirection: imports.gi.Clutter.ScrollDirection) => void,
     onMiddleClick: () => void,
@@ -19,9 +20,7 @@ interface Arguments {
 export function createAppletContainer(args: Arguments) {
 
     const {
-        orientation,
         panelHeight,
-        instanceId,
         icon,
         label,
         onClick,
@@ -32,7 +31,24 @@ export function createAppletContainer(args: Arguments) {
         onRightClick
     } = args
 
-    const applet = new Applet(orientation, panelHeight, instanceId);
+    const appletDefinition = getAppletDefinition({
+        applet_id: __meta.instanceId,
+    })
+
+    const panel = panelManager.panels.find(panel =>
+        panel?.panelId === appletDefinition.panelId
+    ) as imports.ui.panel.Panel
+
+    const panelLocOrientationMap = new Map<imports.ui.panel.PanelLoc, imports.gi.St.Side>([
+        [ PanelLoc.bottom, Side.BOTTOM ],
+        [ PanelLoc.left, Side.LEFT ],
+        [ PanelLoc.right, Side.RIGHT ],
+        [ PanelLoc.top, Side.TOP ]
+    ])
+
+    const orientation = panelLocOrientationMap.get(panel.panelPosition) as imports.gi.St.Side
+
+    const applet = new Applet(orientation, panelHeight, __meta.instanceId);
 
     let appletReloaded = false;
 

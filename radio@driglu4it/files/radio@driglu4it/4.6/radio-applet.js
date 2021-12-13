@@ -1461,11 +1461,25 @@ function copyText(text) {
 
 ;// CONCATENATED MODULE: ./src/lib/AppletContainer.ts
 const { Applet, AllowedLayout } = imports.ui.applet;
-const { Bin } = imports.gi.St;
 const { EventType } = imports.gi.Clutter;
+const { panelManager } = imports.ui.main;
+const { getAppletDefinition } = imports.ui.appletManager;
+const { PanelLoc } = imports.ui.panel;
+const { Side } = imports.gi.St;
 function createAppletContainer(args) {
-    const { orientation, panelHeight, instanceId, icon, label, onClick, onScroll, onMiddleClick, onAppletMoved, onAppletRemoved, onRightClick } = args;
-    const applet = new Applet(orientation, panelHeight, instanceId);
+    const { panelHeight, icon, label, onClick, onScroll, onMiddleClick, onAppletMoved, onAppletRemoved, onRightClick } = args;
+    const appletDefinition = getAppletDefinition({
+        applet_id: __meta.instanceId,
+    });
+    const panel = panelManager.panels.find(panel => (panel === null || panel === void 0 ? void 0 : panel.panelId) === appletDefinition.panelId);
+    const panelLocOrientationMap = new Map([
+        [PanelLoc.bottom, Side.BOTTOM],
+        [PanelLoc.left, Side.LEFT],
+        [PanelLoc.right, Side.RIGHT],
+        [PanelLoc.top, Side.TOP]
+    ]);
+    const orientation = panelLocOrientationMap.get(panel.panelPosition);
+    const applet = new Applet(orientation, panelHeight, __meta.instanceId);
     let appletReloaded = false;
     [icon, label].forEach(widget => {
         applet.actor.add_child(widget);
@@ -1496,15 +1510,15 @@ function createAppletContainer(args) {
 }
 
 ;// CONCATENATED MODULE: ./src/lib/AppletIcon.ts
-const { panelManager } = imports.ui.main;
-const { getAppletDefinition } = imports.ui.appletManager;
+const { panelManager: AppletIcon_panelManager } = imports.ui.main;
+const { getAppletDefinition: AppletIcon_getAppletDefinition } = imports.ui.appletManager;
 const { Icon: AppletIcon_Icon, IconType: AppletIcon_IconType } = imports.gi.St;
 function createAppletIcon(props) {
     let { iconType } = props;
-    const appletDefinition = getAppletDefinition({
+    const appletDefinition = AppletIcon_getAppletDefinition({
         applet_id: __meta.instanceId,
     });
-    const panel = panelManager.panels.find(panel => (panel === null || panel === void 0 ? void 0 : panel.panelId) === appletDefinition.panelId);
+    const panel = AppletIcon_panelManager.panels.find(panel => (panel === null || panel === void 0 ? void 0 : panel.panelId) === appletDefinition.panelId);
     const locationLabel = appletDefinition.location_label;
     function getIconSize() {
         return panel.getPanelZoneIconSize(locationLabel, iconType);
@@ -5271,7 +5285,6 @@ function main(args) {
     const applet = createAppletContainer({
         icon: appletIcon,
         label: appletLabel,
-        instanceId,
         orientation,
         panelHeight,
         onClick: handleAppletClicked,

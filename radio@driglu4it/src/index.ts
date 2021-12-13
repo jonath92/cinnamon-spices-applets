@@ -86,8 +86,6 @@ export function main(args: Arguments): imports.ui.applet.Applet {
     const applet = createAppletContainer({
         icon: appletIcon,
         label: appletLabel,
-        instanceId,
-        orientation,
         panelHeight,
         onClick: handleAppletClicked,
         onScroll: handleScroll,

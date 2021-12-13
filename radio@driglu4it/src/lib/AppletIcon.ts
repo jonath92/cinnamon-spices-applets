@@ -21,6 +21,7 @@ export function createAppletIcon(props: Props){
         panel?.panelId === appletDefinition.panelId
     ) as imports.ui.panel.Panel
 
+    
     const locationLabel = appletDefinition.location_label
 
     function getIconSize(){
