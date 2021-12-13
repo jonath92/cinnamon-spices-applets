@@ -1,18 +1,17 @@
 import { createConfig } from "Config"
-import { createMpvHandler } from "mpv/MpvHandler"
+import { createAppletIcon } from "../../lib/AppletIcon"
+import { createMpvHandler } from "../../mpv/MpvHandler"
 import { RADIO_SYMBOLIC_ICON_NAME, LOADING_ICON_NAME } from "../../consts"
 import { AdvancedPlaybackStatus } from "../../types"
 
-const { Icon, IconType: IconTypeEnum } = imports.gi.St
-const { panelManager } = imports.ui.main
-const { getAppletDefinition } = imports.ui.appletManager;
+const { IconType } = imports.gi.St
 
 interface Arguments {
     configs: ReturnType<typeof createConfig>,
     mpvHandler: ReturnType<typeof createMpvHandler>
 }
 
-export function createAppletIcon(args: Arguments) {
+export function createRadioAppletIcon(args: Arguments) {
 
     const {
         configs: {
@@ -27,17 +26,15 @@ export function createAppletIcon(args: Arguments) {
         }
     } = args
 
-    const appletDefinition = getAppletDefinition({
-        applet_id: __meta.instanceId,
+    function getIconType() {
+        return settingsObject.iconType === 'SYMBOLIC' ?
+            IconType.SYMBOLIC : IconType.FULLCOLOR
+    }
+
+
+    const { actor: icon, setIconType } = createAppletIcon({
+        iconType: getIconType()
     })
-
-    const locationLabel = appletDefinition.location_label
-
-    const panel = panelManager.panels.find(panel =>
-        panel?.panelId === appletDefinition.panelId
-    ) as imports.ui.panel.Panel
-
-    const icon = new Icon({})
 
     function getStyle(props: { playbackStatus: AdvancedPlaybackStatus }): string {
         const { playbackStatus: playbackstatus } = props
@@ -63,23 +60,17 @@ export function createAppletIcon(args: Arguments) {
     function setRefreshIcon(): void {
 
         const playbackStatus = getPlaybackStatus()
-        const defaultIconType = settingsObject.iconType
-        const useSymbolicIcon = defaultIconType === 'SYMBOLIC' || playbackStatus === 'Loading'
 
-        const [iconTypeEnum, style_class] = useSymbolicIcon ?
-            [IconTypeEnum.SYMBOLIC, 'system-status-icon'] :
-            [IconTypeEnum.FULLCOLOR,  'applet-icon']
-
-        icon.icon_name = getIconName({isLoading: playbackStatus === 'Loading'})
-        icon.icon_type = iconTypeEnum
-        icon.style_class = style_class
-        icon.icon_size = panel.getPanelZoneIconSize(locationLabel, iconTypeEnum)
+        icon.icon_name = getIconName({ isLoading: playbackStatus === 'Loading' })
         icon.style = getStyle({ playbackStatus })
     }
 
-    panel.connect('icon-size-changed', () => setRefreshIcon())
 
-    addIconTypeChangeHandler(() => setRefreshIcon())
+    addIconTypeChangeHandler(() => {
+        setIconType(getIconType())
+        setRefreshIcon()
+    })
+
     addPlaybackStatusChangeHandler(() => setRefreshIcon())
     addColorPlayingChangeHandler(() => setRefreshIcon())
     addColorPausedChangeHandler(() => setRefreshIcon())

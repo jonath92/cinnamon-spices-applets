@@ -16,7 +16,7 @@ import { downloadSongFromYoutube } from './functions/downloadFromYoutube';
 import { installMpvWithMpris } from './mpv/CheckInstallation';
 import { copyText } from './functions/copyText';
 import { createAppletContainer } from './lib/AppletContainer';
-import { createAppletIcon } from './ui/Applet/AppletIcon';
+import { createRadioAppletIcon } from './ui/Applet/RadioAppletIcon';
 import { createAppletLabel } from './ui/Applet/AppletLabel';
 import { createAppletTooltip } from './ui/Applet/AppletTooltip';
 import { notifyYoutubeDownloadFinished } from './ui/Notifications/YoutubeDownloadFinishedNotification';
@@ -73,7 +73,7 @@ export function main(args: Arguments): imports.ui.applet.Applet {
     const initialChannelName = mpvHandler.getCurrentChannel()
     const initialPlaybackStatus = mpvHandler.getPlaybackStatus()
 
-    const appletIcon = createAppletIcon({
+    const appletIcon = createRadioAppletIcon({
         configs,
         mpvHandler
     })

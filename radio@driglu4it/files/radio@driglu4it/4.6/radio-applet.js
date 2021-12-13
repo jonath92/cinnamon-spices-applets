@@ -1495,19 +1495,53 @@ function createAppletContainer(args) {
     return applet;
 }
 
-;// CONCATENATED MODULE: ./src/ui/Applet/AppletIcon.ts
-
-const { Icon: AppletIcon_Icon, IconType: IconTypeEnum } = imports.gi.St;
+;// CONCATENATED MODULE: ./src/lib/AppletIcon.ts
 const { panelManager } = imports.ui.main;
 const { getAppletDefinition } = imports.ui.appletManager;
-function createAppletIcon(args) {
-    const { configs: { settingsObject, addIconTypeChangeHandler, addColorPlayingChangeHandler, addColorPausedChangeHandler }, mpvHandler: { getPlaybackStatus, addPlaybackStatusChangeHandler } } = args;
+const { Icon: AppletIcon_Icon, IconType: AppletIcon_IconType } = imports.gi.St;
+function createAppletIcon(props) {
+    let { iconType } = props;
     const appletDefinition = getAppletDefinition({
         applet_id: __meta.instanceId,
     });
-    const locationLabel = appletDefinition.location_label;
     const panel = panelManager.panels.find(panel => (panel === null || panel === void 0 ? void 0 : panel.panelId) === appletDefinition.panelId);
-    const icon = new AppletIcon_Icon({});
+    const locationLabel = appletDefinition.location_label;
+    function getIconSize() {
+        return panel.getPanelZoneIconSize(locationLabel, iconType);
+    }
+    function getStyleClass() {
+        return iconType === AppletIcon_IconType.SYMBOLIC ? 'system-status-icon' : 'applet-icon';
+    }
+    const icon = new AppletIcon_Icon({
+        icon_type: iconType,
+        style_class: getStyleClass(),
+        icon_size: getIconSize()
+    });
+    panel.connect('icon-size-changed', () => {
+        icon.set_icon_size(getIconSize());
+    });
+    return {
+        actor: icon,
+        setIconType: (newType) => {
+            iconType = newType;
+            icon.style_class = getStyleClass();
+        }
+    };
+}
+
+;// CONCATENATED MODULE: ./src/ui/Applet/RadioAppletIcon.ts
+
+
+const { IconType: RadioAppletIcon_IconType } = imports.gi.St;
+function createRadioAppletIcon(args) {
+    const { configs: { settingsObject, addIconTypeChangeHandler, addColorPlayingChangeHandler, addColorPausedChangeHandler }, mpvHandler: { getPlaybackStatus, addPlaybackStatusChangeHandler } } = args;
+    function getIconType() {
+        return settingsObject.iconType === 'SYMBOLIC' ?
+            RadioAppletIcon_IconType.SYMBOLIC : RadioAppletIcon_IconType.FULLCOLOR;
+    }
+    const { actor: icon, setIconType } = createAppletIcon({
+        iconType: getIconType()
+    });
     function getStyle(props) {
         const { playbackStatus: playbackstatus } = props;
         if (playbackstatus === 'Paused')
@@ -1527,19 +1561,13 @@ function createAppletIcon(args) {
     }
     function setRefreshIcon() {
         const playbackStatus = getPlaybackStatus();
-        const defaultIconType = settingsObject.iconType;
-        const useSymbolicIcon = defaultIconType === 'SYMBOLIC' || playbackStatus === 'Loading';
-        const [iconTypeEnum, style_class] = useSymbolicIcon ?
-            [IconTypeEnum.SYMBOLIC, 'system-status-icon'] :
-            [IconTypeEnum.FULLCOLOR, 'applet-icon'];
         icon.icon_name = getIconName({ isLoading: playbackStatus === 'Loading' });
-        icon.icon_type = iconTypeEnum;
-        icon.style_class = style_class;
-        icon.icon_size = panel.getPanelZoneIconSize(locationLabel, iconTypeEnum);
         icon.style = getStyle({ playbackStatus });
     }
-    panel.connect('icon-size-changed', () => setRefreshIcon());
-    addIconTypeChangeHandler(() => setRefreshIcon());
+    addIconTypeChangeHandler(() => {
+        setIconType(getIconType());
+        setRefreshIcon();
+    });
     addPlaybackStatusChangeHandler(() => setRefreshIcon());
     addColorPlayingChangeHandler(() => setRefreshIcon());
     addColorPausedChangeHandler(() => setRefreshIcon());
@@ -5232,7 +5260,7 @@ function main(args) {
     const channelStore = new ChannelStore(configNew.userStations, mpvHandler);
     const initialChannelName = mpvHandler.getCurrentChannel();
     const initialPlaybackStatus = mpvHandler.getPlaybackStatus();
-    const appletIcon = createAppletIcon({
+    const appletIcon = createRadioAppletIcon({
         configs,
         mpvHandler
     });
