@@ -25,16 +25,16 @@ declare global {
     ): U[]
   }
 
+  // added during build (see webpack.config.js)
   interface Meta {
     instanceId: number
+    orientation: imports.gi.St.Side
   }
 }
 
-export function initPolyfills(props: { instanceId: number }) {
+export function initPolyfills() {
 
-  const { instanceId } = props
 
-  __meta.instanceId = instanceId
 
   global.log('meta instanceID:', __meta.instanceId)
 

@@ -1467,7 +1467,7 @@ const { getAppletDefinition } = imports.ui.appletManager;
 const { PanelLoc } = imports.ui.panel;
 const { Side } = imports.gi.St;
 function createAppletContainer(args) {
-    const { panelHeight, icon, label, onClick, onScroll, onMiddleClick, onAppletMoved, onAppletRemoved, onRightClick } = args;
+    const { icon, label, onClick, onScroll, onMiddleClick, onAppletMoved, onAppletRemoved, onRightClick } = args;
     const appletDefinition = getAppletDefinition({
         applet_id: __meta.instanceId,
     });
@@ -1479,7 +1479,7 @@ function createAppletContainer(args) {
         [PanelLoc.top, Side.TOP]
     ]);
     const orientation = panelLocOrientationMap.get(panel.panelPosition);
-    const applet = new Applet(orientation, panelHeight, __meta.instanceId);
+    const applet = new Applet(__meta.orientation, panel.height, __meta.instanceId);
     let appletReloaded = false;
     [icon, label].forEach(widget => {
         applet.actor.add_child(widget);
@@ -5156,9 +5156,7 @@ function mapValues(object, iteratee) {
 ;// CONCATENATED MODULE: ./src/polyfill.ts
 
 const { Variant } = imports.gi.GLib;
-function initPolyfills(props) {
-    const { instanceId } = props;
-    __meta.instanceId = instanceId;
+function initPolyfills() {
     global.log('meta instanceID:', __meta.instanceId);
     // included in LM 20.2 (cinnamon 5.0.4) but not in LM 20.0 (cinnamon 4.6.7). (20.1 not tested)
     // Copied from https://stackoverflow.com/a/17606289/11603006
@@ -5255,9 +5253,9 @@ function initPolyfills(props) {
 const { BoxLayout: src_BoxLayout } = imports.gi.St;
 const { ScrollDirection: src_ScrollDirection } = imports.gi.Clutter;
 function main(args) {
-    const { orientation, panelHeight, instanceId } = args;
+    const { orientation, instanceId } = args;
     // TODO: use the instanceId everywhere directly insteed of passing it
-    initPolyfills({ instanceId });
+    initPolyfills();
     // this is a workaround for now. Optimally the lastVolume should be saved persistently each time the volume is changed but this lead to significant performance issue on scrolling at the moment. However this shouldn't be the case as it is no problem to log the volume each time the volume changes (so it is a problem in the config implementation). As a workaround the volume is only saved persistently when the radio stops but the volume obviously can't be received anymore from dbus when the player has been already stopped ... 
     let lastVolume;
     let installationInProgress = false;
@@ -5285,8 +5283,6 @@ function main(args) {
     const applet = createAppletContainer({
         icon: appletIcon,
         label: appletLabel,
-        orientation,
-        panelHeight,
         onClick: handleAppletClicked,
         onScroll: handleScroll,
         onMiddleClick: () => mpvHandler.togglePlayPause(),

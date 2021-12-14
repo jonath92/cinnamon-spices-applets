@@ -8,7 +8,6 @@ const { Side } = imports.gi.St
 interface Arguments {
     icon: imports.gi.St.Icon,
     label: imports.gi.St.Label,
-    panelHeight: number,
     onClick: () => void,
     onScroll: (scrollDirection: imports.gi.Clutter.ScrollDirection) => void,
     onMiddleClick: () => void,
@@ -20,7 +19,6 @@ interface Arguments {
 export function createAppletContainer(args: Arguments) {
 
     const {
-        panelHeight,
         icon,
         label,
         onClick,
@@ -48,7 +46,7 @@ export function createAppletContainer(args: Arguments) {
 
     const orientation = panelLocOrientationMap.get(panel.panelPosition) as imports.gi.St.Side
 
-    const applet = new Applet(orientation, panelHeight, __meta.instanceId);
+    const applet = new Applet(__meta.orientation, panel.height, __meta.instanceId);
 
     let appletReloaded = false;
 

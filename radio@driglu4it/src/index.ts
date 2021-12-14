@@ -39,13 +39,13 @@ interface Arguments {
 export function main(args: Arguments): imports.ui.applet.Applet {
     const {
         orientation,
-        panelHeight,
         instanceId
     } = args
 
+
     // TODO: use the instanceId everywhere directly insteed of passing it
 
-    initPolyfills({ instanceId })
+    initPolyfills()
 
     // this is a workaround for now. Optimally the lastVolume should be saved persistently each time the volume is changed but this lead to significant performance issue on scrolling at the moment. However this shouldn't be the case as it is no problem to log the volume each time the volume changes (so it is a problem in the config implementation). As a workaround the volume is only saved persistently when the radio stops but the volume obviously can't be received anymore from dbus when the player has been already stopped ... 
     let lastVolume: number
@@ -86,7 +86,6 @@ export function main(args: Arguments): imports.ui.applet.Applet {
     const applet = createAppletContainer({
         icon: appletIcon,
         label: appletLabel,
-        panelHeight,
         onClick: handleAppletClicked,
         onScroll: handleScroll,
         onMiddleClick: () => mpvHandler.togglePlayPause(),

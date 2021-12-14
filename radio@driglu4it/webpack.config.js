@@ -24,6 +24,9 @@ const APPLET_JS_CONTENT =
     `const {${LIBRARY_NAME}} = require('./${APPLET_SHORT_NAME}-applet');
     
 function main(metadata, orientation, panel_height, instance_id) {
+    __meta.instanceId = instance_id
+    __meta.orientation = orientation
+
     return new ${LIBRARY_NAME}.main({
         orientation,
         panelHeight: panel_height,
