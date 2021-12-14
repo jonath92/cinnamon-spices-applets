@@ -1,12 +1,18 @@
 import { createSubMenu } from "../../lib/PopupSubMenu";
 import { createChannelMenuItem } from "./ChannelMenuItem";
 import { AdvancedPlaybackStatus } from "../../types";
+import { createMpvHandler } from "../../mpv/MpvHandler";
+import { createConfig } from "../../Config";
+
+// HIER WEITERMACHEN
 
 interface Arguments {
     stationNames: string[],
     onChannelClicked: (name: string) => void, 
     initialChannelName?: string | undefined, 
     initialPlaybackStatus?: AdvancedPlaybackStatus
+    mpvHandler: ReturnType<typeof createMpvHandler>, 
+    configs: ReturnType<typeof createConfig>
 }
 
 export function createChannelList(args: Arguments) {
@@ -15,7 +21,11 @@ export function createChannelList(args: Arguments) {
         stationNames,
         initialChannelName, 
         initialPlaybackStatus, 
-        onChannelClicked
+        onChannelClicked, 
+        mpvHandler: {
+            getPlaybackStatus, 
+            getCurrentChannel
+        }
     } = args
 
     const subMenu = createSubMenu({ text: 'My Stations' })
@@ -32,7 +42,7 @@ export function createChannelList(args: Arguments) {
 
         names.forEach(name => {
             const channelPlaybackstatus =
-                (name === currentChannelName) ? playbackStatus : 'Stopped'
+                (name === getCurrentChannel()) ? getPlaybackStatus() : 'Stopped'
 
             const channelItem = createChannelMenuItem({
                 channelName: name,

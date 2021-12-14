@@ -531,7 +531,7 @@ function createChannelMenuItem(args) {
 
 
 function createChannelList(args) {
-    const { stationNames, initialChannelName, initialPlaybackStatus, onChannelClicked } = args;
+    const { stationNames, initialChannelName, initialPlaybackStatus, onChannelClicked, mpvHandler: { getPlaybackStatus, getCurrentChannel } } = args;
     const subMenu = createSubMenu({ text: 'My Stations' });
     let currentChannelName;
     let playbackStatus = 'Stopped';
@@ -541,7 +541,7 @@ function createChannelList(args) {
         channelItems.clear();
         subMenu.box.remove_all_children();
         names.forEach(name => {
-            const channelPlaybackstatus = (name === currentChannelName) ? playbackStatus : 'Stopped';
+            const channelPlaybackstatus = (name === getCurrentChannel()) ? getPlaybackStatus() : 'Stopped';
             const channelItem = createChannelMenuItem({
                 channelName: name,
                 onActivated: onChannelClicked,
@@ -1459,16 +1459,57 @@ function copyText(text) {
     Clipboard.get_default().set_text(ClipboardType.CLIPBOARD, text);
 }
 
-;// CONCATENATED MODULE: ./src/lib/AppletIcon.ts
+;// CONCATENATED MODULE: ./src/lib/AppletContainer.ts
+const { Applet, AllowedLayout } = imports.ui.applet;
+const { EventType } = imports.gi.Clutter;
 const { panelManager } = imports.ui.main;
 const { getAppletDefinition } = imports.ui.appletManager;
-const { Icon: AppletIcon_Icon, IconType: AppletIcon_IconType } = imports.gi.St;
-function createAppletIcon(props) {
-    let { iconType } = props;
+function createAppletContainer(args) {
+    const { icon, label, onClick, onScroll, onMiddleClick, onAppletMoved, onAppletRemoved, onRightClick } = args;
     const appletDefinition = getAppletDefinition({
         applet_id: __meta.instanceId,
     });
     const panel = panelManager.panels.find(panel => (panel === null || panel === void 0 ? void 0 : panel.panelId) === appletDefinition.panelId);
+    const applet = new Applet(__meta.orientation, panel.height, __meta.instanceId);
+    let appletReloaded = false;
+    [icon, label].forEach(widget => {
+        applet.actor.add_child(widget);
+    });
+    applet.on_applet_clicked = onClick;
+    applet.on_applet_middle_clicked = onMiddleClick;
+    applet.setAllowedLayout(AllowedLayout.BOTH);
+    applet.on_applet_reloaded = function () {
+        appletReloaded = true;
+    };
+    applet.on_applet_removed_from_panel = function () {
+        appletReloaded ? onAppletMoved() : onAppletRemoved();
+        appletReloaded = false;
+    };
+    applet.actor.connect('event', (actor, event) => {
+        if (event.type() !== EventType.BUTTON_PRESS)
+            return false;
+        if (event.get_button() === 3) {
+            onRightClick();
+        }
+        return false;
+    });
+    applet.actor.connect('scroll-event', (actor, event) => {
+        onScroll(event.get_scroll_direction());
+        return false;
+    });
+    return applet;
+}
+
+;// CONCATENATED MODULE: ./src/lib/AppletIcon.ts
+const { panelManager: AppletIcon_panelManager } = imports.ui.main;
+const { getAppletDefinition: AppletIcon_getAppletDefinition } = imports.ui.appletManager;
+const { Icon: AppletIcon_Icon, IconType: AppletIcon_IconType } = imports.gi.St;
+function createAppletIcon(props) {
+    let { iconType } = props;
+    const appletDefinition = AppletIcon_getAppletDefinition({
+        applet_id: __meta.instanceId,
+    });
+    const panel = AppletIcon_panelManager.panels.find(panel => (panel === null || panel === void 0 ? void 0 : panel.panelId) === appletDefinition.panelId);
     const locationLabel = appletDefinition.location_label;
     function getIconSize() {
         return panel.getPanelZoneIconSize(locationLabel, iconType);
@@ -5172,66 +5213,6 @@ function initPolyfills() {
     }
 }
 
-;// CONCATENATED MODULE: ./src/lib/AppletContainer.ts
-const { Applet, AllowedLayout } = imports.ui.applet;
-const { EventType } = imports.gi.Clutter;
-const { panelManager: AppletContainer_panelManager } = imports.ui.main;
-const { getAppletDefinition: AppletContainer_getAppletDefinition } = imports.ui.appletManager;
-function createAppletContainer(args) {
-    const { icon, label, onClick, onScroll, onMiddleClick, onAppletMoved, onAppletRemoved, onRightClick } = args;
-    const appletDefinition = AppletContainer_getAppletDefinition({
-        applet_id: __meta.instanceId,
-    });
-    const panel = AppletContainer_panelManager.panels.find(panel => (panel === null || panel === void 0 ? void 0 : panel.panelId) === appletDefinition.panelId);
-    const applet = new Applet(__meta.orientation, panel.height, __meta.instanceId);
-    let appletReloaded = false;
-    [icon, label].forEach(widget => {
-        applet.actor.add_child(widget);
-    });
-    applet.on_applet_clicked = onClick;
-    applet.on_applet_middle_clicked = onMiddleClick;
-    applet.setAllowedLayout(AllowedLayout.BOTH);
-    applet.on_applet_reloaded = function () {
-        appletReloaded = true;
-    };
-    applet.on_applet_removed_from_panel = function () {
-        appletReloaded ? onAppletMoved() : onAppletRemoved();
-        appletReloaded = false;
-    };
-    applet.actor.connect('event', (actor, event) => {
-        if (event.type() !== EventType.BUTTON_PRESS)
-            return false;
-        if (event.get_button() === 3) {
-            onRightClick();
-        }
-        return false;
-    });
-    applet.actor.connect('scroll-event', (actor, event) => {
-        onScroll(event.get_scroll_direction());
-        return false;
-    });
-    return applet;
-}
-
-;// CONCATENATED MODULE: ./src/ui/Applet/RadioAppletContainer.ts
-
-
-
-function createRadioAppletContainer(props) {
-    const { configs, mpvHandler } = props;
-    const appletContainer = createAppletContainer({
-        icon: createRadioAppletIcon({ configs, mpvHandler }),
-        label: createAppletLabel({ configs, mpvHandler }),
-        onMiddleClick: () => mpvHandler.togglePlayPause(),
-        onAppletMoved: () => mpvHandler.deactivateAllListener(),
-        onAppletRemoved: () => { },
-        onClick: () => { },
-        onRightClick: () => { },
-        onScroll: () => { }
-    });
-    return appletContainer;
-}
-
 ;// CONCATENATED MODULE: ./src/index.ts
 
 
@@ -5278,7 +5259,7 @@ function main(args) {
         // onPlaybackstatusChanged: handlePlaybackstatusChanged,
         configs
     });
-    const appletContainer = createRadioAppletContainer({ configs, mpvHandler });
+    // const appletContainer = createRadioAppletContainer({configs, mpvHandler})
     const channelStore = new ChannelStore(configNew.userStations, mpvHandler);
     const initialChannelName = mpvHandler.getCurrentChannel();
     const initialPlaybackStatus = mpvHandler.getPlaybackStatus();
@@ -5290,16 +5271,16 @@ function main(args) {
         configs,
         mpvHandler
     });
-    // const applet = createAppletContainer({
-    //     icon: appletIcon,
-    //     label: appletLabel,
-    //     onClick: handleAppletClicked,
-    //     onScroll: handleScroll,
-    //     onMiddleClick: () => mpvHandler.togglePlayPause(),
-    //     onAppletMoved: () => mpvHandler.deactivateAllListener(),
-    //     onAppletRemoved: handleAppletRemoved,
-    //     onRightClick: () => popupMenu?.close()
-    // })
+    const appletContainer = createAppletContainer({
+        icon: appletIcon,
+        label: appletLabel,
+        onClick: handleAppletClicked,
+        onScroll: handleScroll,
+        onMiddleClick: () => mpvHandler.togglePlayPause(),
+        onAppletMoved: () => mpvHandler.deactivateAllListener(),
+        onAppletRemoved: handleAppletRemoved,
+        onRightClick: () => popupMenu === null || popupMenu === void 0 ? void 0 : popupMenu.close()
+    });
     const popupMenu = (0,cinnamonpopup/* createPopupMenu */.S)({ launcher: appletContainer.actor });
     const appletTooltip = createAppletTooltip({
         applet: appletContainer,
@@ -5310,7 +5291,9 @@ function main(args) {
         stationNames: channelStore.activatedChannelNames,
         onChannelClicked: handleChannelClicked,
         initialChannelName,
-        initialPlaybackStatus
+        initialPlaybackStatus,
+        mpvHandler,
+        configs
     });
     setStationsHandler(handleStationsUpdated);
     const volumeSlider = createVolumeSlider({

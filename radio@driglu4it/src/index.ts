@@ -69,13 +69,14 @@ export function main(args: Arguments): imports.ui.applet.Applet {
         configs
     })
 
-    const appletContainer = createRadioAppletContainer({configs, mpvHandler})
+    // const appletContainer = createRadioAppletContainer({configs, mpvHandler})
 
 
     const channelStore = new ChannelStore(configNew.userStations, mpvHandler)
 
     const initialChannelName = mpvHandler.getCurrentChannel()
     const initialPlaybackStatus = mpvHandler.getPlaybackStatus()
+
 
     const appletIcon = createRadioAppletIcon({
         configs,
@@ -87,16 +88,16 @@ export function main(args: Arguments): imports.ui.applet.Applet {
         mpvHandler
     })
 
-    // const applet = createAppletContainer({
-    //     icon: appletIcon,
-    //     label: appletLabel,
-    //     onClick: handleAppletClicked,
-    //     onScroll: handleScroll,
-    //     onMiddleClick: () => mpvHandler.togglePlayPause(),
-    //     onAppletMoved: () => mpvHandler.deactivateAllListener(),
-    //     onAppletRemoved: handleAppletRemoved,
-    //     onRightClick: () => popupMenu?.close()
-    // })
+    const appletContainer = createAppletContainer({
+        icon: appletIcon,
+        label: appletLabel,
+        onClick: handleAppletClicked,
+        onScroll: handleScroll,
+        onMiddleClick: () => mpvHandler.togglePlayPause(),
+        onAppletMoved: () => mpvHandler.deactivateAllListener(),
+        onAppletRemoved: handleAppletRemoved,
+        onRightClick: () => popupMenu?.close()
+    })
 
     const popupMenu = createPopupMenu({ launcher: appletContainer.actor })
 
@@ -112,7 +113,9 @@ export function main(args: Arguments): imports.ui.applet.Applet {
         stationNames: channelStore.activatedChannelNames,
         onChannelClicked: handleChannelClicked,
         initialChannelName,
-        initialPlaybackStatus
+        initialPlaybackStatus, 
+        mpvHandler, 
+        configs
     })
 
     setStationsHandler(handleStationsUpdated)
