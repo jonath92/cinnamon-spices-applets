@@ -60,8 +60,6 @@ export function main(args: Arguments): imports.ui.applet.Applet {
         setStationsListChangeHandler: setStationsHandler,
     } = configs
 
-    createRadioAppletContainer({configs})
-
     const mpvHandler = createMpvHandler({
         onVolumeChanged: handleVolumeChanged,
         onLengthChanged: hanldeLengthChanged,
@@ -70,6 +68,9 @@ export function main(args: Arguments): imports.ui.applet.Applet {
         // onPlaybackstatusChanged: handlePlaybackstatusChanged,
         configs
     })
+
+    const appletContainer = createRadioAppletContainer({configs, mpvHandler})
+
 
     const channelStore = new ChannelStore(configNew.userStations, mpvHandler)
 
@@ -86,22 +87,22 @@ export function main(args: Arguments): imports.ui.applet.Applet {
         mpvHandler
     })
 
-    const applet = createAppletContainer({
-        icon: appletIcon,
-        label: appletLabel,
-        onClick: handleAppletClicked,
-        onScroll: handleScroll,
-        onMiddleClick: () => mpvHandler.togglePlayPause(),
-        onAppletMoved: () => mpvHandler.deactivateAllListener(),
-        onAppletRemoved: handleAppletRemoved,
-        onRightClick: () => popupMenu?.close()
-    })
+    // const applet = createAppletContainer({
+    //     icon: appletIcon,
+    //     label: appletLabel,
+    //     onClick: handleAppletClicked,
+    //     onScroll: handleScroll,
+    //     onMiddleClick: () => mpvHandler.togglePlayPause(),
+    //     onAppletMoved: () => mpvHandler.deactivateAllListener(),
+    //     onAppletRemoved: handleAppletRemoved,
+    //     onRightClick: () => popupMenu?.close()
+    // })
 
-    const popupMenu = createPopupMenu({ launcher: applet.actor })
+    const popupMenu = createPopupMenu({ launcher: appletContainer.actor })
 
 
     const appletTooltip = createAppletTooltip({
-        applet,
+        applet: appletContainer,
         orientation,
         initialVolume: mpvHandler.getVolume()
     })
@@ -296,7 +297,7 @@ export function main(args: Arguments): imports.ui.applet.Applet {
         })
     }
 
-    return applet
+    return appletContainer
 
 }
 
