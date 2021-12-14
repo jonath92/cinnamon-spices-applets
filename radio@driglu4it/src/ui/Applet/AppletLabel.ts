@@ -1,6 +1,6 @@
-import { ChannelStore } from "ChannelStore"
-import { createConfig } from "Config"
-import { createMpvHandler } from "mpv/MpvHandler"
+import { createConfig } from "../../Config"
+import { createMpvHandler } from "../../mpv/MpvHandler"
+
 
 const { Label } = imports.gi.St
 const { EllipsizeMode } = imports.gi.Pango

@@ -1,8 +1,8 @@
-import { createConfig } from "Config"
 import { createAppletIcon } from "../../lib/AppletIcon"
 import { createMpvHandler } from "../../mpv/MpvHandler"
 import { RADIO_SYMBOLIC_ICON_NAME, LOADING_ICON_NAME } from "../../consts"
 import { AdvancedPlaybackStatus } from "../../types"
+import { createConfig } from "../../Config"
 
 const { IconType } = imports.gi.St
 

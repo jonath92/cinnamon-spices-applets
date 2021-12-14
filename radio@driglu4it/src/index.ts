@@ -26,10 +26,12 @@ import { notify } from './ui/Notifications/GenericNotification';
 import { createSeeker } from './ui/Seeker';
 import { VOLUME_DELTA } from './consts';
 import { initPolyfills } from './polyfill';
+import { createRadioAppletContainer } from './ui/Applet/RadioAppletContainer';
 
 const { BoxLayout } = imports.gi.St
 const { ScrollDirection } = imports.gi.Clutter;
 
+// TODO: remove the args fully
 interface Arguments {
     orientation: imports.gi.St.Side,
     panelHeight: number,
@@ -43,7 +45,6 @@ export function main(args: Arguments): imports.ui.applet.Applet {
     } = args
 
 
-    // TODO: use the instanceId everywhere directly insteed of passing it
 
     initPolyfills()
 
@@ -58,6 +59,8 @@ export function main(args: Arguments): imports.ui.applet.Applet {
         settingsObject: configNew,
         setStationsListChangeHandler: setStationsHandler,
     } = configs
+
+    createRadioAppletContainer({configs})
 
     const mpvHandler = createMpvHandler({
         onVolumeChanged: handleVolumeChanged,

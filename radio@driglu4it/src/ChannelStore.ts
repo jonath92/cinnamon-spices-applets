@@ -1,4 +1,4 @@
-import { createMpvHandler } from 'mpv/MpvHandler'
+import { createMpvHandler } from './mpv/MpvHandler'
 import { Channel } from './types'
 
 export class ChannelStore {

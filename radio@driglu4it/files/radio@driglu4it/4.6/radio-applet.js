@@ -1464,21 +1464,12 @@ const { Applet, AllowedLayout } = imports.ui.applet;
 const { EventType } = imports.gi.Clutter;
 const { panelManager } = imports.ui.main;
 const { getAppletDefinition } = imports.ui.appletManager;
-const { PanelLoc } = imports.ui.panel;
-const { Side } = imports.gi.St;
 function createAppletContainer(args) {
     const { icon, label, onClick, onScroll, onMiddleClick, onAppletMoved, onAppletRemoved, onRightClick } = args;
     const appletDefinition = getAppletDefinition({
         applet_id: __meta.instanceId,
     });
     const panel = panelManager.panels.find(panel => (panel === null || panel === void 0 ? void 0 : panel.panelId) === appletDefinition.panelId);
-    const panelLocOrientationMap = new Map([
-        [PanelLoc.bottom, Side.BOTTOM],
-        [PanelLoc.left, Side.LEFT],
-        [PanelLoc.right, Side.RIGHT],
-        [PanelLoc.top, Side.TOP]
-    ]);
-    const orientation = panelLocOrientationMap.get(panel.panelPosition);
     const applet = new Applet(__meta.orientation, panel.height, __meta.instanceId);
     let appletReloaded = false;
     [icon, label].forEach(widget => {
@@ -5222,7 +5213,16 @@ function initPolyfills() {
     }
 }
 
+;// CONCATENATED MODULE: ./src/ui/Applet/RadioAppletContainer.ts
+function createRadioAppletContainer(props) {
+    const { configs } = props;
+    // const appletContainer = createAppletContainer({
+    //     icon: createRadioAppletIcon({configs})
+    // })
+}
+
 ;// CONCATENATED MODULE: ./src/index.ts
+
 
 
 
@@ -5254,13 +5254,13 @@ const { BoxLayout: src_BoxLayout } = imports.gi.St;
 const { ScrollDirection: src_ScrollDirection } = imports.gi.Clutter;
 function main(args) {
     const { orientation, instanceId } = args;
-    // TODO: use the instanceId everywhere directly insteed of passing it
     initPolyfills();
     // this is a workaround for now. Optimally the lastVolume should be saved persistently each time the volume is changed but this lead to significant performance issue on scrolling at the moment. However this shouldn't be the case as it is no problem to log the volume each time the volume changes (so it is a problem in the config implementation). As a workaround the volume is only saved persistently when the radio stops but the volume obviously can't be received anymore from dbus when the player has been already stopped ... 
     let lastVolume;
     let installationInProgress = false;
     const configs = createConfig(instanceId);
     const { settingsObject: configNew, setStationsListChangeHandler: setStationsHandler, } = configs;
+    createRadioAppletContainer({ configs });
     const mpvHandler = createMpvHandler({
         onVolumeChanged: handleVolumeChanged,
         onLengthChanged: hanldeLengthChanged,

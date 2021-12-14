@@ -1,16 +1,18 @@
-import { createAppletContainer } from "lib/AppletContainer"
+
+import { createConfig } from "../../Config"
+import { createRadioAppletIcon } from "./RadioAppletIcon"
+
 
 interface Props {
-    icon: imports.gi.St.Icon,
-    label: imports.gi.St.Label
+    configs: ReturnType<typeof createConfig>
 }
 
 export function createRadioAppletContainer(props: Props) {
 
-    const { icon, label } = props
+    const { configs } = props
 
     // const appletContainer = createAppletContainer({
-    //     i
+    //     icon: createRadioAppletIcon({configs})
     // })
 
 }
