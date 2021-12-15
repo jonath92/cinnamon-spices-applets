@@ -110,10 +110,6 @@ export function main(args: Arguments): imports.ui.applet.Applet {
 
 
     const channelList = createChannelList({
-        stationNames: channelStore.activatedChannelNames,
-        onChannelClicked: handleChannelClicked,
-        initialChannelName,
-        initialPlaybackStatus, 
         mpvHandler, 
         configs
     })
@@ -235,7 +231,7 @@ export function main(args: Arguments): imports.ui.applet.Applet {
         if (!stationsChanged) return
 
         channelStore.channelList = stations
-        channelList.setStationNames(channelStore.activatedChannelNames)
+        // channelList.setStationNames(channelStore.activatedChannelNames)
 
         const lastUrlValid = channelStore.checkUrlValid(configNew.lastUrl)
         if (!lastUrlValid) mpvHandler.stop()
@@ -254,8 +250,6 @@ export function main(args: Arguments): imports.ui.applet.Applet {
         if (playbackstatus !== 'Stopped' && !radioActiveSection.visible)
             radioActiveSection.show()
 
-        channelList.setPlaybackStatus(playbackstatus)
-
         if (playbackstatus === 'Playing' || playbackstatus === 'Paused') {
             playPauseBtn.setPlaybackStatus(playbackstatus)
         }
@@ -266,7 +260,6 @@ export function main(args: Arguments): imports.ui.applet.Applet {
 
         const channelName = url ? channelStore.getChannelName(url) : null
 
-        channelName && channelList.setCurrentChannel(channelName)
         channelName && infoSection.setChannel(channelName)
         configNew.lastUrl = url
     }

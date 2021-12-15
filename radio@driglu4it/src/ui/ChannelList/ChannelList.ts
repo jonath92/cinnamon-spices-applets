@@ -4,40 +4,45 @@ import { AdvancedPlaybackStatus } from "../../types";
 import { createMpvHandler } from "../../mpv/MpvHandler";
 import { createConfig } from "../../Config";
 
-// HIER WEITERMACHEN
-
 interface Arguments {
-    stationNames: string[],
-    onChannelClicked: (name: string) => void, 
-    initialChannelName?: string | undefined, 
-    initialPlaybackStatus?: AdvancedPlaybackStatus
-    mpvHandler: ReturnType<typeof createMpvHandler>, 
+    mpvHandler: ReturnType<typeof createMpvHandler>,
     configs: ReturnType<typeof createConfig>
 }
 
 export function createChannelList(args: Arguments) {
 
     const {
-        stationNames,
-        initialChannelName, 
-        initialPlaybackStatus, 
-        onChannelClicked, 
         mpvHandler: {
-            getPlaybackStatus, 
-            getCurrentChannel
+            getPlaybackStatus,
+            getCurrentChannel,
+            addChannelChangeHandler,
+            addPlaybackStatusChangeHandler, 
+            setUrl
+        },
+        configs: {
+            settingsObject
         }
     } = args
 
     const subMenu = createSubMenu({ text: 'My Stations' })
 
-    let currentChannelName: string | null
-    let playbackStatus: AdvancedPlaybackStatus = 'Stopped'
+    const getUserStationNames = () => {
+        return settingsObject.userStations.flatMap(station => station.inc ? [station.name] : [])
+    }
 
-    // the channelItems are saved here to the map and to the container as on the container only the reduced name are shown. Theoretically it therefore couldn't be differentiated between two long channel names with the same first 30 (or so) characters   
-    const channelItems = new Map<string, ReturnType<typeof createChannelMenuItem>>()
+    const findUrl = (channelName: string) => {
+        const channel = settingsObject.userStations.find(station => station.name === channelName && station.inc)
 
-    function setStationNames(names: string[]) {
-        channelItems.clear()
+        if (!channel) throw new Error(`couldn't find a url for the provided name. That should not have happened :-/`)
+
+        return channel.url
+    }
+
+    // the channelItems are saved here to the map as well as to the container as on the container only the reduced name are shown. Theoretically it therefore couldn't be differentiated between two long channel names with the same first 30 (or so) characters   
+    let channelItems: ReturnType<typeof createChannelMenuItem>[] = []
+
+    function setRefreshList(names: string[]) {
+        channelItems = []
         subMenu.box.remove_all_children()
 
         names.forEach(name => {
@@ -46,52 +51,34 @@ export function createChannelList(args: Arguments) {
 
             const channelItem = createChannelMenuItem({
                 channelName: name,
-                onActivated: onChannelClicked,
+                onActivated: () => setUrl(findUrl(name)), 
                 playbackStatus: channelPlaybackstatus
             })
 
-            channelItems.set(name, channelItem)
+            channelItems.push(channelItem)
             subMenu.box.add_child(channelItem.actor)
         })
     }
 
-    function setPlaybackStatus(newStatus: AdvancedPlaybackStatus) {
-        playbackStatus = newStatus
+    function updateChannel(name: string | undefined) {
+        channelItems.forEach(item => {
 
-        if (!currentChannelName) return
-
-        const channelMenuItem = channelItems.get(currentChannelName)
-        channelMenuItem?.setPlaybackStatus(playbackStatus)
-
-        if (playbackStatus === 'Stopped')
-            currentChannelName = null
-
+            item.getChannelName() === name ? item.setPlaybackStatus(getPlaybackStatus()) : item.setPlaybackStatus('Stopped')
+        })
     }
 
-    function setCurrentChannel(name: string) {
+    function updatePlaybackStatus(playbackStatus: AdvancedPlaybackStatus) {
 
-        if(currentChannelName){
-            const currentChannelItem = channelItems.get(currentChannelName)
-            currentChannelItem?.setPlaybackStatus('Stopped')
-        }
+        if (playbackStatus === 'Stopped') return // already handled by updateChannel
 
-        if (name) {
-            const newChannelItem = channelItems.get(name)
-            if (!newChannelItem) throw new Error(`No channelItem exist for ${name}`)
-            newChannelItem.setPlaybackStatus(playbackStatus)
-        }
-
-        currentChannelName = name
+        const currentChannel = channelItems.find(channelItem => channelItem.getChannelName() === getCurrentChannel())
+        currentChannel?.setPlaybackStatus(playbackStatus)
     }
 
-    setStationNames(stationNames)
-    initialChannelName && setCurrentChannel(initialChannelName)
-    initialPlaybackStatus && setPlaybackStatus(initialPlaybackStatus)
+    setRefreshList(getUserStationNames())
 
-    return {
-        actor: subMenu.actor,
-        setPlaybackStatus,
-        setStationNames,
-        setCurrentChannel
-    }
+    addChannelChangeHandler((newChannel) => updateChannel(newChannel))
+    addPlaybackStatusChangeHandler((newStatus) => updatePlaybackStatus(newStatus))
+
+    return subMenu
 }

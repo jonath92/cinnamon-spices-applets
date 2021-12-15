@@ -523,7 +523,8 @@ function createChannelMenuItem(args) {
     playbackStatus && setPlaybackStatus(playbackStatus);
     return {
         setPlaybackStatus,
-        actor: iconMenuItem.actor
+        actor: iconMenuItem.actor,
+        getChannelName: () => channelName
     };
 }
 
@@ -531,57 +532,48 @@ function createChannelMenuItem(args) {
 
 
 function createChannelList(args) {
-    const { stationNames, initialChannelName, initialPlaybackStatus, onChannelClicked, mpvHandler: { getPlaybackStatus, getCurrentChannel } } = args;
+    const { mpvHandler: { getPlaybackStatus, getCurrentChannel, addChannelChangeHandler, addPlaybackStatusChangeHandler, setUrl }, configs: { settingsObject } } = args;
     const subMenu = createSubMenu({ text: 'My Stations' });
-    let currentChannelName;
-    let playbackStatus = 'Stopped';
-    // the channelItems are saved here to the map and to the container as on the container only the reduced name are shown. Theoretically it therefore couldn't be differentiated between two long channel names with the same first 30 (or so) characters   
-    const channelItems = new Map();
-    function setStationNames(names) {
-        channelItems.clear();
+    const getUserStationNames = () => {
+        return settingsObject.userStations.flatMap(station => station.inc ? [station.name] : []);
+    };
+    const findUrl = (channelName) => {
+        const channel = settingsObject.userStations.find(station => station.name === channelName && station.inc);
+        if (!channel)
+            throw new Error(`couldn't find a url for the provided name. That should not have happened :-/`);
+        return channel.url;
+    };
+    // the channelItems are saved here to the map as well as to the container as on the container only the reduced name are shown. Theoretically it therefore couldn't be differentiated between two long channel names with the same first 30 (or so) characters   
+    let channelItems = [];
+    function setRefreshList(names) {
+        channelItems = [];
         subMenu.box.remove_all_children();
         names.forEach(name => {
             const channelPlaybackstatus = (name === getCurrentChannel()) ? getPlaybackStatus() : 'Stopped';
             const channelItem = createChannelMenuItem({
                 channelName: name,
-                onActivated: onChannelClicked,
+                onActivated: () => setUrl(findUrl(name)),
                 playbackStatus: channelPlaybackstatus
             });
-            channelItems.set(name, channelItem);
+            channelItems.push(channelItem);
             subMenu.box.add_child(channelItem.actor);
         });
     }
-    function setPlaybackStatus(newStatus) {
-        playbackStatus = newStatus;
-        if (!currentChannelName)
-            return;
-        const channelMenuItem = channelItems.get(currentChannelName);
-        channelMenuItem === null || channelMenuItem === void 0 ? void 0 : channelMenuItem.setPlaybackStatus(playbackStatus);
+    function updateChannel(name) {
+        channelItems.forEach(item => {
+            item.getChannelName() === name ? item.setPlaybackStatus(getPlaybackStatus()) : item.setPlaybackStatus('Stopped');
+        });
+    }
+    function updatePlaybackStatus(playbackStatus) {
         if (playbackStatus === 'Stopped')
-            currentChannelName = null;
+            return; // already handled by updateChannel
+        const currentChannel = channelItems.find(channelItem => channelItem.getChannelName() === getCurrentChannel());
+        currentChannel === null || currentChannel === void 0 ? void 0 : currentChannel.setPlaybackStatus(playbackStatus);
     }
-    function setCurrentChannel(name) {
-        if (currentChannelName) {
-            const currentChannelItem = channelItems.get(currentChannelName);
-            currentChannelItem === null || currentChannelItem === void 0 ? void 0 : currentChannelItem.setPlaybackStatus('Stopped');
-        }
-        if (name) {
-            const newChannelItem = channelItems.get(name);
-            if (!newChannelItem)
-                throw new Error(`No channelItem exist for ${name}`);
-            newChannelItem.setPlaybackStatus(playbackStatus);
-        }
-        currentChannelName = name;
-    }
-    setStationNames(stationNames);
-    initialChannelName && setCurrentChannel(initialChannelName);
-    initialPlaybackStatus && setPlaybackStatus(initialPlaybackStatus);
-    return {
-        actor: subMenu.actor,
-        setPlaybackStatus,
-        setStationNames,
-        setCurrentChannel
-    };
+    setRefreshList(getUserStationNames());
+    addChannelChangeHandler((newChannel) => updateChannel(newChannel));
+    addPlaybackStatusChangeHandler((newStatus) => updatePlaybackStatus(newStatus));
+    return subMenu;
 }
 
 ;// CONCATENATED MODULE: ./src/mpv/MpvHandler.ts
@@ -5288,10 +5280,7 @@ function main(args) {
         initialVolume: mpvHandler.getVolume()
     });
     const channelList = createChannelList({
-        stationNames: channelStore.activatedChannelNames,
         onChannelClicked: handleChannelClicked,
-        initialChannelName,
-        initialPlaybackStatus,
         mpvHandler,
         configs
     });
@@ -5385,7 +5374,7 @@ function main(args) {
         if (!stationsChanged)
             return;
         channelStore.channelList = stations;
-        channelList.setStationNames(channelStore.activatedChannelNames);
+        // channelList.setStationNames(channelStore.activatedChannelNames)
         const lastUrlValid = channelStore.checkUrlValid(configNew.lastUrl);
         if (!lastUrlValid)
             mpvHandler.stop();
@@ -5400,14 +5389,12 @@ function main(args) {
         }
         if (playbackstatus !== 'Stopped' && !radioActiveSection.visible)
             radioActiveSection.show();
-        channelList.setPlaybackStatus(playbackstatus);
         if (playbackstatus === 'Playing' || playbackstatus === 'Paused') {
             playPauseBtn.setPlaybackStatus(playbackstatus);
         }
     }
     function handleUrlChanged(url) {
         const channelName = url ? channelStore.getChannelName(url) : null;
-        channelName && channelList.setCurrentChannel(channelName);
         channelName && infoSection.setChannel(channelName);
         configNew.lastUrl = url;
     }

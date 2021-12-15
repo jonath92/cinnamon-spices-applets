@@ -38,6 +38,7 @@ export function createChannelMenuItem(args: Arguments) {
 
     return {
         setPlaybackStatus,
-        actor: iconMenuItem.actor
+        actor: iconMenuItem.actor,
+        getChannelName: () => channelName
     }
 }
