@@ -101,10 +101,9 @@ export function main(args: Arguments): imports.ui.applet.Applet {
     const popupMenu = createPopupMenu({ launcher: appletContainer.actor })
 
 
-    const appletTooltip = createAppletTooltip({
-        applet: appletContainer,
-        orientation,
-        initialVolume: mpvHandler.getVolume()
+    createAppletTooltip({
+        appletContainer: appletContainer,
+        mpvHandler
     })
 
 
@@ -207,7 +206,6 @@ export function main(args: Arguments): imports.ui.applet.Applet {
 
     function handleVolumeChanged(volume: number) {
         volumeSlider.setVolume(volume)
-        appletTooltip.setVolume(volume)
 
         lastVolume = volume
     }
@@ -231,7 +229,6 @@ export function main(args: Arguments): imports.ui.applet.Applet {
             radioActiveSection.hide()
             configNew.lastVolume = lastVolume
             configNew.lastUrl = null
-            appletTooltip.setDefaultTooltip()
             popupMenu.close()
         }
 

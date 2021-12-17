@@ -1,36 +1,32 @@
-import { DEFAULT_TOOLTIP_TXT } from "../../consts"
+import { DEFAULT_TOOLTIP_TXT, MPV_CVC_NAME } from "../../consts"
+import { createMpvHandler } from "../../mpv/MpvHandler"
 
 const { PanelItemTooltip } = imports.ui.tooltips
 
 interface Arguments {
-    applet: imports.ui.applet.Applet
-    orientation: imports.gi.St.Side, 
-    initialVolume: number | null
+    appletContainer: imports.ui.applet.Applet
+    mpvHandler: ReturnType<typeof createMpvHandler>
 }
 
 export function createAppletTooltip(args: Arguments) {
 
     const {
-        orientation,
-        applet, 
-        initialVolume
+        appletContainer, 
+        mpvHandler: {
+            getVolume, 
+            addVolumeChangeHandler
+        }
     } = args
 
-    const tooltip = new PanelItemTooltip(applet, null, orientation)
-
-    function setVolume(volume: number) {
-        tooltip.set_text(`Volume: ${volume.toString()} %`)
+    function getTitle(): string{
+        const volume = getVolume()
+        if (!volume) return DEFAULT_TOOLTIP_TXT
+        return `Volume: ${volume.toString()} %`
     }
 
-    function setDefaultTooltip() {
-        tooltip.set_text(DEFAULT_TOOLTIP_TXT)
-    }
+    const tooltip = new PanelItemTooltip(appletContainer, getTitle(), __meta.orientation)
 
-    initialVolume ? setVolume(initialVolume) : setDefaultTooltip()
-
-
-    return {
-        setVolume,
-        setDefaultTooltip
-    }
+    addVolumeChangeHandler(() => {
+        tooltip.set_text(getTitle())
+    })
 }

@@ -54,6 +54,7 @@ export function createMpvHandler(args: Arguments) {
     const playbackStatusChangeHandler: ChangeHandler<AdvancedPlaybackStatus>[] = []
     // executed when the url changes including when set to a falsy vlaue due to radio stopped
     const channelNameChangeHandler: ChangeHandler<string | undefined>[] = []
+    const volumeChangeHandler: ChangeHandler<number  | undefined>[] = [] // also executed when radio stopped
 
     control.open()
     control.connect('stream-added', (ctrl, id) => {
@@ -123,6 +124,7 @@ export function createMpvHandler(args: Arguments) {
             mediaPropsListenerId = seekListenerId = currentUrl = null
             playbackStatusChangeHandler.forEach(handler => handler('Stopped'))
             channelNameChangeHandler.forEach(handler => handler(undefined))
+            volumeChangeHandler.forEach(handler => handler(undefined))
         }
     })
 
@@ -259,7 +261,7 @@ export function createMpvHandler(args: Arguments) {
 
         const normalizedVolume = Math.round(mprisVolume * 100)
         setCvcVolume(normalizedVolume)
-        onVolumeChanged(normalizedVolume)
+        volumeChangeHandler.forEach(changeHandler => changeHandler(normalizedVolume))
     }
 
     function handleCvcVolumeChanged(): void {
@@ -448,6 +450,9 @@ export function createMpvHandler(args: Arguments) {
             channelNameChangeHandler.push(changeHandler)
         },
 
+        addVolumeChangeHandler: (changeHandler: ChangeHandler<number | undefined>) => {
+            volumeChangeHandler.push(changeHandler)
+        },
 
         // it is very confusing but dbus must be returned!
         // Otherwilse all listeners stop working after about 20 seconds which is fucking difficult to debug

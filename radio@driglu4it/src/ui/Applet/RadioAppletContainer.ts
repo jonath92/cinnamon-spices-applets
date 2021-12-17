@@ -3,8 +3,8 @@ import { createConfig } from "../../Config"
 import { createAppletContainer } from "../../lib/AppletContainer"
 import { createMpvHandler } from "../../mpv/MpvHandler"
 import { createAppletLabel } from "./AppletLabel"
+import { createAppletTooltip } from "./AppletTooltip"
 import { createRadioAppletIcon } from "./RadioAppletIcon"
-
 
 interface Props {
     configs: ReturnType<typeof createConfig>,
@@ -26,6 +26,8 @@ export function createRadioAppletContainer(props: Props) {
         onScroll: () => {}
     })
 
+    // for some weird reasion, it is doesn't work to create the tooltip here but it works when calling in index.ts :-/
+    //createAppletTooltip({mpvHandler, appletContainer})
     
     return appletContainer
 

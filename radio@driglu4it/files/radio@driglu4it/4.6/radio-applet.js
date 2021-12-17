@@ -600,6 +600,7 @@ function createMpvHandler(args) {
     const playbackStatusChangeHandler = [];
     // executed when the url changes including when set to a falsy vlaue due to radio stopped
     const channelNameChangeHandler = [];
+    const volumeChangeHandler = []; // also executed when radio stopped
     control.open();
     control.connect('stream-added', (ctrl, id) => {
         const addedStream = control.lookup_stream_id(id);
@@ -650,6 +651,7 @@ function createMpvHandler(args) {
             mediaPropsListenerId = seekListenerId = currentUrl = null;
             playbackStatusChangeHandler.forEach(handler => handler('Stopped'));
             channelNameChangeHandler.forEach(handler => handler(undefined));
+            volumeChangeHandler.forEach(handler => handler(undefined));
         }
     });
     function deactivateAllListener() {
@@ -755,7 +757,7 @@ function createMpvHandler(args) {
         }
         const normalizedVolume = Math.round(mprisVolume * 100);
         setCvcVolume(normalizedVolume);
-        onVolumeChanged(normalizedVolume);
+        volumeChangeHandler.forEach(changeHandler => changeHandler(normalizedVolume));
     }
     function handleCvcVolumeChanged() {
         const normalizedVolume = Math.round(cvcStream.volume / control.get_vol_max_norm() * 100);
@@ -871,12 +873,9 @@ function createMpvHandler(args) {
         return currentChannel === null || currentChannel === void 0 ? void 0 : currentChannel.name;
     }
     addStationsListChangeHandler(() => {
-        global.log('this is called');
         if (!currentUrl)
             return;
-        global.log('currentUrl', currentUrl);
         const currentStationValid = checkUrlValid(currentUrl);
-        global.log('stationsValid', currentStationValid);
         if (!currentStationValid)
             stop();
     });
@@ -898,6 +897,9 @@ function createMpvHandler(args) {
         },
         addChannelChangeHandler: (changeHandler) => {
             channelNameChangeHandler.push(changeHandler);
+        },
+        addVolumeChangeHandler: (changeHandler) => {
+            volumeChangeHandler.push(changeHandler);
         },
         // it is very confusing but dbus must be returned!
         // Otherwilse all listeners stop working after about 20 seconds which is fucking difficult to debug
@@ -1609,19 +1611,17 @@ function createAppletLabel(props) {
 
 const { PanelItemTooltip } = imports.ui.tooltips;
 function createAppletTooltip(args) {
-    const { orientation, applet, initialVolume } = args;
-    const tooltip = new PanelItemTooltip(applet, null, orientation);
-    function setVolume(volume) {
-        tooltip.set_text(`Volume: ${volume.toString()} %`);
+    const { appletContainer, mpvHandler: { getVolume, addVolumeChangeHandler } } = args;
+    function getTitle() {
+        const volume = getVolume();
+        if (!volume)
+            return DEFAULT_TOOLTIP_TXT;
+        return `Volume: ${volume.toString()} %`;
     }
-    function setDefaultTooltip() {
-        tooltip.set_text(DEFAULT_TOOLTIP_TXT);
-    }
-    initialVolume ? setVolume(initialVolume) : setDefaultTooltip();
-    return {
-        setVolume,
-        setDefaultTooltip
-    };
+    const tooltip = new PanelItemTooltip(appletContainer, getTitle(), __meta.orientation);
+    addVolumeChangeHandler(() => {
+        tooltip.set_text(getTitle());
+    });
 }
 
 ;// CONCATENATED MODULE: ./src/ui/Notifications/YoutubeDownloadFinishedNotification.ts
@@ -5285,10 +5285,9 @@ function main(args) {
         onRightClick: () => popupMenu === null || popupMenu === void 0 ? void 0 : popupMenu.close()
     });
     const popupMenu = (0,cinnamonpopup/* createPopupMenu */.S)({ launcher: appletContainer.actor });
-    const appletTooltip = createAppletTooltip({
-        applet: appletContainer,
-        orientation,
-        initialVolume: mpvHandler.getVolume()
+    createAppletTooltip({
+        appletContainer: appletContainer,
+        mpvHandler
     });
     const channelList = createChannelList({
         mpvHandler,
@@ -5369,7 +5368,6 @@ function main(args) {
     }
     function handleVolumeChanged(volume) {
         volumeSlider.setVolume(volume);
-        appletTooltip.setVolume(volume);
         lastVolume = volume;
     }
     function handleStationsUpdated(stations) {
@@ -5387,7 +5385,6 @@ function main(args) {
             radioActiveSection.hide();
             configNew.lastVolume = lastVolume;
             configNew.lastUrl = null;
-            appletTooltip.setDefaultTooltip();
             popupMenu.close();
         }
         if (playbackstatus !== 'Stopped' && !radioActiveSection.visible)
