@@ -25,9 +25,10 @@ export const createConfig = (instanceId: number) => {
     const colorPlayingChangeHander: ChangeHandler<string>[] = []
     const colorPausedHandler: ChangeHandler<string>[] = []
     const channelOnPanelHandler: ChangeHandler<boolean>[] = []
+    const stationsHandler: ChangeHandler<Channel[]>[] = []
+
 
     let keepVolumeHandler: ChangeHandler<boolean> | undefined
-    let stationsHandler: ChangeHandler<Channel[]> | undefined
 
     appletSettings.bind<AppletIcon>('icon-type', 'iconType',
         (...arg) => iconTypeChangeHandler.forEach(changeHandler => changeHandler(...arg))
@@ -48,7 +49,7 @@ export const createConfig = (instanceId: number) => {
     appletSettings.bind('initial-volume', 'customInitVolume')
     appletSettings.bind('last-volume', 'lastVolume')
     appletSettings.bind<Channel[]>('tree', 'userStations',
-        (...arg) => stationsHandler?.(...arg))
+        (...arg) => stationsHandler.forEach(changeHandler => changeHandler(...arg)))
     appletSettings.bind('last-url', 'lastUrl')
     appletSettings.bind('music-download-dir-select', 'musicDownloadDir')
 
@@ -87,8 +88,8 @@ export const createConfig = (instanceId: number) => {
             channelOnPanelHandler.push(channelOnPanelChangeHandler)
         },
 
-        setStationsListChangeHandler: (newStationHandler: ChangeHandler<Channel[]>) => {
-            stationsHandler = newStationHandler
+        addStationsListChangeHandler: (stationsChangeHandler: ChangeHandler<Channel[]>) => {
+            stationsHandler.push(stationsChangeHandler)
         }
 
 

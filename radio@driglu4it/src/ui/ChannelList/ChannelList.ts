@@ -20,6 +20,7 @@ export function createChannelList(args: Arguments) {
             setUrl
         },
         configs: {
+            addStationsListChangeHandler,
             settingsObject
         }
     } = args
@@ -79,6 +80,6 @@ export function createChannelList(args: Arguments) {
 
     addChannelChangeHandler((newChannel) => updateChannel(newChannel))
     addPlaybackStatusChangeHandler((newStatus) => updatePlaybackStatus(newStatus))
-
+    addStationsListChangeHandler(() => setRefreshList(getUserStationNames()))
     return subMenu
 }

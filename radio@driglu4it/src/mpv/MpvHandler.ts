@@ -32,6 +32,7 @@ export function createMpvHandler(args: Arguments) {
         configs: {
             settingsObject,
             getInitialVolume,
+            addStationsListChangeHandler
         }
     } = args
 
@@ -160,7 +161,7 @@ export function createMpvHandler(args: Arguments) {
     }
 
     function checkUrlValid(channelUrl: string): boolean {
-        return settingsObject.userStations.some(cnl => cnl.url === channelUrl)
+        return settingsObject.userStations.some(cnl => cnl.url === channelUrl && cnl.inc )
 
     }
 
@@ -413,6 +414,16 @@ export function createMpvHandler(args: Arguments) {
 
         return currentChannel?.name
     }
+
+    addStationsListChangeHandler(() => {
+
+        if (!currentUrl) return
+
+        const currentStationValid = checkUrlValid(currentUrl)
+
+        if (!currentStationValid) stop()
+
+    })
 
     return {
         increaseDecreaseVolume,

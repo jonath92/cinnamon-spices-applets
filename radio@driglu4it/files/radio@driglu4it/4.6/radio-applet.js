@@ -217,8 +217,8 @@ const createConfig = (instanceId) => {
     const colorPlayingChangeHander = [];
     const colorPausedHandler = [];
     const channelOnPanelHandler = [];
+    const stationsHandler = [];
     let keepVolumeHandler;
-    let stationsHandler;
     appletSettings.bind('icon-type', 'iconType', (...arg) => iconTypeChangeHandler.forEach(changeHandler => changeHandler(...arg)));
     appletSettings.bind('color-on', 'symbolicIconColorWhenPlaying', (...arg) => colorPlayingChangeHander.forEach(changeHandler => changeHandler(...arg)));
     appletSettings.bind('color-paused', 'symbolicIconColorWhenPaused', (...arg) => colorPausedHandler.forEach(changeHandler => changeHandler(...arg)));
@@ -226,7 +226,7 @@ const createConfig = (instanceId) => {
     appletSettings.bind('keep-volume-between-sessions', 'keepVolume', (...arg) => keepVolumeHandler === null || keepVolumeHandler === void 0 ? void 0 : keepVolumeHandler(...arg));
     appletSettings.bind('initial-volume', 'customInitVolume');
     appletSettings.bind('last-volume', 'lastVolume');
-    appletSettings.bind('tree', 'userStations', (...arg) => stationsHandler === null || stationsHandler === void 0 ? void 0 : stationsHandler(...arg));
+    appletSettings.bind('tree', 'userStations', (...arg) => stationsHandler.forEach(changeHandler => changeHandler(...arg)));
     appletSettings.bind('last-url', 'lastUrl');
     appletSettings.bind('music-download-dir-select', 'musicDownloadDir');
     function getInitialVolume() {
@@ -249,8 +249,8 @@ const createConfig = (instanceId) => {
         addChannelOnPanelChangeHandler: (channelOnPanelChangeHandler) => {
             channelOnPanelHandler.push(channelOnPanelChangeHandler);
         },
-        setStationsListChangeHandler: (newStationHandler) => {
-            stationsHandler = newStationHandler;
+        addStationsListChangeHandler: (stationsChangeHandler) => {
+            stationsHandler.push(stationsChangeHandler);
         }
         // setIcon
     };
@@ -532,7 +532,7 @@ function createChannelMenuItem(args) {
 
 
 function createChannelList(args) {
-    const { mpvHandler: { getPlaybackStatus, getCurrentChannel, addChannelChangeHandler, addPlaybackStatusChangeHandler, setUrl }, configs: { settingsObject } } = args;
+    const { mpvHandler: { getPlaybackStatus, getCurrentChannel, addChannelChangeHandler, addPlaybackStatusChangeHandler, setUrl }, configs: { addStationsListChangeHandler, settingsObject } } = args;
     const subMenu = createSubMenu({ text: 'My Stations' });
     const getUserStationNames = () => {
         return settingsObject.userStations.flatMap(station => station.inc ? [station.name] : []);
@@ -573,6 +573,7 @@ function createChannelList(args) {
     setRefreshList(getUserStationNames());
     addChannelChangeHandler((newChannel) => updateChannel(newChannel));
     addPlaybackStatusChangeHandler((newStatus) => updatePlaybackStatus(newStatus));
+    addStationsListChangeHandler(() => setRefreshList(getUserStationNames()));
     return subMenu;
 }
 
@@ -587,7 +588,7 @@ function createMpvHandler(args) {
     // onUrlChanged,
     onVolumeChanged, onTitleChanged, onLengthChanged, onPositionChanged, 
     // checkUrlValid,
-    configs: { settingsObject, getInitialVolume, } } = args;
+    configs: { settingsObject, getInitialVolume, addStationsListChangeHandler } } = args;
     /** the lastUrl is used to determine if mpv is initially (i.e. on cinnamon restart) running for radio purposes and not for something else. It is not sufficient to get the url from a dbus interface and check if the url is valid because some streams (such as .pls streams) change their url dynamically. This approach in not 100% foolproof but probably the best possible approach */
     const lastUrl = settingsObject.lastUrl;
     const dbus = getDBus();
@@ -681,7 +682,7 @@ function createMpvHandler(args) {
         });
     }
     function checkUrlValid(channelUrl) {
-        return settingsObject.userStations.some(cnl => cnl.url === channelUrl);
+        return settingsObject.userStations.some(cnl => cnl.url === channelUrl && cnl.inc);
     }
     function activateSeekListener() {
         seekListenerId = mediaServerPlayer.connectSignal('Seeked', (id, sender, value) => {
@@ -869,6 +870,16 @@ function createMpvHandler(args) {
         const currentChannel = currentUrl ? settingsObject.userStations.find(cnl => cnl.url === currentUrl) : undefined;
         return currentChannel === null || currentChannel === void 0 ? void 0 : currentChannel.name;
     }
+    addStationsListChangeHandler(() => {
+        global.log('this is called');
+        if (!currentUrl)
+            return;
+        global.log('currentUrl', currentUrl);
+        const currentStationValid = checkUrlValid(currentUrl);
+        global.log('stationsValid', currentStationValid);
+        if (!currentStationValid)
+            stop();
+    });
     return {
         increaseDecreaseVolume,
         setVolume: setMprisVolume,
@@ -5242,7 +5253,7 @@ function main(args) {
     let lastVolume;
     let installationInProgress = false;
     const configs = createConfig(instanceId);
-    const { settingsObject: configNew, setStationsListChangeHandler: setStationsHandler, } = configs;
+    const { settingsObject: configNew, addStationsListChangeHandler: setStationsHandler, } = configs;
     const mpvHandler = createMpvHandler({
         onVolumeChanged: handleVolumeChanged,
         onLengthChanged: hanldeLengthChanged,
@@ -5280,11 +5291,9 @@ function main(args) {
         initialVolume: mpvHandler.getVolume()
     });
     const channelList = createChannelList({
-        onChannelClicked: handleChannelClicked,
         mpvHandler,
         configs
     });
-    setStationsHandler(handleStationsUpdated);
     const volumeSlider = createVolumeSlider({
         onVolumeChanged: (volume) => mpvHandler === null || mpvHandler === void 0 ? void 0 : mpvHandler.setVolume(volume)
     });
@@ -5354,12 +5363,6 @@ function main(args) {
     function handleScroll(scrollDirection) {
         const volumeChange = scrollDirection === src_ScrollDirection.UP ? VOLUME_DELTA : -VOLUME_DELTA;
         mpvHandler.increaseDecreaseVolume(volumeChange);
-    }
-    function handleChannelClicked(name) {
-        const channelUrl = channelStore.getChannelUrl(name);
-        if (!channelUrl)
-            return;
-        mpvHandler.setUrl(channelUrl);
     }
     function handleTitleChanged(title) {
         infoSection.setSongTitle(title);

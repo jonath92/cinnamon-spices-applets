@@ -1,7 +1,7 @@
 import { createConfig } from './Config';
 import { ChannelStore } from './ChannelStore';
 import { createChannelList } from './ui/ChannelList/ChannelList';
-import { AdvancedPlaybackStatus, Channel, AppletIcon } from './types';
+import { AdvancedPlaybackStatus, Channel } from './types';
 import { createMpvHandler } from './mpv/MpvHandler';
 import { createVolumeSlider } from './ui/VolumeSlider';
 import { createPopupMenu } from 'cinnamonpopup';
@@ -26,7 +26,6 @@ import { notify } from './ui/Notifications/GenericNotification';
 import { createSeeker } from './ui/Seeker';
 import { VOLUME_DELTA } from './consts';
 import { initPolyfills } from './polyfill';
-import { createRadioAppletContainer } from './ui/Applet/RadioAppletContainer';
 
 const { BoxLayout } = imports.gi.St
 const { ScrollDirection } = imports.gi.Clutter;
@@ -57,7 +56,7 @@ export function main(args: Arguments): imports.ui.applet.Applet {
 
     const {
         settingsObject: configNew,
-        setStationsListChangeHandler: setStationsHandler,
+        addStationsListChangeHandler: setStationsHandler,
     } = configs
 
     const mpvHandler = createMpvHandler({
@@ -113,8 +112,6 @@ export function main(args: Arguments): imports.ui.applet.Applet {
         mpvHandler, 
         configs
     })
-
-    setStationsHandler(handleStationsUpdated)
 
     const volumeSlider = createVolumeSlider({
         onVolumeChanged: (volume) => mpvHandler?.setVolume(volume)
@@ -202,15 +199,6 @@ export function main(args: Arguments): imports.ui.applet.Applet {
         const volumeChange =
             scrollDirection === ScrollDirection.UP ? VOLUME_DELTA : -VOLUME_DELTA
         mpvHandler.increaseDecreaseVolume(volumeChange)
-    }
-
-    function handleChannelClicked(name: string) {
-        const channelUrl = channelStore.getChannelUrl(name)
-
-        if (!channelUrl)
-            return
-
-        mpvHandler.setUrl(channelUrl)
     }
 
     function handleTitleChanged(title: string) {
