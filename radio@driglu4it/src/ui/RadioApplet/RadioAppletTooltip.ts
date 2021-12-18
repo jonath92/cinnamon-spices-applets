@@ -8,7 +8,7 @@ interface Arguments {
     mpvHandler: ReturnType<typeof createMpvHandler>
 }
 
-export function createAppletTooltip(args: Arguments) {
+export function createRadioAppletTooltip(args: Arguments) {
 
     const {
         appletContainer, 

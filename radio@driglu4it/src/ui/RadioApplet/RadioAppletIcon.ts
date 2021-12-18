@@ -31,7 +31,6 @@ export function createRadioAppletIcon(args: Arguments) {
             IconType.SYMBOLIC : IconType.FULLCOLOR
     }
 
-
     const { actor: icon, setIconType } = createAppletIcon({
         iconType: getIconType()
     })

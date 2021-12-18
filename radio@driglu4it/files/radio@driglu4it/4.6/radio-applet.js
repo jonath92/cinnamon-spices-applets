@@ -1321,7 +1321,7 @@ function createAppletIcon(props) {
     };
 }
 
-;// CONCATENATED MODULE: ./src/ui/Applet/RadioAppletIcon.ts
+;// CONCATENATED MODULE: ./src/ui/RadioApplet/RadioAppletIcon.ts
 
 
 const { IconType: RadioAppletIcon_IconType } = imports.gi.St;
@@ -1367,7 +1367,7 @@ function createRadioAppletIcon(args) {
     return icon;
 }
 
-;// CONCATENATED MODULE: ./src/ui/Applet/AppletLabel.ts
+;// CONCATENATED MODULE: ./src/ui/RadioApplet/AppletLabel.ts
 const { Label: AppletLabel_Label } = imports.gi.St;
 const { EllipsizeMode } = imports.gi.Pango;
 const { ActorAlign: AppletLabel_ActorAlign } = imports.gi.Clutter;
@@ -5022,10 +5022,10 @@ function createAppletContainer(args) {
     return applet;
 }
 
-;// CONCATENATED MODULE: ./src/ui/Applet/AppletTooltip.ts
+;// CONCATENATED MODULE: ./src/ui/RadioApplet/RadioAppletTooltip.ts
 
 const { PanelItemTooltip } = imports.ui.tooltips;
-function createAppletTooltip(args) {
+function createRadioAppletTooltip(args) {
     const { appletContainer, mpvHandler: { getVolume, addVolumeChangeHandler } } = args;
     function getTitle() {
         const volume = getVolume();
@@ -5177,7 +5177,7 @@ function createChannelList(args) {
     return subMenu.actor;
 }
 
-;// CONCATENATED MODULE: ./src/ui/Applet/RadioAppletContainer.ts
+;// CONCATENATED MODULE: ./src/ui/RadioApplet/RadioAppletContainer.ts
 
 
 
@@ -5202,7 +5202,7 @@ function createRadioAppletContainer(props) {
         const volumeChange = scrollDirection === RadioAppletContainer_ScrollDirection.UP ? VOLUME_DELTA : -VOLUME_DELTA;
         mpvHandler.increaseDecreaseVolume(volumeChange);
     }
-    createAppletTooltip({ mpvHandler, appletContainer });
+    createRadioAppletTooltip({ mpvHandler, appletContainer });
     const popupMenu = (0,cinnamonpopup/* createPopupMenu */.S)({ launcher: appletContainer.actor });
     const channelList = createChannelList({
         mpvHandler,

@@ -4,13 +4,12 @@ import { createConfig } from "../../Config"
 import { createAppletContainer } from "../../lib/AppletContainer"
 import { createMpvHandler } from "../../mpv/MpvHandler"
 import { createAppletLabel } from "./AppletLabel"
-import { createAppletTooltip } from "./AppletTooltip"
+import { createRadioAppletTooltip } from "./RadioAppletTooltip"
 import { createRadioAppletIcon } from "./RadioAppletIcon"
 import { createChannelList } from '../ChannelList/ChannelList'
 import { VOLUME_DELTA } from "../../consts"
 
 const { ScrollDirection } = imports.gi.Clutter;
-
 
 interface Props {
     configs: ReturnType<typeof createConfig>,
@@ -39,7 +38,7 @@ export function createRadioAppletContainer(props: Props) {
     }
 
 
-    createAppletTooltip({mpvHandler, appletContainer})
+    createRadioAppletTooltip({mpvHandler, appletContainer})
 
     const popupMenu = createPopupMenu({ launcher: appletContainer.actor })
 
