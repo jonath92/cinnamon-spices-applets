@@ -1,8 +1,11 @@
 import { createPopupMenu } from "cinnamonpopup"
 import { createConfig } from "../../Config"
+import { createSeparatorMenuItem } from "../../lib/PopupSeperator"
 import { createMpvHandler } from "../../mpv/MpvHandler"
 import { createInfoSection } from "../InfoSection"
 import { createChannelList } from "./ChannelList"
+import { createMediaControlToolbar } from "./MediaControlToolbar"
+import { createPlayPauseButton } from "./PlayPauseButton"
 
 const { BoxLayout } = imports.gi.St
 
@@ -27,16 +30,25 @@ export function createRadioPopupMenu(props: { launcher: imports.gi.St.BoxLayout,
         visible: getPlaybackStatus() !== 'Stopped'
     });
 
-    popupMenu.add_child(channelList)
 
-    const infoSection = createInfoSection({
-        initialChannelName: mpvHandler.getCurrentChannelName(),
-        initialSongTitle: mpvHandler.getCurrentTitle(), 
+    const playPauseBtn = createPlayPauseButton({
         mpvHandler
     })
 
-    radioActiveSection.add_child(infoSection.actor)
+    const mediaControlToolbar = createMediaControlToolbar({
+        controlBtns: [playPauseBtn]
+    }) 
 
+    const infoSection = createInfoSection({
+        mpvHandler
+    });
+
+    [infoSection, mediaControlToolbar].forEach(widget => {
+        radioActiveSection.add_child(createSeparatorMenuItem())
+        radioActiveSection.add_child(widget)
+    })
+
+    popupMenu.add_child(channelList)
     popupMenu.add_child(radioActiveSection)
 
     return popupMenu

@@ -4,8 +4,6 @@ import { createMpvHandler } from "../mpv/MpvHandler";
 const { BoxLayout } = imports.gi.St
 
 interface Arguments {
-    initialSongTitle?: string | undefined,
-    initialChannelName?: string | undefined,
     mpvHandler: ReturnType<typeof createMpvHandler>
 }
 
@@ -48,8 +46,6 @@ export function createInfoSection(args: Arguments) {
         songInfoItem.setText(newTitle || '')
     })
 
-    return {
-        actor: infoSection
-    }
+    return infoSection
 
 }

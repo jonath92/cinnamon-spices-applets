@@ -15,7 +15,7 @@ export const createMediaControlToolbar = (args: Arguments) => {
     } = args
 
     const toolbar = new BoxLayout({
-        style_class: "radio-applet-media-control-toolbar",
+        style_class: "radio-applet-media-control-toolbar", // todo is the style class needed??
         x_align: ActorAlign.CENTER
     });
 

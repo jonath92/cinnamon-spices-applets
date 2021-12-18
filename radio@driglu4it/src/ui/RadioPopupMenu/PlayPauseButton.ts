@@ -1,51 +1,49 @@
 import { PAUSE_ICON_NAME, PLAY_ICON_NAME } from "../../consts"
+import { createMpvHandler } from "../../mpv/MpvHandler"
 import { PlayPause } from "../../types"
 import { createControlBtn } from "./ControlBtn"
 
 interface Arguments {
-    onClick: { (): void }
+    mpvHandler: ReturnType<typeof createMpvHandler>
 }
 
 export function createPlayPauseButton(args: Arguments) {
 
     const {
-        onClick
+        mpvHandler: {
+            getPlaybackStatus, 
+            togglePlayPause, 
+            addPlaybackStatusChangeHandler
+        }
     } = args
 
+    const radioStarted = () => {
+        return getPlaybackStatus() === 'Playing' ||  getPlaybackStatus() === 'Loading'
+    }
+
     const controlBtn = createControlBtn({
-        iconName: PLAY_ICON_NAME,
-        tooltipTxt: 'Play',
-        onClick
+        iconName: PAUSE_ICON_NAME, // TOOD: this is actually ignored as set correclty in initUpdateControlBtn 
+        tooltipTxt: 'Pause', // TODO: same as above
+        onClick: () => togglePlayPause()
     })
 
-    /**
-     * 
-     * @param playPause he current state of the radio, which means that the opposite is shown (e.g. when the radio is playing, it is shown a pause item)
-     * 
-     */
-    function setPlaybackStatus(playPause: PlayPause) {
-
-        let tooltipTxt: string | undefined
-        let iconName: string | undefined
-
-        if (playPause === 'Playing') {
-            tooltipTxt = 'Pause'
-            iconName = PAUSE_ICON_NAME
+    function initUpdateControlBtn(){
+        if (radioStarted()){
+            controlBtn.icon.set_icon_name(PAUSE_ICON_NAME)
+            controlBtn.tooltip.set_text('Pause')
+        } else {
+            controlBtn.icon.set_icon_name(PLAY_ICON_NAME)
+            controlBtn.tooltip.set_text('Play')
         }
-
-        if (playPause === 'Paused') {
-            tooltipTxt = 'Play'
-            iconName = PLAY_ICON_NAME
-        }
-
-        tooltipTxt && controlBtn.tooltip.set_text(tooltipTxt)
-        if (iconName) controlBtn.icon.icon_name = iconName
-
     }
 
-    return {
-        actor: controlBtn.actor,
-        setPlaybackStatus
-    }
 
+
+    addPlaybackStatusChangeHandler(() => {
+        initUpdateControlBtn()
+    })
+
+    initUpdateControlBtn()
+
+    return controlBtn.actor
 }

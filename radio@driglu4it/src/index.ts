@@ -62,20 +62,7 @@ export function main(args: Arguments): imports.ui.applet.Applet {
 
     const appletContainer = createRadioAppletContainer({configs, mpvHandler})
 
-    const initialChannelName = mpvHandler.getCurrentChannelName()
     const initialPlaybackStatus = mpvHandler.getPlaybackStatus()
-
-
-    // const appletContainer = createAppletContainer({
-    //     icon: appletIcon,
-    //     label: appletLabel,
-    //     onClick: handleAppletClicked,
-    //     onScroll: handleScroll,
-    //     onMiddleClick: () => mpvHandler.togglePlayPause(),
-    //     onMoved: () => mpvHandler.deactivateAllListener(),
-    //     onRemoved: handleAppletRemoved,
-    //     onRightClick: () => popupMenu?.close()
-    // })
 
     const popupMenu = createPopupMenu({ launcher: appletContainer.actor })
 
@@ -83,12 +70,7 @@ export function main(args: Arguments): imports.ui.applet.Applet {
         onVolumeChanged: (volume) => mpvHandler?.setVolume(volume)
     })
 
-
-
     //toolbar
-    const playPauseBtn = createPlayPauseButton({
-        onClick: () => mpvHandler.togglePlayPause()
-    })
 
     const stopBtn = createStopBtn({
         onClick: () => mpvHandler.stop()
@@ -106,7 +88,7 @@ export function main(args: Arguments): imports.ui.applet.Applet {
     })
 
     const mediaControlToolbar = createMediaControlToolbar({
-        controlBtns: [playPauseBtn.actor, downloadBtn.actor, copyBtn.actor, stopBtn.actor]
+        controlBtns: [ downloadBtn.actor, copyBtn.actor, stopBtn.actor]
     })
 
     const seeker = createSeeker({
@@ -149,14 +131,6 @@ export function main(args: Arguments): imports.ui.applet.Applet {
             installationInProgress = false
         }
     }
-
-    function handleAppletRemoved() {
-        mpvHandler?.deactivateAllListener()
-        mpvHandler?.stop()
-    }
-
-
-
 
     function handleVolumeChanged(volume: number) {
         volumeSlider.setVolume(volume)

@@ -918,7 +918,7 @@ const { ActorAlign } = imports.gi.Clutter;
 const createMediaControlToolbar = (args) => {
     const { controlBtns } = args;
     const toolbar = new MediaControlToolbar_BoxLayout({
-        style_class: "radio-applet-media-control-toolbar",
+        // style_class: "radio-applet-media-control-toolbar",
         x_align: ActorAlign.CENTER
     });
     controlBtns.forEach(btn => toolbar.add_child(btn));
@@ -953,42 +953,6 @@ function createControlBtn(args) {
         actor: btn,
         icon,
         tooltip
-    };
-}
-
-;// CONCATENATED MODULE: ./src/ui/RadioPopupMenu/PlayPauseButton.ts
-
-
-function createPlayPauseButton(args) {
-    const { onClick } = args;
-    const controlBtn = createControlBtn({
-        iconName: PLAY_ICON_NAME,
-        tooltipTxt: 'Play',
-        onClick
-    });
-    /**
-     *
-     * @param playPause he current state of the radio, which means that the opposite is shown (e.g. when the radio is playing, it is shown a pause item)
-     *
-     */
-    function setPlaybackStatus(playPause) {
-        let tooltipTxt;
-        let iconName;
-        if (playPause === 'Playing') {
-            tooltipTxt = 'Pause';
-            iconName = PAUSE_ICON_NAME;
-        }
-        if (playPause === 'Paused') {
-            tooltipTxt = 'Play';
-            iconName = PLAY_ICON_NAME;
-        }
-        tooltipTxt && controlBtn.tooltip.set_text(tooltipTxt);
-        if (iconName)
-            controlBtn.icon.icon_name = iconName;
-    }
-    return {
-        actor: controlBtn.actor,
-        setPlaybackStatus
     };
 }
 
@@ -5038,9 +5002,7 @@ function createInfoSection(args) {
     addTitleChangeHandler((newTitle) => {
         songInfoItem.setText(newTitle || '');
     });
-    return {
-        actor: infoSection
-    };
+    return infoSection;
 }
 
 ;// CONCATENATED MODULE: ./src/lib/PopupSubMenu.ts
@@ -5181,7 +5143,40 @@ function createChannelList(args) {
     return subMenu.actor;
 }
 
+;// CONCATENATED MODULE: ./src/ui/RadioPopupMenu/PlayPauseButton.ts
+
+
+function createPlayPauseButton(args) {
+    const { mpvHandler: { getPlaybackStatus, togglePlayPause, addPlaybackStatusChangeHandler } } = args;
+    const radioStarted = () => {
+        return getPlaybackStatus() === 'Playing' || getPlaybackStatus() === 'Loading';
+    };
+    const controlBtn = createControlBtn({
+        iconName: PAUSE_ICON_NAME,
+        tooltipTxt: 'Pause',
+        onClick: () => togglePlayPause()
+    });
+    function initUpdateControlBtn() {
+        if (radioStarted()) {
+            controlBtn.icon.set_icon_name(PAUSE_ICON_NAME);
+            controlBtn.tooltip.set_text('Pause');
+        }
+        else {
+            controlBtn.icon.set_icon_name(PLAY_ICON_NAME);
+            controlBtn.tooltip.set_text('Play');
+        }
+    }
+    addPlaybackStatusChangeHandler(() => {
+        initUpdateControlBtn();
+    });
+    initUpdateControlBtn();
+    return controlBtn.actor;
+}
+
 ;// CONCATENATED MODULE: ./src/ui/RadioPopupMenu/RadioPopupMenu.ts
+
+
+
 
 
 
@@ -5198,13 +5193,20 @@ function createRadioPopupMenu(props) {
         vertical: true,
         visible: getPlaybackStatus() !== 'Stopped'
     });
-    popupMenu.add_child(channelList);
-    const infoSection = createInfoSection({
-        initialChannelName: mpvHandler.getCurrentChannelName(),
-        initialSongTitle: mpvHandler.getCurrentTitle(),
+    const playPauseBtn = createPlayPauseButton({
         mpvHandler
     });
-    radioActiveSection.add_child(infoSection.actor);
+    const mediaControlToolbar = createMediaControlToolbar({
+        controlBtns: [playPauseBtn]
+    });
+    const infoSection = createInfoSection({
+        mpvHandler
+    });
+    [infoSection, mediaControlToolbar].forEach(widget => {
+        radioActiveSection.add_child(createSeparatorMenuItem());
+        radioActiveSection.add_child(widget);
+    });
+    popupMenu.add_child(channelList);
     popupMenu.add_child(radioActiveSection);
     return popupMenu;
 }
@@ -5224,11 +5226,15 @@ function createRadioAppletContainer(props) {
         label: createRadioAppletLabel({ configs, mpvHandler }),
         onMiddleClick: () => mpvHandler.togglePlayPause(),
         onMoved: () => mpvHandler.deactivateAllListener(),
-        onRemoved: () => { },
-        onClick: () => popupMenu.toggle(),
-        onRightClick: () => { },
+        onRemoved: handleAppletRemoved,
+        onClick: () => popupMenu === null || popupMenu === void 0 ? void 0 : popupMenu.toggle(),
+        onRightClick: () => popupMenu === null || popupMenu === void 0 ? void 0 : popupMenu.close(),
         onScroll: handleScroll
     });
+    function handleAppletRemoved() {
+        mpvHandler === null || mpvHandler === void 0 ? void 0 : mpvHandler.deactivateAllListener();
+        mpvHandler === null || mpvHandler === void 0 ? void 0 : mpvHandler.stop();
+    }
     function handleScroll(scrollDirection) {
         const volumeChange = scrollDirection === RadioAppletContainer_ScrollDirection.UP ? VOLUME_DELTA : -VOLUME_DELTA;
         mpvHandler.increaseDecreaseVolume(volumeChange);
@@ -5239,7 +5245,6 @@ function createRadioAppletContainer(props) {
 }
 
 ;// CONCATENATED MODULE: ./src/index.ts
-
 
 
 
@@ -5275,26 +5280,12 @@ function main(args) {
         configs
     });
     const appletContainer = createRadioAppletContainer({ configs, mpvHandler });
-    const initialChannelName = mpvHandler.getCurrentChannelName();
     const initialPlaybackStatus = mpvHandler.getPlaybackStatus();
-    // const appletContainer = createAppletContainer({
-    //     icon: appletIcon,
-    //     label: appletLabel,
-    //     onClick: handleAppletClicked,
-    //     onScroll: handleScroll,
-    //     onMiddleClick: () => mpvHandler.togglePlayPause(),
-    //     onMoved: () => mpvHandler.deactivateAllListener(),
-    //     onRemoved: handleAppletRemoved,
-    //     onRightClick: () => popupMenu?.close()
-    // })
     const popupMenu = (0,cinnamonpopup/* createPopupMenu */.S)({ launcher: appletContainer.actor });
     const volumeSlider = createVolumeSlider({
         onVolumeChanged: (volume) => mpvHandler === null || mpvHandler === void 0 ? void 0 : mpvHandler.setVolume(volume)
     });
     //toolbar
-    const playPauseBtn = createPlayPauseButton({
-        onClick: () => mpvHandler.togglePlayPause()
-    });
     const stopBtn = createStopBtn({
         onClick: () => mpvHandler.stop()
     });
@@ -5308,7 +5299,7 @@ function main(args) {
         }
     });
     const mediaControlToolbar = createMediaControlToolbar({
-        controlBtns: [playPauseBtn.actor, downloadBtn.actor, copyBtn.actor, stopBtn.actor]
+        controlBtns: [downloadBtn.actor, copyBtn.actor, stopBtn.actor]
     });
     const seeker = createSeeker({
         onPositionChanged: (value) => mpvHandler === null || mpvHandler === void 0 ? void 0 : mpvHandler.setPosition(value)
@@ -5343,10 +5334,6 @@ function main(args) {
         finally {
             installationInProgress = false;
         }
-    }
-    function handleAppletRemoved() {
-        mpvHandler === null || mpvHandler === void 0 ? void 0 : mpvHandler.deactivateAllListener();
-        mpvHandler === null || mpvHandler === void 0 ? void 0 : mpvHandler.stop();
     }
     function handleVolumeChanged(volume) {
         volumeSlider.setVolume(volume);

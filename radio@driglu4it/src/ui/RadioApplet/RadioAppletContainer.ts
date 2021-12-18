@@ -24,11 +24,16 @@ export function createRadioAppletContainer(props: Props) {
         label: createRadioAppletLabel({ configs, mpvHandler }),
         onMiddleClick: () => mpvHandler.togglePlayPause(),
         onMoved: () => mpvHandler.deactivateAllListener(),
-        onRemoved: () => { },
-        onClick: () => popupMenu.toggle(),
-        onRightClick: () => { },
+        onRemoved: handleAppletRemoved,
+        onClick: () => popupMenu?.toggle(),
+        onRightClick: () => popupMenu?.close(),
         onScroll: handleScroll
     })
+
+    function handleAppletRemoved() {
+        mpvHandler?.deactivateAllListener()
+        mpvHandler?.stop()
+    }
 
     function handleScroll(scrollDirection: imports.gi.Clutter.ScrollDirection) {
         const volumeChange =
