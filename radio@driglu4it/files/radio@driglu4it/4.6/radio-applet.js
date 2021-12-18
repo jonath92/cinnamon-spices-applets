@@ -908,7 +908,7 @@ function createSeparatorMenuItem() {
     return container;
 }
 
-;// CONCATENATED MODULE: ./src/ui/Toolbar/MediaControlToolbar.ts
+;// CONCATENATED MODULE: ./src/ui/RadioPopupMenu/MediaControlToolbar.ts
 const { BoxLayout: MediaControlToolbar_BoxLayout } = imports.gi.St;
 const { ActorAlign } = imports.gi.Clutter;
 const createMediaControlToolbar = (args) => {
@@ -921,7 +921,7 @@ const createMediaControlToolbar = (args) => {
     return toolbar;
 };
 
-;// CONCATENATED MODULE: ./src/ui/Toolbar/ControlBtn.ts
+;// CONCATENATED MODULE: ./src/ui/RadioPopupMenu/ControlBtn.ts
 
 const { Button, Icon: ControlBtn_Icon, IconType: ControlBtn_IconType } = imports.gi.St;
 const { Tooltip: ControlBtn_Tooltip } = imports.ui.tooltips;
@@ -952,7 +952,7 @@ function createControlBtn(args) {
     };
 }
 
-;// CONCATENATED MODULE: ./src/ui/Toolbar/PlayPauseButton.ts
+;// CONCATENATED MODULE: ./src/ui/RadioPopupMenu/PlayPauseButton.ts
 
 
 function createPlayPauseButton(args) {
@@ -988,7 +988,7 @@ function createPlayPauseButton(args) {
     };
 }
 
-;// CONCATENATED MODULE: ./src/ui/Toolbar/StopButton.ts
+;// CONCATENATED MODULE: ./src/ui/RadioPopupMenu/StopButton.ts
 
 
 function createStopBtn(args) {
@@ -1096,7 +1096,7 @@ function createInfoSection(args) {
     };
 }
 
-;// CONCATENATED MODULE: ./src/ui/Toolbar/DownloadButton.ts
+;// CONCATENATED MODULE: ./src/ui/RadioPopupMenu/DownloadButton.ts
 
 
 function createDownloadButton(args) {
@@ -1111,7 +1111,7 @@ function createDownloadButton(args) {
     };
 }
 
-;// CONCATENATED MODULE: ./src/ui/Toolbar/CopyButton.ts
+;// CONCATENATED MODULE: ./src/ui/RadioPopupMenu/CopyButton.ts
 
 
 function createCopyButton(args) {
@@ -5102,7 +5102,7 @@ function createSubMenu(args) {
     };
 }
 
-;// CONCATENATED MODULE: ./src/ui/ChannelList/ChannelMenuItem.ts
+;// CONCATENATED MODULE: ./src/ui/RadioPopupMenu/ChannelMenuItem.ts
 
 
 function createChannelMenuItem(args) {
@@ -5130,7 +5130,7 @@ function createChannelMenuItem(args) {
     };
 }
 
-;// CONCATENATED MODULE: ./src/ui/ChannelList/ChannelList.ts
+;// CONCATENATED MODULE: ./src/ui/RadioPopupMenu/ChannelList.ts
 
 
 function createChannelList(args) {
@@ -5179,8 +5179,21 @@ function createChannelList(args) {
     return subMenu.actor;
 }
 
-;// CONCATENATED MODULE: ./src/ui/RadioApplet/RadioAppletContainer.ts
+;// CONCATENATED MODULE: ./src/ui/RadioPopupMenu/RadioPopupMenu.ts
 
+
+function createRadioPopupMenu(props) {
+    const { launcher, configs, mpvHandler } = props;
+    const popupMenu = (0,cinnamonpopup/* createPopupMenu */.S)({ launcher });
+    const channelList = createChannelList({
+        configs,
+        mpvHandler
+    });
+    popupMenu.add_child(channelList);
+    return popupMenu;
+}
+
+;// CONCATENATED MODULE: ./src/ui/RadioApplet/RadioAppletContainer.ts
 
 
 
@@ -5205,12 +5218,7 @@ function createRadioAppletContainer(props) {
         mpvHandler.increaseDecreaseVolume(volumeChange);
     }
     createRadioAppletTooltip({ mpvHandler, appletContainer });
-    const popupMenu = (0,cinnamonpopup/* createPopupMenu */.S)({ launcher: appletContainer.actor });
-    const channelList = createChannelList({
-        mpvHandler,
-        configs
-    });
-    popupMenu.add_child(channelList);
+    const popupMenu = createRadioPopupMenu({ launcher: appletContainer.actor, mpvHandler, configs });
     return appletContainer;
 }
 

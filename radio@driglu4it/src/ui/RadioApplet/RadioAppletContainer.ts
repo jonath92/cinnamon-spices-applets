@@ -6,8 +6,9 @@ import { createMpvHandler } from "../../mpv/MpvHandler"
 import { createRadioAppletLabel } from "./RadioAppletLabel"
 import { createRadioAppletTooltip } from "./RadioAppletTooltip"
 import { createRadioAppletIcon } from "./RadioAppletIcon"
-import { createChannelList } from '../ChannelList/ChannelList'
+import { createChannelList } from '../RadioPopupMenu/ChannelList'
 import { VOLUME_DELTA } from "../../consts"
+import { createRadioPopupMenu } from "../RadioPopupMenu/RadioPopupMenu"
 
 const { ScrollDirection } = imports.gi.Clutter;
 
@@ -37,18 +38,9 @@ export function createRadioAppletContainer(props: Props) {
         mpvHandler.increaseDecreaseVolume(volumeChange)
     }
 
+    createRadioAppletTooltip({ mpvHandler, appletContainer })
 
-    createRadioAppletTooltip({mpvHandler, appletContainer})
-
-    const popupMenu = createPopupMenu({ launcher: appletContainer.actor })
-
-    const channelList = createChannelList({
-        mpvHandler,
-        configs
-    })
-
-    popupMenu.add_child(channelList)
-
+    const popupMenu = createRadioPopupMenu({ launcher: appletContainer.actor, mpvHandler, configs })
 
     return appletContainer
 
