@@ -12,11 +12,10 @@ interface Arguments {
 export function createInfoSection(args: Arguments) {
 
     const { 
-        initialChannelName, 
-        initialSongTitle, 
         mpvHandler: {
-            getCurrentChannelName, 
             addChannelChangeHandler, 
+            addTitleChangeHandler, 
+            getCurrentChannelName, 
             getCurrentTitle
         }
     } = args
@@ -43,6 +42,10 @@ export function createInfoSection(args: Arguments) {
 
     addChannelChangeHandler((newChannel) => {
         channelInfoItem.setText(newChannel || '')
+    })
+
+    addTitleChangeHandler((newTitle) => {
+        songInfoItem.setText(newTitle || '')
     })
 
     return {

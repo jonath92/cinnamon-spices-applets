@@ -324,7 +324,7 @@ const { MixerControl } = imports.gi.Cvc;
 function createMpvHandler(args) {
     const { 
     // onUrlChanged,
-    onVolumeChanged, onTitleChanged, onLengthChanged, onPositionChanged, 
+    onLengthChanged, onPositionChanged, 
     // checkUrlValid,
     configs: { settingsObject, getInitialVolume, addStationsListChangeHandler } } = args;
     /** the lastUrl is used to determine if mpv is initially (i.e. on cinnamon restart) running for radio purposes and not for something else. It is not sufficient to get the url from a dbus interface and check if the url is valid because some streams (such as .pls streams) change their url dynamically. This approach in not 100% foolproof but probably the best possible approach */
@@ -336,9 +336,10 @@ function createMpvHandler(args) {
     let cvcStream;
     let isLoading = false;
     const playbackStatusChangeHandler = [];
-    // executed when the url changes including when set to a falsy vlaue due to radio stopped
+    // also executed when set to a falsy value due to radio stopped
     const channelNameChangeHandler = [];
-    const volumeChangeHandler = []; // also executed when radio stopped
+    const volumeChangeHandler = []; //
+    const titleChangeHandler = [];
     control.open();
     control.connect('stream-added', (ctrl, id) => {
         const addedStream = control.lookup_stream_id(id);
@@ -418,7 +419,7 @@ function createMpvHandler(args) {
                 handleMprisVolumeChanged(volume);
             playbackStatus && handleMprisPlaybackStatusChanged(playbackStatus);
             url && newUrlValid && url !== currentUrl && handleUrlChanged(url);
-            title && onTitleChanged(title);
+            title && titleChangeHandler.forEach(changeHandler => changeHandler(title));
         });
     }
     function checkUrlValid(channelUrl) {
@@ -638,6 +639,9 @@ function createMpvHandler(args) {
         },
         addVolumeChangeHandler: (changeHandler) => {
             volumeChangeHandler.push(changeHandler);
+        },
+        addTitleChangeHandler: (changeHandler) => {
+            titleChangeHandler.push(changeHandler);
         },
         // it is very confusing but dbus must be returned!
         // Otherwilse all listeners stop working after about 20 seconds which is fucking difficult to debug
@@ -5011,7 +5015,7 @@ function createIconMenuItem(args) {
 
 const { BoxLayout: InfoSection_BoxLayout } = imports.gi.St;
 function createInfoSection(args) {
-    const { initialChannelName, initialSongTitle, mpvHandler: { getCurrentChannelName, addChannelChangeHandler, getCurrentTitle } } = args;
+    const { mpvHandler: { addChannelChangeHandler, addTitleChangeHandler, getCurrentChannelName, getCurrentTitle } } = args;
     const channelInfoItem = createIconMenuItem({
         iconName: RADIO_SYMBOLIC_ICON_NAME,
         initialText: getCurrentChannelName(),
@@ -5030,6 +5034,9 @@ function createInfoSection(args) {
     });
     addChannelChangeHandler((newChannel) => {
         channelInfoItem.setText(newChannel || '');
+    });
+    addTitleChangeHandler((newTitle) => {
+        songInfoItem.setText(newTitle || '');
     });
     return {
         actor: infoSection
@@ -5262,10 +5269,8 @@ function main(args) {
     const configs = createConfig(instanceId);
     const { settingsObject: configNew, addStationsListChangeHandler: setStationsHandler, } = configs;
     const mpvHandler = createMpvHandler({
-        onVolumeChanged: handleVolumeChanged,
         onLengthChanged: hanldeLengthChanged,
         onPositionChanged: handlePositionChanged,
-        onTitleChanged: () => { },
         // onPlaybackstatusChanged: handlePlaybackstatusChanged,
         configs
     });

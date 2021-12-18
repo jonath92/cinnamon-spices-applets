@@ -54,10 +54,8 @@ export function main(args: Arguments): imports.ui.applet.Applet {
     } = configs
 
     const mpvHandler = createMpvHandler({
-        onVolumeChanged: handleVolumeChanged,
         onLengthChanged: hanldeLengthChanged,
         onPositionChanged: handlePositionChanged,
-        onTitleChanged: () => {},
         // onPlaybackstatusChanged: handlePlaybackstatusChanged,
         configs
     })

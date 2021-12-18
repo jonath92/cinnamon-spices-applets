@@ -1,6 +1,6 @@
 import { PlayPause, AdvancedPlaybackStatus, ChangeHandler } from '../types'
 import { MPV_MPRIS_BUS_NAME, MEDIA_PLAYER_2_PATH, MPRIS_PLUGIN_PATH, MAX_VOLUME, MEDIA_PLAYER_2_NAME, MEDIA_PLAYER_2_PLAYER_NAME, MPV_CVC_NAME } from '../consts'
-import { MprisMediaPlayerDbus, MprisPropsDbus, PlaybackStatus } from '../types';
+import { MprisMediaPlayerDbus, MprisPropsDbus } from '../types';
 import { createConfig } from '../Config';
 const { getDBusProperties, getDBus, getDBusProxyWithOwner } = imports.misc.interfaces
 const { spawnCommandLine } = imports.misc.util;
@@ -10,8 +10,6 @@ const { MixerControl } = imports.gi.Cvc;
 
 export interface Arguments {
     // onUrlChanged: (url: string) => void,
-    onVolumeChanged: (volume: number) => void,
-    onTitleChanged: (title: string) => void,
     /** length in seconds */
     onLengthChanged: (length: number) => void,
     /** position in seconds */
@@ -24,8 +22,6 @@ export interface Arguments {
 export function createMpvHandler(args: Arguments) {
     const {
         // onUrlChanged,
-        onVolumeChanged,
-        onTitleChanged,
         onLengthChanged,
         onPositionChanged,
         // checkUrlValid,
@@ -52,9 +48,10 @@ export function createMpvHandler(args: Arguments) {
     let isLoading: boolean = false
 
     const playbackStatusChangeHandler: ChangeHandler<AdvancedPlaybackStatus>[] = []
-    // executed when the url changes including when set to a falsy vlaue due to radio stopped
+    // also executed when set to a falsy value due to radio stopped
     const channelNameChangeHandler: ChangeHandler<string | undefined>[] = []
-    const volumeChangeHandler: ChangeHandler<number  | undefined>[] = [] // also executed when radio stopped
+    const volumeChangeHandler: ChangeHandler<number  | undefined>[] = [] //
+    const titleChangeHandler: ChangeHandler<string | undefined>[] = []
 
     control.open()
     control.connect('stream-added', (ctrl, id) => {
@@ -157,7 +154,7 @@ export function createMpvHandler(args: Arguments) {
 
                 playbackStatus && handleMprisPlaybackStatusChanged(playbackStatus)
                 url && newUrlValid && url !== currentUrl && handleUrlChanged(url)
-                title && onTitleChanged(title)
+                title && titleChangeHandler.forEach(changeHandler => changeHandler(title))
             }
         )
     }
@@ -452,6 +449,10 @@ export function createMpvHandler(args: Arguments) {
 
         addVolumeChangeHandler: (changeHandler: ChangeHandler<number | undefined>) => {
             volumeChangeHandler.push(changeHandler)
+        },
+
+        addTitleChangeHandler: (changeHandler: ChangeHandler<string  | undefined>) =>{
+            titleChangeHandler.push(changeHandler)
         },
 
         // it is very confusing but dbus must be returned!
