@@ -1003,99 +1003,6 @@ function createStopBtn(args) {
     };
 }
 
-;// CONCATENATED MODULE: ./src/functions/limitString.ts
-function limitString(text, maxCharNumber) {
-    if (text.length <= maxCharNumber)
-        return text;
-    return [...text].slice(0, maxCharNumber - 3).join('') + '...';
-}
-
-;// CONCATENATED MODULE: ./src/lib/IconMenuItem.ts
-
-
-const { Icon: IconMenuItem_Icon, IconType: IconMenuItem_IconType, Label, BoxLayout: IconMenuItem_BoxLayout } = imports.gi.St;
-function createIconMenuItem(args) {
-    const { initialText, maxCharNumber, iconName, onActivated } = args;
-    let icon;
-    let label;
-    const container = new IconMenuItem_BoxLayout({
-        style_class: 'popup-menu-item'
-    });
-    iconName && setIconName(iconName);
-    initialText && setText(initialText);
-    function setIconName(name) {
-        if (icon && !name) {
-            container.remove_child(icon);
-            icon = null;
-            return;
-        }
-        if (!name)
-            return;
-        initIcon();
-        if (icon)
-            icon.icon_name = name;
-        if (icon && container.get_child_at_index(0) !== icon)
-            container.insert_child_at_index(icon, 0);
-    }
-    function initIcon() {
-        if (!icon) {
-            icon = new IconMenuItem_Icon({
-                icon_type: IconMenuItem_IconType.SYMBOLIC,
-                style_class: 'popup-menu-icon'
-            });
-        }
-    }
-    function setText(text) {
-        const labelText = text || ' ';
-        if (!label) {
-            label = new Label();
-            container.add_child(label);
-        }
-        label.set_text(limitString(labelText, maxCharNumber));
-    }
-    onActivated && createActivWidget({ widget: container, onActivated });
-    return {
-        actor: container,
-        setIconName,
-        setText
-    };
-}
-
-;// CONCATENATED MODULE: ./src/ui/InfoSection.ts
-
-
-const { BoxLayout: InfoSection_BoxLayout } = imports.gi.St;
-function createInfoSection(args) {
-    const { initialChannelName, initialSongTitle } = args;
-    const channelInfoItem = createIconMenuItem({
-        iconName: RADIO_SYMBOLIC_ICON_NAME,
-        initialText: initialChannelName,
-        maxCharNumber: MAX_STRING_LENGTH
-    });
-    const songInfoItem = createIconMenuItem({
-        iconName: SONG_INFO_ICON_NAME,
-        initialText: initialSongTitle,
-        maxCharNumber: MAX_STRING_LENGTH
-    });
-    const infoSection = new InfoSection_BoxLayout({
-        vertical: true
-    });
-    [channelInfoItem, songInfoItem].forEach(infoItem => {
-        infoSection.add_child(infoItem.actor);
-    });
-    function setChannel(channeName) {
-        channelInfoItem.setText(channeName);
-    }
-    function setSongTitle(songTitle) {
-        songInfoItem.setText(songTitle);
-    }
-    return {
-        actor: infoSection,
-        setSongTitle,
-        setChannel
-    };
-}
-
 ;// CONCATENATED MODULE: ./src/ui/RadioPopupMenu/DownloadButton.ts
 
 
@@ -1354,9 +1261,9 @@ function notifyYoutubeDownloadFailed() {
 
 
 
-const { BoxLayout: Seeker_BoxLayout, Label: Seeker_Label } = imports.gi.St;
+const { BoxLayout: Seeker_BoxLayout, Label } = imports.gi.St;
 function createTimeLabel() {
-    return new Seeker_Label({
+    return new Label({
         // used to ensure that the width doesn't change on some fonts
         style: 'font-family: mono'
     });
@@ -5041,6 +4948,94 @@ function createRadioAppletIcon(args) {
     return icon;
 }
 
+;// CONCATENATED MODULE: ./src/functions/limitString.ts
+function limitString(text, maxCharNumber) {
+    if (text.length <= maxCharNumber)
+        return text;
+    return [...text].slice(0, maxCharNumber - 3).join('') + '...';
+}
+
+;// CONCATENATED MODULE: ./src/lib/IconMenuItem.ts
+
+
+const { Icon: IconMenuItem_Icon, IconType: IconMenuItem_IconType, Label: IconMenuItem_Label, BoxLayout: IconMenuItem_BoxLayout } = imports.gi.St;
+function createIconMenuItem(args) {
+    const { initialText, maxCharNumber, iconName, onActivated } = args;
+    let icon;
+    let label;
+    const container = new IconMenuItem_BoxLayout({
+        style_class: 'popup-menu-item'
+    });
+    iconName && setIconName(iconName);
+    initialText && setText(initialText);
+    function setIconName(name) {
+        if (icon && !name) {
+            container.remove_child(icon);
+            icon = null;
+            return;
+        }
+        if (!name)
+            return;
+        initIcon();
+        if (icon)
+            icon.icon_name = name;
+        if (icon && container.get_child_at_index(0) !== icon)
+            container.insert_child_at_index(icon, 0);
+    }
+    function initIcon() {
+        if (!icon) {
+            icon = new IconMenuItem_Icon({
+                icon_type: IconMenuItem_IconType.SYMBOLIC,
+                style_class: 'popup-menu-icon'
+            });
+        }
+    }
+    function setText(text) {
+        const labelText = text || ' ';
+        if (!label) {
+            label = new IconMenuItem_Label();
+            container.add_child(label);
+        }
+        label.set_text(limitString(labelText, maxCharNumber));
+    }
+    onActivated && createActivWidget({ widget: container, onActivated });
+    return {
+        actor: container,
+        setIconName,
+        setText
+    };
+}
+
+;// CONCATENATED MODULE: ./src/ui/InfoSection.ts
+
+
+const { BoxLayout: InfoSection_BoxLayout } = imports.gi.St;
+function createInfoSection(args) {
+    const { initialChannelName, initialSongTitle, mpvHandler: { getCurrentChannelName, addChannelChangeHandler, getCurrentTitle } } = args;
+    const channelInfoItem = createIconMenuItem({
+        iconName: RADIO_SYMBOLIC_ICON_NAME,
+        initialText: getCurrentChannelName(),
+        maxCharNumber: MAX_STRING_LENGTH
+    });
+    const songInfoItem = createIconMenuItem({
+        iconName: SONG_INFO_ICON_NAME,
+        initialText: getCurrentTitle(),
+        maxCharNumber: MAX_STRING_LENGTH
+    });
+    const infoSection = new InfoSection_BoxLayout({
+        vertical: true
+    });
+    [channelInfoItem, songInfoItem].forEach(infoItem => {
+        infoSection.add_child(infoItem.actor);
+    });
+    addChannelChangeHandler((newChannel) => {
+        channelInfoItem.setText(newChannel || '');
+    });
+    return {
+        actor: infoSection
+    };
+}
+
 ;// CONCATENATED MODULE: ./src/lib/PopupSubMenu.ts
 
 const { BoxLayout: PopupSubMenu_BoxLayout, Label: PopupSubMenu_Label, Icon: PopupSubMenu_Icon, ScrollView } = imports.gi.St;
@@ -5199,7 +5194,8 @@ function createRadioPopupMenu(props) {
     popupMenu.add_child(channelList);
     const infoSection = createInfoSection({
         initialChannelName: mpvHandler.getCurrentChannelName(),
-        initialSongTitle: mpvHandler.getCurrentTitle()
+        initialSongTitle: mpvHandler.getCurrentTitle(),
+        mpvHandler
     });
     radioActiveSection.add_child(infoSection.actor);
     popupMenu.add_child(radioActiveSection);
@@ -5256,7 +5252,6 @@ function createRadioAppletContainer(props) {
 
 
 
-
 const { BoxLayout: src_BoxLayout } = imports.gi.St;
 function main(args) {
     const { orientation, instanceId } = args;
@@ -5270,7 +5265,7 @@ function main(args) {
         onVolumeChanged: handleVolumeChanged,
         onLengthChanged: hanldeLengthChanged,
         onPositionChanged: handlePositionChanged,
-        onTitleChanged: handleTitleChanged,
+        onTitleChanged: () => { },
         // onPlaybackstatusChanged: handlePlaybackstatusChanged,
         configs
     });
@@ -5290,10 +5285,6 @@ function main(args) {
     const popupMenu = (0,cinnamonpopup/* createPopupMenu */.S)({ launcher: appletContainer.actor });
     const volumeSlider = createVolumeSlider({
         onVolumeChanged: (volume) => mpvHandler === null || mpvHandler === void 0 ? void 0 : mpvHandler.setVolume(volume)
-    });
-    const infoSection = createInfoSection({
-        initialChannelName,
-        initialSongTitle: mpvHandler.getCurrentTitle()
     });
     //toolbar
     const playPauseBtn = createPlayPauseButton({
@@ -5322,7 +5313,6 @@ function main(args) {
         visible: initialPlaybackStatus !== 'Stopped'
     });
     [
-        infoSection.actor,
         mediaControlToolbar,
         volumeSlider.actor,
         seeker.actor
@@ -5352,9 +5342,6 @@ function main(args) {
     function handleAppletRemoved() {
         mpvHandler === null || mpvHandler === void 0 ? void 0 : mpvHandler.deactivateAllListener();
         mpvHandler === null || mpvHandler === void 0 ? void 0 : mpvHandler.stop();
-    }
-    function handleTitleChanged(title) {
-        infoSection.setSongTitle(title);
     }
     function handleVolumeChanged(volume) {
         volumeSlider.setVolume(volume);

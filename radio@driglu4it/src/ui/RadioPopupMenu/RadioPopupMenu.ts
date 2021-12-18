@@ -31,7 +31,8 @@ export function createRadioPopupMenu(props: { launcher: imports.gi.St.BoxLayout,
 
     const infoSection = createInfoSection({
         initialChannelName: mpvHandler.getCurrentChannelName(),
-        initialSongTitle: mpvHandler.getCurrentTitle()
+        initialSongTitle: mpvHandler.getCurrentTitle(), 
+        mpvHandler
     })
 
     radioActiveSection.add_child(infoSection.actor)

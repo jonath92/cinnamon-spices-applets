@@ -57,7 +57,7 @@ export function main(args: Arguments): imports.ui.applet.Applet {
         onVolumeChanged: handleVolumeChanged,
         onLengthChanged: hanldeLengthChanged,
         onPositionChanged: handlePositionChanged,
-        onTitleChanged: handleTitleChanged,
+        onTitleChanged: () => {},
         // onPlaybackstatusChanged: handlePlaybackstatusChanged,
         configs
     })
@@ -85,10 +85,7 @@ export function main(args: Arguments): imports.ui.applet.Applet {
         onVolumeChanged: (volume) => mpvHandler?.setVolume(volume)
     })
 
-    const infoSection = createInfoSection({
-        initialChannelName,
-        initialSongTitle: mpvHandler.getCurrentTitle()
-    })
+
 
     //toolbar
     const playPauseBtn = createPlayPauseButton({
@@ -124,7 +121,6 @@ export function main(args: Arguments): imports.ui.applet.Applet {
     });
 
     [
-        infoSection.actor,
         mediaControlToolbar,
         volumeSlider.actor,
         seeker.actor
@@ -163,9 +159,6 @@ export function main(args: Arguments): imports.ui.applet.Applet {
 
 
 
-    function handleTitleChanged(title: string) {
-        infoSection.setSongTitle(title)
-    }
 
     function handleVolumeChanged(volume: number) {
         volumeSlider.setVolume(volume)
