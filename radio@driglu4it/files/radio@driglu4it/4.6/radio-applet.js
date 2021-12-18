@@ -486,7 +486,7 @@ function createMpvHandler(args) {
         if (positionTimerId)
             stopPositionTimer();
         onPositionChanged(0);
-        channelNameChangeHandler.forEach(changeHandler => changeHandler(getCurrentChannel()));
+        channelNameChangeHandler.forEach(changeHandler => changeHandler(getCurrentChannelName()));
     }
     function handleMprisVolumeChanged(mprisVolume) {
         if (mprisVolume * 100 > MAX_VOLUME) {
@@ -606,7 +606,7 @@ function createMpvHandler(args) {
         const trackId = mediaServerPlayer.Metadata['mpris:trackid'].unpack();
         mediaServerPlayer === null || mediaServerPlayer === void 0 ? void 0 : mediaServerPlayer.SetPositionRemote(trackId, positioninMicroSeconds);
     }
-    function getCurrentChannel() {
+    function getCurrentChannelName() {
         const currentChannel = currentUrl ? settingsObject.userStations.find(cnl => cnl.url === currentUrl) : undefined;
         return currentChannel === null || currentChannel === void 0 ? void 0 : currentChannel.name;
     }
@@ -629,7 +629,7 @@ function createMpvHandler(args) {
         getPlaybackStatus,
         getVolume,
         // getCurrentUrl: () => currentUrl,
-        getCurrentChannel,
+        getCurrentChannelName,
         addPlaybackStatusChangeHandler: (changeHandler) => {
             playbackStatusChangeHandler.push(changeHandler);
         },
@@ -1067,22 +1067,22 @@ function createIconMenuItem(args) {
 const { BoxLayout: InfoSection_BoxLayout } = imports.gi.St;
 function createInfoSection(args) {
     const { initialChannelName, initialSongTitle } = args;
-    const channelInfoItem = createInfoItem(RADIO_SYMBOLIC_ICON_NAME, initialChannelName);
-    const songInfoItem = createInfoItem(SONG_INFO_ICON_NAME, initialSongTitle);
+    const channelInfoItem = createIconMenuItem({
+        iconName: RADIO_SYMBOLIC_ICON_NAME,
+        initialText: initialChannelName,
+        maxCharNumber: MAX_STRING_LENGTH
+    });
+    const songInfoItem = createIconMenuItem({
+        iconName: SONG_INFO_ICON_NAME,
+        initialText: initialSongTitle,
+        maxCharNumber: MAX_STRING_LENGTH
+    });
     const infoSection = new InfoSection_BoxLayout({
         vertical: true
     });
     [channelInfoItem, songInfoItem].forEach(infoItem => {
         infoSection.add_child(infoItem.actor);
     });
-    function createInfoItem(iconName, initialText) {
-        const iconMenuItem = createIconMenuItem({
-            iconName,
-            maxCharNumber: MAX_STRING_LENGTH,
-            initialText
-        });
-        return iconMenuItem;
-    }
     function setChannel(channeName) {
         channelInfoItem.setText(channeName);
     }
@@ -1285,110 +1285,6 @@ function downloadMrisPluginInteractive() {
 const { Clipboard, ClipboardType } = imports.gi.St;
 function copyText(text) {
     Clipboard.get_default().set_text(ClipboardType.CLIPBOARD, text);
-}
-
-;// CONCATENATED MODULE: ./src/lib/AppletIcon.ts
-const { panelManager } = imports.ui.main;
-const { getAppletDefinition } = imports.ui.appletManager;
-const { Icon: AppletIcon_Icon, IconType: AppletIcon_IconType } = imports.gi.St;
-function createAppletIcon(props) {
-    let { iconType } = props;
-    const appletDefinition = getAppletDefinition({
-        applet_id: __meta.instanceId,
-    });
-    const panel = panelManager.panels.find(panel => (panel === null || panel === void 0 ? void 0 : panel.panelId) === appletDefinition.panelId);
-    const locationLabel = appletDefinition.location_label;
-    function getIconSize() {
-        return panel.getPanelZoneIconSize(locationLabel, iconType);
-    }
-    function getStyleClass() {
-        return iconType === AppletIcon_IconType.SYMBOLIC ? 'system-status-icon' : 'applet-icon';
-    }
-    const icon = new AppletIcon_Icon({
-        icon_type: iconType,
-        style_class: getStyleClass(),
-        icon_size: getIconSize()
-    });
-    panel.connect('icon-size-changed', () => {
-        icon.set_icon_size(getIconSize());
-    });
-    return {
-        actor: icon,
-        setIconType: (newType) => {
-            iconType = newType;
-            icon.style_class = getStyleClass();
-        }
-    };
-}
-
-;// CONCATENATED MODULE: ./src/ui/RadioApplet/RadioAppletIcon.ts
-
-
-const { IconType: RadioAppletIcon_IconType } = imports.gi.St;
-function createRadioAppletIcon(args) {
-    const { configs: { settingsObject, addIconTypeChangeHandler, addColorPlayingChangeHandler, addColorPausedChangeHandler }, mpvHandler: { getPlaybackStatus, addPlaybackStatusChangeHandler } } = args;
-    function getIconType() {
-        return settingsObject.iconType === 'SYMBOLIC' ?
-            RadioAppletIcon_IconType.SYMBOLIC : RadioAppletIcon_IconType.FULLCOLOR;
-    }
-    const { actor: icon, setIconType } = createAppletIcon({
-        iconType: getIconType()
-    });
-    function getStyle(props) {
-        const { playbackStatus: playbackstatus } = props;
-        if (playbackstatus === 'Paused')
-            return `color: ${settingsObject.symbolicIconColorWhenPaused}`;
-        if (playbackstatus === 'Playing')
-            return `color: ${settingsObject.symbolicIconColorWhenPlaying}`;
-        return ' ';
-    }
-    function getIconName(props) {
-        const { isLoading } = props;
-        const defaultIconType = settingsObject.iconType;
-        if (isLoading)
-            return LOADING_ICON_NAME;
-        if (defaultIconType === 'SYMBOLIC')
-            return RADIO_SYMBOLIC_ICON_NAME;
-        return `radioapplet-${defaultIconType.toLowerCase()}`;
-    }
-    function setRefreshIcon() {
-        const playbackStatus = getPlaybackStatus();
-        icon.icon_name = getIconName({ isLoading: playbackStatus === 'Loading' });
-        icon.style = getStyle({ playbackStatus });
-    }
-    addIconTypeChangeHandler(() => {
-        setIconType(getIconType());
-        setRefreshIcon();
-    });
-    addPlaybackStatusChangeHandler(() => setRefreshIcon());
-    addColorPlayingChangeHandler(() => setRefreshIcon());
-    addColorPausedChangeHandler(() => setRefreshIcon());
-    setRefreshIcon();
-    return icon;
-}
-
-;// CONCATENATED MODULE: ./src/lib/AppletLabel.ts
-const { Label: AppletLabel_Label } = imports.gi.St;
-const { ActorAlign: AppletLabel_ActorAlign } = imports.gi.Clutter;
-const { EllipsizeMode } = imports.gi.Pango;
-function createAppletLabel(props) {
-    const label = new AppletLabel_Label(Object.assign({ reactive: true, track_hover: true, style_class: 'applet-label', y_align: AppletLabel_ActorAlign.CENTER, y_expand: false }, props));
-    // No idea why needed but without the label is not shown 
-    label.clutter_text.ellipsize = EllipsizeMode.NONE;
-    return label;
-}
-
-;// CONCATENATED MODULE: ./src/ui/RadioApplet/RadioAppletLabel.ts
-
-function createRadioAppletLabel(props) {
-    const { configs: { settingsObject, addChannelOnPanelChangeHandler }, mpvHandler: { getCurrentChannel, addChannelChangeHandler } } = props;
-    const label = createAppletLabel({
-        visible: settingsObject.channelNameOnPanel,
-        text: getCurrentChannel() || ''
-    });
-    addChannelOnPanelChangeHandler((channelOnPanel) => label.visible = channelOnPanel);
-    addChannelChangeHandler((channel) => label.set_text(channel || ''));
-    return label;
 }
 
 ;// CONCATENATED MODULE: ./src/ui/Notifications/YoutubeDownloadFinishedNotification.ts
@@ -4986,14 +4882,14 @@ function initPolyfills() {
 ;// CONCATENATED MODULE: ./src/lib/AppletContainer.ts
 const { Applet, AllowedLayout } = imports.ui.applet;
 const { EventType } = imports.gi.Clutter;
-const { panelManager: AppletContainer_panelManager } = imports.ui.main;
-const { getAppletDefinition: AppletContainer_getAppletDefinition } = imports.ui.appletManager;
+const { panelManager } = imports.ui.main;
+const { getAppletDefinition } = imports.ui.appletManager;
 function createAppletContainer(args) {
     const { icon, label, onClick, onScroll, onMiddleClick, onMoved, onRemoved, onRightClick } = args;
-    const appletDefinition = AppletContainer_getAppletDefinition({
+    const appletDefinition = getAppletDefinition({
         applet_id: __meta.instanceId,
     });
-    const panel = AppletContainer_panelManager.panels.find(panel => (panel === null || panel === void 0 ? void 0 : panel.panelId) === appletDefinition.panelId);
+    const panel = panelManager.panels.find(panel => (panel === null || panel === void 0 ? void 0 : panel.panelId) === appletDefinition.panelId);
     const applet = new Applet(__meta.orientation, panel.height, __meta.instanceId);
     let appletReloaded = false;
     [icon, label].forEach(widget => {
@@ -5024,6 +4920,30 @@ function createAppletContainer(args) {
     return applet;
 }
 
+;// CONCATENATED MODULE: ./src/lib/AppletLabel.ts
+const { Label: AppletLabel_Label } = imports.gi.St;
+const { ActorAlign: AppletLabel_ActorAlign } = imports.gi.Clutter;
+const { EllipsizeMode } = imports.gi.Pango;
+function createAppletLabel(props) {
+    const label = new AppletLabel_Label(Object.assign({ reactive: true, track_hover: true, style_class: 'applet-label', y_align: AppletLabel_ActorAlign.CENTER, y_expand: false }, props));
+    // No idea why needed but without the label is not shown 
+    label.clutter_text.ellipsize = EllipsizeMode.NONE;
+    return label;
+}
+
+;// CONCATENATED MODULE: ./src/ui/RadioApplet/RadioAppletLabel.ts
+
+function createRadioAppletLabel(props) {
+    const { configs: { settingsObject, addChannelOnPanelChangeHandler }, mpvHandler: { getCurrentChannelName: getCurrentChannel, addChannelChangeHandler } } = props;
+    const label = createAppletLabel({
+        visible: settingsObject.channelNameOnPanel,
+        text: getCurrentChannel() || ''
+    });
+    addChannelOnPanelChangeHandler((channelOnPanel) => label.visible = channelOnPanel);
+    addChannelChangeHandler((channel) => label.set_text(channel || ''));
+    return label;
+}
+
 ;// CONCATENATED MODULE: ./src/ui/RadioApplet/RadioAppletTooltip.ts
 
 const { PanelItemTooltip } = imports.ui.tooltips;
@@ -5039,6 +4959,86 @@ function createRadioAppletTooltip(args) {
     addVolumeChangeHandler(() => {
         tooltip.set_text(getTitle());
     });
+}
+
+;// CONCATENATED MODULE: ./src/lib/AppletIcon.ts
+const { panelManager: AppletIcon_panelManager } = imports.ui.main;
+const { getAppletDefinition: AppletIcon_getAppletDefinition } = imports.ui.appletManager;
+const { Icon: AppletIcon_Icon, IconType: AppletIcon_IconType } = imports.gi.St;
+function createAppletIcon(props) {
+    let { iconType } = props;
+    const appletDefinition = AppletIcon_getAppletDefinition({
+        applet_id: __meta.instanceId,
+    });
+    const panel = AppletIcon_panelManager.panels.find(panel => (panel === null || panel === void 0 ? void 0 : panel.panelId) === appletDefinition.panelId);
+    const locationLabel = appletDefinition.location_label;
+    function getIconSize() {
+        return panel.getPanelZoneIconSize(locationLabel, iconType);
+    }
+    function getStyleClass() {
+        return iconType === AppletIcon_IconType.SYMBOLIC ? 'system-status-icon' : 'applet-icon';
+    }
+    const icon = new AppletIcon_Icon({
+        icon_type: iconType,
+        style_class: getStyleClass(),
+        icon_size: getIconSize()
+    });
+    panel.connect('icon-size-changed', () => {
+        icon.set_icon_size(getIconSize());
+    });
+    return {
+        actor: icon,
+        setIconType: (newType) => {
+            iconType = newType;
+            icon.style_class = getStyleClass();
+        }
+    };
+}
+
+;// CONCATENATED MODULE: ./src/ui/RadioApplet/RadioAppletIcon.ts
+
+
+const { IconType: RadioAppletIcon_IconType } = imports.gi.St;
+function createRadioAppletIcon(args) {
+    const { configs: { settingsObject, addIconTypeChangeHandler, addColorPlayingChangeHandler, addColorPausedChangeHandler }, mpvHandler: { getPlaybackStatus, addPlaybackStatusChangeHandler } } = args;
+    function getIconType() {
+        return settingsObject.iconType === 'SYMBOLIC' ?
+            RadioAppletIcon_IconType.SYMBOLIC : RadioAppletIcon_IconType.FULLCOLOR;
+    }
+    const { actor: icon, setIconType } = createAppletIcon({
+        iconType: getIconType()
+    });
+    function getStyle(props) {
+        const { playbackStatus: playbackstatus } = props;
+        if (playbackstatus === 'Paused')
+            return `color: ${settingsObject.symbolicIconColorWhenPaused}`;
+        if (playbackstatus === 'Playing')
+            return `color: ${settingsObject.symbolicIconColorWhenPlaying}`;
+        return ' ';
+    }
+    function getIconName(props) {
+        const { isLoading } = props;
+        const defaultIconType = settingsObject.iconType;
+        if (isLoading)
+            return LOADING_ICON_NAME;
+        if (defaultIconType === 'SYMBOLIC')
+            return RADIO_SYMBOLIC_ICON_NAME;
+        return `radioapplet-${defaultIconType.toLowerCase()}`;
+    }
+    function setRefreshIcon() {
+        const playbackStatus = getPlaybackStatus();
+        icon.icon_name = getIconName({ isLoading: playbackStatus === 'Loading' });
+        icon.style = getStyle({ playbackStatus });
+    }
+    addIconTypeChangeHandler(() => {
+        setIconType(getIconType());
+        setRefreshIcon();
+    });
+    addPlaybackStatusChangeHandler(() => setRefreshIcon());
+    addColorPlayingChangeHandler(() => setRefreshIcon());
+    addColorPausedChangeHandler(() => setRefreshIcon());
+    setRefreshIcon();
+    return icon;
 }
 
 ;// CONCATENATED MODULE: ./src/lib/PopupSubMenu.ts
@@ -5134,7 +5134,7 @@ function createChannelMenuItem(args) {
 
 
 function createChannelList(args) {
-    const { mpvHandler: { getPlaybackStatus, getCurrentChannel, addChannelChangeHandler, addPlaybackStatusChangeHandler, setUrl }, configs: { addStationsListChangeHandler, settingsObject } } = args;
+    const { mpvHandler: { getPlaybackStatus, getCurrentChannelName: getCurrentChannel, addChannelChangeHandler, addPlaybackStatusChangeHandler, setUrl }, configs: { addStationsListChangeHandler, settingsObject } } = args;
     const subMenu = createSubMenu({ text: 'My Stations' });
     const getUserStationNames = () => {
         return settingsObject.userStations.flatMap(station => station.inc ? [station.name] : []);
@@ -5182,14 +5182,27 @@ function createChannelList(args) {
 ;// CONCATENATED MODULE: ./src/ui/RadioPopupMenu/RadioPopupMenu.ts
 
 
+
+const { BoxLayout: RadioPopupMenu_BoxLayout } = imports.gi.St;
 function createRadioPopupMenu(props) {
     const { launcher, configs, mpvHandler } = props;
+    const { getPlaybackStatus } = mpvHandler;
     const popupMenu = (0,cinnamonpopup/* createPopupMenu */.S)({ launcher });
     const channelList = createChannelList({
         configs,
         mpvHandler
     });
+    const radioActiveSection = new RadioPopupMenu_BoxLayout({
+        vertical: true,
+        visible: getPlaybackStatus() !== 'Stopped'
+    });
     popupMenu.add_child(channelList);
+    const infoSection = createInfoSection({
+        initialChannelName: mpvHandler.getCurrentChannelName(),
+        initialSongTitle: mpvHandler.getCurrentTitle()
+    });
+    radioActiveSection.add_child(infoSection.actor);
+    popupMenu.add_child(radioActiveSection);
     return popupMenu;
 }
 
@@ -5244,8 +5257,6 @@ function createRadioAppletContainer(props) {
 
 
 
-
-
 const { BoxLayout: src_BoxLayout } = imports.gi.St;
 function main(args) {
     const { orientation, instanceId } = args;
@@ -5264,16 +5275,8 @@ function main(args) {
         configs
     });
     const appletContainer = createRadioAppletContainer({ configs, mpvHandler });
-    const initialChannelName = mpvHandler.getCurrentChannel();
+    const initialChannelName = mpvHandler.getCurrentChannelName();
     const initialPlaybackStatus = mpvHandler.getPlaybackStatus();
-    const appletIcon = createRadioAppletIcon({
-        configs,
-        mpvHandler
-    });
-    const appletLabel = createRadioAppletLabel({
-        configs,
-        mpvHandler
-    });
     // const appletContainer = createAppletContainer({
     //     icon: appletIcon,
     //     label: appletLabel,

@@ -1,12 +1,10 @@
 
-import { createPopupMenu } from "cinnamonpopup"
 import { createConfig } from "../../Config"
 import { createAppletContainer } from "../../lib/AppletContainer"
 import { createMpvHandler } from "../../mpv/MpvHandler"
 import { createRadioAppletLabel } from "./RadioAppletLabel"
 import { createRadioAppletTooltip } from "./RadioAppletTooltip"
 import { createRadioAppletIcon } from "./RadioAppletIcon"
-import { createChannelList } from '../RadioPopupMenu/ChannelList'
 import { VOLUME_DELTA } from "../../consts"
 import { createRadioPopupMenu } from "../RadioPopupMenu/RadioPopupMenu"
 

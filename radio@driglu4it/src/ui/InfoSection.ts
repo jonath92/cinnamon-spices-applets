@@ -1,18 +1,27 @@
-import * as consts from "../consts";
+import { RADIO_SYMBOLIC_ICON_NAME, MAX_STRING_LENGTH, SONG_INFO_ICON_NAME } from "../consts";
 import { createIconMenuItem } from "../lib/IconMenuItem";
 const { BoxLayout } = imports.gi.St
 
 interface Arguments {
-    initialSongTitle?: string | undefined, 
+    initialSongTitle?: string | undefined,
     initialChannelName?: string | undefined
 }
 
 export function createInfoSection(args: Arguments) {
 
-    const {initialChannelName, initialSongTitle} = args
+    const { initialChannelName, initialSongTitle } = args
 
-    const channelInfoItem = createInfoItem(consts.RADIO_SYMBOLIC_ICON_NAME, initialChannelName)
-    const songInfoItem = createInfoItem(consts.SONG_INFO_ICON_NAME, initialSongTitle)
+    const channelInfoItem = createIconMenuItem({
+        iconName: RADIO_SYMBOLIC_ICON_NAME,
+        initialText: initialChannelName,
+        maxCharNumber: MAX_STRING_LENGTH
+    })
+
+    const songInfoItem = createIconMenuItem({
+        iconName: SONG_INFO_ICON_NAME,
+        initialText: initialSongTitle,
+        maxCharNumber: MAX_STRING_LENGTH
+    })
 
     const infoSection = new BoxLayout({
         vertical: true
@@ -21,17 +30,6 @@ export function createInfoSection(args: Arguments) {
     [channelInfoItem, songInfoItem].forEach(infoItem => {
         infoSection.add_child(infoItem.actor)
     })
-
-    function createInfoItem(iconName: string, initialText?: string) {
-
-        const iconMenuItem = createIconMenuItem({
-            iconName,
-            maxCharNumber: consts.MAX_STRING_LENGTH,
-            initialText
-        })
-
-        return iconMenuItem
-    }
 
     function setChannel(channeName: string) {
         channelInfoItem.setText(channeName)

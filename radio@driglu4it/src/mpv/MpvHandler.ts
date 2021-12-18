@@ -249,7 +249,7 @@ export function createMpvHandler(args: Arguments) {
         if (positionTimerId) stopPositionTimer()
         onPositionChanged(0)
 
-        channelNameChangeHandler.forEach(changeHandler => changeHandler(getCurrentChannel()))
+        channelNameChangeHandler.forEach(changeHandler => changeHandler(getCurrentChannelName()))
     }
 
     function handleMprisVolumeChanged(mprisVolume: number): void {
@@ -411,7 +411,7 @@ export function createMpvHandler(args: Arguments) {
         mediaServerPlayer?.SetPositionRemote(trackId, positioninMicroSeconds)
     }
 
-    function getCurrentChannel(): string | undefined {
+    function getCurrentChannelName(): string | undefined {
         const currentChannel = currentUrl ? settingsObject.userStations.find(cnl => cnl.url === currentUrl) : undefined
 
         return currentChannel?.name
@@ -439,7 +439,7 @@ export function createMpvHandler(args: Arguments) {
         getPlaybackStatus,
         getVolume,
         // getCurrentUrl: () => currentUrl,
-        getCurrentChannel,
+        getCurrentChannelName,
 
 
         addPlaybackStatusChangeHandler: (changeHandler: ChangeHandler<AdvancedPlaybackStatus>) => {

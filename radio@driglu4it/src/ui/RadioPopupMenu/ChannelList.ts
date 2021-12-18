@@ -14,7 +14,7 @@ export function createChannelList(args: Arguments) {
     const {
         mpvHandler: {
             getPlaybackStatus,
-            getCurrentChannel,
+            getCurrentChannelName: getCurrentChannel,
             addChannelChangeHandler,
             addPlaybackStatusChangeHandler, 
             setUrl

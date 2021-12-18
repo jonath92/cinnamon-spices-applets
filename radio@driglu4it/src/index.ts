@@ -1,5 +1,4 @@
 import { createConfig } from './Config';
-import { createChannelList } from './ui/RadioPopupMenu/ChannelList';
 import { createMpvHandler } from './mpv/MpvHandler';
 import { createVolumeSlider } from './ui/VolumeSlider';
 import { createPopupMenu } from 'cinnamonpopup';
@@ -13,16 +12,13 @@ import { createCopyButton } from './ui/RadioPopupMenu/CopyButton';
 import { downloadSongFromYoutube } from './functions/downloadFromYoutube';
 import { installMpvWithMpris } from './mpv/CheckInstallation';
 import { copyText } from './functions/copyText';
-import { createAppletContainer } from './lib/AppletContainer';
 import { createRadioAppletIcon } from './ui/RadioApplet/RadioAppletIcon';
 import { createRadioAppletLabel } from './ui/RadioApplet/RadioAppletLabel';
-import { createRadioAppletTooltip } from './ui/RadioApplet/RadioAppletTooltip';
 import { notifyYoutubeDownloadFinished } from './ui/Notifications/YoutubeDownloadFinishedNotification';
 import { notifyYoutubeDownloadStarted } from './ui/Notifications/YoutubeDownloadStartedNotification';
 import { notifyYoutubeDownloadFailed } from './ui/Notifications/YoutubeDownloadFailedNotification';
 import { notify } from './ui/Notifications/GenericNotification';
 import { createSeeker } from './ui/Seeker';
-import { VOLUME_DELTA } from './consts';
 import { initPolyfills } from './polyfill';
 import { createRadioAppletContainer } from './ui/RadioApplet/RadioAppletContainer';
 
@@ -68,19 +64,9 @@ export function main(args: Arguments): imports.ui.applet.Applet {
 
     const appletContainer = createRadioAppletContainer({configs, mpvHandler})
 
-    const initialChannelName = mpvHandler.getCurrentChannel()
+    const initialChannelName = mpvHandler.getCurrentChannelName()
     const initialPlaybackStatus = mpvHandler.getPlaybackStatus()
 
-
-    const appletIcon = createRadioAppletIcon({
-        configs,
-        mpvHandler
-    })
-
-    const appletLabel = createRadioAppletLabel({
-        configs,
-        mpvHandler
-    })
 
     // const appletContainer = createAppletContainer({
     //     icon: appletIcon,

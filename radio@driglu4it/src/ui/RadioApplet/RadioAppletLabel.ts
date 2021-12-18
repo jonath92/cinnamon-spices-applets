@@ -15,7 +15,7 @@ export function createRadioAppletLabel(props: Props) {
             addChannelOnPanelChangeHandler
         }, 
         mpvHandler: {
-            getCurrentChannel, 
+            getCurrentChannelName: getCurrentChannel, 
             addChannelChangeHandler
         }
 
