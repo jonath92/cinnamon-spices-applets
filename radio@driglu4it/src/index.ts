@@ -15,7 +15,7 @@ import { installMpvWithMpris } from './mpv/CheckInstallation';
 import { copyText } from './functions/copyText';
 import { createAppletContainer } from './lib/AppletContainer';
 import { createRadioAppletIcon } from './ui/RadioApplet/RadioAppletIcon';
-import { createAppletLabel } from './ui/RadioApplet/AppletLabel';
+import { createRadioAppletLabel } from './ui/RadioApplet/RadioAppletLabel';
 import { createRadioAppletTooltip } from './ui/RadioApplet/RadioAppletTooltip';
 import { notifyYoutubeDownloadFinished } from './ui/Notifications/YoutubeDownloadFinishedNotification';
 import { notifyYoutubeDownloadStarted } from './ui/Notifications/YoutubeDownloadStartedNotification';
@@ -77,7 +77,7 @@ export function main(args: Arguments): imports.ui.applet.Applet {
         mpvHandler
     })
 
-    const appletLabel = createAppletLabel({
+    const appletLabel = createRadioAppletLabel({
         configs,
         mpvHandler
     })

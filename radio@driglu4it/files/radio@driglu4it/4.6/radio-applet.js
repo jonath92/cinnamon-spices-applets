@@ -1367,23 +1367,25 @@ function createRadioAppletIcon(args) {
     return icon;
 }
 
-;// CONCATENATED MODULE: ./src/ui/RadioApplet/AppletLabel.ts
+;// CONCATENATED MODULE: ./src/lib/AppletLabel.ts
 const { Label: AppletLabel_Label } = imports.gi.St;
-const { EllipsizeMode } = imports.gi.Pango;
 const { ActorAlign: AppletLabel_ActorAlign } = imports.gi.Clutter;
+const { EllipsizeMode } = imports.gi.Pango;
 function createAppletLabel(props) {
+    const label = new AppletLabel_Label(Object.assign({ reactive: true, track_hover: true, style_class: 'applet-label', y_align: AppletLabel_ActorAlign.CENTER, y_expand: false }, props));
+    // No idea why needed but without the label is not shown 
+    label.clutter_text.ellipsize = EllipsizeMode.NONE;
+    return label;
+}
+
+;// CONCATENATED MODULE: ./src/ui/RadioApplet/RadioAppletLabel.ts
+
+function createRadioAppletLabel(props) {
     const { configs: { settingsObject, addChannelOnPanelChangeHandler }, mpvHandler: { getCurrentChannel, addChannelChangeHandler } } = props;
-    const label = new AppletLabel_Label({
-        reactive: true,
-        track_hover: true,
-        style_class: 'applet-label',
-        y_align: AppletLabel_ActorAlign.CENTER,
-        y_expand: false,
+    const label = createAppletLabel({
         visible: settingsObject.channelNameOnPanel,
         text: getCurrentChannel() || ''
     });
-    // No idea why needed but without the label is not shown 
-    label.clutter_text.ellipsize = EllipsizeMode.NONE;
     addChannelOnPanelChangeHandler((channelOnPanel) => label.visible = channelOnPanel);
     addChannelChangeHandler((channel) => label.set_text(channel || ''));
     return label;
@@ -5190,7 +5192,7 @@ function createRadioAppletContainer(props) {
     const { configs, mpvHandler } = props;
     const appletContainer = createAppletContainer({
         icon: createRadioAppletIcon({ configs, mpvHandler }),
-        label: createAppletLabel({ configs, mpvHandler }),
+        label: createRadioAppletLabel({ configs, mpvHandler }),
         onMiddleClick: () => mpvHandler.togglePlayPause(),
         onMoved: () => mpvHandler.deactivateAllListener(),
         onRemoved: () => { },
@@ -5260,7 +5262,7 @@ function main(args) {
         configs,
         mpvHandler
     });
-    const appletLabel = createAppletLabel({
+    const appletLabel = createRadioAppletLabel({
         configs,
         mpvHandler
     });

@@ -3,7 +3,7 @@ import { createPopupMenu } from "cinnamonpopup"
 import { createConfig } from "../../Config"
 import { createAppletContainer } from "../../lib/AppletContainer"
 import { createMpvHandler } from "../../mpv/MpvHandler"
-import { createAppletLabel } from "./AppletLabel"
+import { createRadioAppletLabel } from "./RadioAppletLabel"
 import { createRadioAppletTooltip } from "./RadioAppletTooltip"
 import { createRadioAppletIcon } from "./RadioAppletIcon"
 import { createChannelList } from '../ChannelList/ChannelList'
@@ -22,7 +22,7 @@ export function createRadioAppletContainer(props: Props) {
 
     const appletContainer = createAppletContainer({
         icon: createRadioAppletIcon({ configs, mpvHandler }),
-        label: createAppletLabel({ configs, mpvHandler }),
+        label: createRadioAppletLabel({ configs, mpvHandler }),
         onMiddleClick: () => mpvHandler.togglePlayPause(),
         onMoved: () => mpvHandler.deactivateAllListener(),
         onRemoved: () => { },
