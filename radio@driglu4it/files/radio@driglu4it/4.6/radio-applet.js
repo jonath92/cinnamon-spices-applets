@@ -256,133 +256,6 @@ const createConfig = (instanceId) => {
     };
 };
 
-;// CONCATENATED MODULE: ./src/ChannelStore.ts
-class ChannelStore {
-    constructor(channelList, mpvPlayer) {
-        this._channelList = channelList;
-        this._mpvPlayer = mpvPlayer;
-    }
-    set channelList(channelList) {
-        this._channelList = channelList.flatMap(channel => {
-            return channel.inc ? Object.assign(Object.assign({}, channel), { url: channel.url.trim() }) : [];
-        });
-    }
-    get activatedChannelUrls() {
-        return this._channelList.map(channel => channel.url);
-    }
-    get activatedChannelNames() {
-        return this._channelList.map(channel => channel.name);
-    }
-    // TODO: what is when two Channels have the same Name or Url? :O
-    getChannelName(channelUrl) {
-        if (!channelUrl)
-            return undefined;
-        const channel = this._channelList.find(cnl => cnl.url === channelUrl);
-        return channel ? channel.name : undefined;
-    }
-    getChannelUrl(channelName) {
-        const channel = this._channelList.find(cnl => cnl.name === channelName);
-        return channel ? channel.url : null;
-    }
-    checkListChanged(channelList) {
-        return JSON.stringify(channelList) === JSON.stringify(this._channelList) ?
-            false : true;
-    }
-    checkUrlValid(channelUrl) {
-        if (!channelUrl)
-            return false;
-        return this._channelList.some(cnl => cnl.url === channelUrl);
-    }
-}
-
-;// CONCATENATED MODULE: ./src/lib/ActivWidget.ts
-const { KEY_space, KEY_KP_Enter, KEY_Return } = imports.gi.Clutter;
-function createActivWidget(args) {
-    const { widget, onActivated } = args;
-    // TODO: understand can_focus
-    widget.can_focus = true;
-    widget.reactive = true;
-    widget.track_hover = true;
-    widget.connect('button-release-event', () => {
-        onActivated === null || onActivated === void 0 ? void 0 : onActivated();
-        return false;
-    });
-    // TODO: This is needed because some themes (at least Adapta-Nokto but maybe also others) don't provide style for the hover pseudo class. But it would be much easier to once (and on theme changes) programmatically set the hover pseudo class equal to the active pseudo class when the hover class isn't provided by the theme. 
-    widget.connect('notify::hover', () => {
-        widget.change_style_pseudo_class('active', widget.hover);
-        if (widget.hover)
-            widget.grab_key_focus();
-    });
-    widget.connect('key-press-event', (actor, event) => {
-        const symbol = event.get_key_symbol();
-        const relevantKeys = [KEY_space, KEY_KP_Enter, KEY_Return];
-        if (relevantKeys.includes(symbol) && widget.hover)
-            onActivated === null || onActivated === void 0 ? void 0 : onActivated();
-        return false;
-    });
-}
-
-;// CONCATENATED MODULE: ./src/lib/PopupSubMenu.ts
-
-const { BoxLayout, Label, Icon, ScrollView } = imports.gi.St;
-const { ActorAlign, Point } = imports.gi.Clutter;
-const { PolicyType } = imports.gi.Gtk;
-function createSubMenu(args) {
-    const { text } = args;
-    const container = new BoxLayout({
-        vertical: true
-    });
-    const label = new Label({
-        text
-    });
-    const triangle = new Icon({
-        style_class: 'popup-menu-arrow',
-        icon_name: 'pan-end',
-        rotation_angle_z: 90,
-        x_expand: true,
-        x_align: ActorAlign.END,
-        pivot_point: new Point({ x: 0.5, y: 0.5 }),
-        important: true // without this, it looks ugly on Mint-X Themes
-    });
-    const toggle = new BoxLayout({
-        style_class: 'popup-menu-item popup-submenu-menu-item'
-    });
-    createActivWidget({
-        widget: toggle,
-        onActivated: toggleScrollbox
-    });
-    [label, triangle].forEach(widget => toggle.add_child(widget));
-    container.add_child(toggle);
-    const scrollbox = new ScrollView({
-        style_class: 'popup-sub-menu',
-        vscrollbar_policy: PolicyType.AUTOMATIC,
-        hscrollbar_policy: PolicyType.NEVER
-    });
-    const box = new BoxLayout({
-        vertical: true
-    });
-    function toggleScrollbox() {
-        scrollbox.visible ? closeMenu() : openMenu();
-    }
-    function openMenu() {
-        scrollbox.show();
-        triangle.rotation_angle_z = 90;
-    }
-    function closeMenu() {
-        scrollbox.hide();
-        triangle.rotation_angle_z = 0;
-    }
-    // add_child is recommended but doesn't work: https://gitlab.gnome.org/GNOME/gnome-shell/-/issues/3172
-    scrollbox.add_actor(box);
-    [toggle, scrollbox].forEach(widget => container.add_child(widget));
-    return {
-        /** the container which should be used to add it as child to a parent Actor */
-        actor: container,
-        /** the container which should be used to add children  */
-        box,
-    };
-}
-
 ;// CONCATENATED MODULE: ./src/consts.ts
 var __rest = (undefined && undefined.__rest) || function (s, e) {
     var t = {};
@@ -441,141 +314,6 @@ const SONG_INFO_ICON_NAME = 'audio-x-generic';
 const COPY_ICON_NAME = 'edit-copy';
 const DOWNLOAD_ICON_NAME = 'south-arrow-weather-symbolic';
 const LOADING_ICON_NAME = 'view-refresh-symbolic';
-
-;// CONCATENATED MODULE: ./src/functions/limitString.ts
-function limitString(text, maxCharNumber) {
-    if (text.length <= maxCharNumber)
-        return text;
-    return [...text].slice(0, maxCharNumber - 3).join('') + '...';
-}
-
-;// CONCATENATED MODULE: ./src/lib/IconMenuItem.ts
-
-
-const { Icon: IconMenuItem_Icon, IconType, Label: IconMenuItem_Label, BoxLayout: IconMenuItem_BoxLayout } = imports.gi.St;
-function createIconMenuItem(args) {
-    const { initialText, maxCharNumber, iconName, onActivated } = args;
-    let icon;
-    let label;
-    const container = new IconMenuItem_BoxLayout({
-        style_class: 'popup-menu-item'
-    });
-    iconName && setIconName(iconName);
-    initialText && setText(initialText);
-    function setIconName(name) {
-        if (icon && !name) {
-            container.remove_child(icon);
-            icon = null;
-            return;
-        }
-        if (!name)
-            return;
-        initIcon();
-        if (icon)
-            icon.icon_name = name;
-        if (icon && container.get_child_at_index(0) !== icon)
-            container.insert_child_at_index(icon, 0);
-    }
-    function initIcon() {
-        if (!icon) {
-            icon = new IconMenuItem_Icon({
-                icon_type: IconType.SYMBOLIC,
-                style_class: 'popup-menu-icon'
-            });
-        }
-    }
-    function setText(text) {
-        const labelText = text || ' ';
-        if (!label) {
-            label = new IconMenuItem_Label();
-            container.add_child(label);
-        }
-        label.set_text(limitString(labelText, maxCharNumber));
-    }
-    onActivated && createActivWidget({ widget: container, onActivated });
-    return {
-        actor: container,
-        setIconName,
-        setText
-    };
-}
-
-;// CONCATENATED MODULE: ./src/ui/ChannelList/ChannelMenuItem.ts
-
-
-function createChannelMenuItem(args) {
-    const { channelName, onActivated, playbackStatus } = args;
-    const playbackIconMap = new Map([
-        ["Playing", PLAY_ICON_NAME],
-        ["Paused", PAUSE_ICON_NAME],
-        ["Loading", LOADING_ICON_NAME],
-        ["Stopped", null]
-    ]);
-    const iconMenuItem = createIconMenuItem({
-        maxCharNumber: MAX_STRING_LENGTH,
-        initialText: channelName,
-        onActivated: () => onActivated(channelName)
-    });
-    function setPlaybackStatus(playbackStatus) {
-        const iconName = playbackIconMap.get(playbackStatus);
-        iconMenuItem.setIconName(iconName);
-    }
-    playbackStatus && setPlaybackStatus(playbackStatus);
-    return {
-        setPlaybackStatus,
-        actor: iconMenuItem.actor,
-        getChannelName: () => channelName
-    };
-}
-
-;// CONCATENATED MODULE: ./src/ui/ChannelList/ChannelList.ts
-
-
-function createChannelList(args) {
-    const { mpvHandler: { getPlaybackStatus, getCurrentChannel, addChannelChangeHandler, addPlaybackStatusChangeHandler, setUrl }, configs: { addStationsListChangeHandler, settingsObject } } = args;
-    const subMenu = createSubMenu({ text: 'My Stations' });
-    const getUserStationNames = () => {
-        return settingsObject.userStations.flatMap(station => station.inc ? [station.name] : []);
-    };
-    const findUrl = (channelName) => {
-        const channel = settingsObject.userStations.find(station => station.name === channelName && station.inc);
-        if (!channel)
-            throw new Error(`couldn't find a url for the provided name. That should not have happened :-/`);
-        return channel.url;
-    };
-    // the channelItems are saved here to the map as well as to the container as on the container only the reduced name are shown. Theoretically it therefore couldn't be differentiated between two long channel names with the same first 30 (or so) characters   
-    let channelItems = [];
-    function setRefreshList(names) {
-        channelItems = [];
-        subMenu.box.remove_all_children();
-        names.forEach(name => {
-            const channelPlaybackstatus = (name === getCurrentChannel()) ? getPlaybackStatus() : 'Stopped';
-            const channelItem = createChannelMenuItem({
-                channelName: name,
-                onActivated: () => setUrl(findUrl(name)),
-                playbackStatus: channelPlaybackstatus
-            });
-            channelItems.push(channelItem);
-            subMenu.box.add_child(channelItem.actor);
-        });
-    }
-    function updateChannel(name) {
-        channelItems.forEach(item => {
-            item.getChannelName() === name ? item.setPlaybackStatus(getPlaybackStatus()) : item.setPlaybackStatus('Stopped');
-        });
-    }
-    function updatePlaybackStatus(playbackStatus) {
-        if (playbackStatus === 'Stopped')
-            return; // already handled by updateChannel
-        const currentChannel = channelItems.find(channelItem => channelItem.getChannelName() === getCurrentChannel());
-        currentChannel === null || currentChannel === void 0 ? void 0 : currentChannel.setPlaybackStatus(playbackStatus);
-    }
-    setRefreshList(getUserStationNames());
-    addChannelChangeHandler((newChannel) => updateChannel(newChannel));
-    addPlaybackStatusChangeHandler((newStatus) => updatePlaybackStatus(newStatus));
-    addStationsListChangeHandler(() => setRefreshList(getUserStationNames()));
-    return subMenu;
-}
 
 ;// CONCATENATED MODULE: ./src/mpv/MpvHandler.ts
 
@@ -907,6 +645,33 @@ function createMpvHandler(args) {
     };
 }
 
+;// CONCATENATED MODULE: ./src/lib/ActivWidget.ts
+const { KEY_space, KEY_KP_Enter, KEY_Return } = imports.gi.Clutter;
+function createActivWidget(args) {
+    const { widget, onActivated } = args;
+    // TODO: understand can_focus
+    widget.can_focus = true;
+    widget.reactive = true;
+    widget.track_hover = true;
+    widget.connect('button-release-event', () => {
+        onActivated === null || onActivated === void 0 ? void 0 : onActivated();
+        return false;
+    });
+    // TODO: This is needed because some themes (at least Adapta-Nokto but maybe also others) don't provide style for the hover pseudo class. But it would be much easier to once (and on theme changes) programmatically set the hover pseudo class equal to the active pseudo class when the hover class isn't provided by the theme. 
+    widget.connect('notify::hover', () => {
+        widget.change_style_pseudo_class('active', widget.hover);
+        if (widget.hover)
+            widget.grab_key_focus();
+    });
+    widget.connect('key-press-event', (actor, event) => {
+        const symbol = event.get_key_symbol();
+        const relevantKeys = [KEY_space, KEY_KP_Enter, KEY_Return];
+        if (relevantKeys.includes(symbol) && widget.hover)
+            onActivated === null || onActivated === void 0 ? void 0 : onActivated();
+        return false;
+    });
+}
+
 ;// CONCATENATED MODULE: ./src/lib/Slider.ts
 const { DrawingArea } = imports.gi.St;
 const { cairo_set_source_color, grab_pointer, ungrab_pointer } = imports.gi.Clutter;
@@ -1011,13 +776,13 @@ function createSlider(args) {
 
 
 
-const { BoxLayout: VolumeSlider_BoxLayout, Icon: VolumeSlider_Icon, IconType: VolumeSlider_IconType } = imports.gi.St;
+const { BoxLayout, Icon, IconType } = imports.gi.St;
 const { Tooltip } = imports.ui.tooltips;
 const { KEY_Right, KEY_Left, ScrollDirection } = imports.gi.Clutter;
 function createVolumeSlider(args) {
     const { onVolumeChanged } = args;
     let tooltip;
-    const container = new VolumeSlider_BoxLayout({
+    const container = new BoxLayout({
         style_class: POPUP_MENU_ITEM_CLASS,
     });
     createActivWidget({
@@ -1028,8 +793,8 @@ function createVolumeSlider(args) {
     const slider = createSlider({
         onValueChanged: handleSliderValueChanged
     });
-    const icon = new VolumeSlider_Icon({
-        icon_type: VolumeSlider_IconType.SYMBOLIC,
+    const icon = new Icon({
+        icon_type: IconType.SYMBOLIC,
         style_class: POPUP_ICON_CLASS,
         reactive: true
     });
@@ -1145,12 +910,12 @@ function createSeparatorMenuItem() {
 
 ;// CONCATENATED MODULE: ./src/ui/Toolbar/MediaControlToolbar.ts
 const { BoxLayout: MediaControlToolbar_BoxLayout } = imports.gi.St;
-const { ActorAlign: MediaControlToolbar_ActorAlign } = imports.gi.Clutter;
+const { ActorAlign } = imports.gi.Clutter;
 const createMediaControlToolbar = (args) => {
     const { controlBtns } = args;
     const toolbar = new MediaControlToolbar_BoxLayout({
         style_class: "radio-applet-media-control-toolbar",
-        x_align: MediaControlToolbar_ActorAlign.CENTER
+        x_align: ActorAlign.CENTER
     });
     controlBtns.forEach(btn => toolbar.add_child(btn));
     return toolbar;
@@ -1235,6 +1000,64 @@ function createStopBtn(args) {
     });
     return {
         actor: stopBtn.actor
+    };
+}
+
+;// CONCATENATED MODULE: ./src/functions/limitString.ts
+function limitString(text, maxCharNumber) {
+    if (text.length <= maxCharNumber)
+        return text;
+    return [...text].slice(0, maxCharNumber - 3).join('') + '...';
+}
+
+;// CONCATENATED MODULE: ./src/lib/IconMenuItem.ts
+
+
+const { Icon: IconMenuItem_Icon, IconType: IconMenuItem_IconType, Label, BoxLayout: IconMenuItem_BoxLayout } = imports.gi.St;
+function createIconMenuItem(args) {
+    const { initialText, maxCharNumber, iconName, onActivated } = args;
+    let icon;
+    let label;
+    const container = new IconMenuItem_BoxLayout({
+        style_class: 'popup-menu-item'
+    });
+    iconName && setIconName(iconName);
+    initialText && setText(initialText);
+    function setIconName(name) {
+        if (icon && !name) {
+            container.remove_child(icon);
+            icon = null;
+            return;
+        }
+        if (!name)
+            return;
+        initIcon();
+        if (icon)
+            icon.icon_name = name;
+        if (icon && container.get_child_at_index(0) !== icon)
+            container.insert_child_at_index(icon, 0);
+    }
+    function initIcon() {
+        if (!icon) {
+            icon = new IconMenuItem_Icon({
+                icon_type: IconMenuItem_IconType.SYMBOLIC,
+                style_class: 'popup-menu-icon'
+            });
+        }
+    }
+    function setText(text) {
+        const labelText = text || ' ';
+        if (!label) {
+            label = new Label();
+            container.add_child(label);
+        }
+        label.set_text(limitString(labelText, maxCharNumber));
+    }
+    onActivated && createActivWidget({ widget: container, onActivated });
+    return {
+        actor: container,
+        setIconName,
+        setText
     };
 }
 
@@ -1464,57 +1287,16 @@ function copyText(text) {
     Clipboard.get_default().set_text(ClipboardType.CLIPBOARD, text);
 }
 
-;// CONCATENATED MODULE: ./src/lib/AppletContainer.ts
-const { Applet, AllowedLayout } = imports.ui.applet;
-const { EventType } = imports.gi.Clutter;
+;// CONCATENATED MODULE: ./src/lib/AppletIcon.ts
 const { panelManager } = imports.ui.main;
 const { getAppletDefinition } = imports.ui.appletManager;
-function createAppletContainer(args) {
-    const { icon, label, onClick, onScroll, onMiddleClick, onAppletMoved, onAppletRemoved, onRightClick } = args;
+const { Icon: AppletIcon_Icon, IconType: AppletIcon_IconType } = imports.gi.St;
+function createAppletIcon(props) {
+    let { iconType } = props;
     const appletDefinition = getAppletDefinition({
         applet_id: __meta.instanceId,
     });
     const panel = panelManager.panels.find(panel => (panel === null || panel === void 0 ? void 0 : panel.panelId) === appletDefinition.panelId);
-    const applet = new Applet(__meta.orientation, panel.height, __meta.instanceId);
-    let appletReloaded = false;
-    [icon, label].forEach(widget => {
-        applet.actor.add_child(widget);
-    });
-    applet.on_applet_clicked = onClick;
-    applet.on_applet_middle_clicked = onMiddleClick;
-    applet.setAllowedLayout(AllowedLayout.BOTH);
-    applet.on_applet_reloaded = function () {
-        appletReloaded = true;
-    };
-    applet.on_applet_removed_from_panel = function () {
-        appletReloaded ? onAppletMoved() : onAppletRemoved();
-        appletReloaded = false;
-    };
-    applet.actor.connect('event', (actor, event) => {
-        if (event.type() !== EventType.BUTTON_PRESS)
-            return false;
-        if (event.get_button() === 3) {
-            onRightClick();
-        }
-        return false;
-    });
-    applet.actor.connect('scroll-event', (actor, event) => {
-        onScroll(event.get_scroll_direction());
-        return false;
-    });
-    return applet;
-}
-
-;// CONCATENATED MODULE: ./src/lib/AppletIcon.ts
-const { panelManager: AppletIcon_panelManager } = imports.ui.main;
-const { getAppletDefinition: AppletIcon_getAppletDefinition } = imports.ui.appletManager;
-const { Icon: AppletIcon_Icon, IconType: AppletIcon_IconType } = imports.gi.St;
-function createAppletIcon(props) {
-    let { iconType } = props;
-    const appletDefinition = AppletIcon_getAppletDefinition({
-        applet_id: __meta.instanceId,
-    });
-    const panel = AppletIcon_panelManager.panels.find(panel => (panel === null || panel === void 0 ? void 0 : panel.panelId) === appletDefinition.panelId);
     const locationLabel = appletDefinition.location_label;
     function getIconSize() {
         return panel.getPanelZoneIconSize(locationLabel, iconType);
@@ -1605,23 +1387,6 @@ function createAppletLabel(props) {
     addChannelOnPanelChangeHandler((channelOnPanel) => label.visible = channelOnPanel);
     addChannelChangeHandler((channel) => label.set_text(channel || ''));
     return label;
-}
-
-;// CONCATENATED MODULE: ./src/ui/Applet/AppletTooltip.ts
-
-const { PanelItemTooltip } = imports.ui.tooltips;
-function createAppletTooltip(args) {
-    const { appletContainer, mpvHandler: { getVolume, addVolumeChangeHandler } } = args;
-    function getTitle() {
-        const volume = getVolume();
-        if (!volume)
-            return DEFAULT_TOOLTIP_TXT;
-        return `Volume: ${volume.toString()} %`;
-    }
-    const tooltip = new PanelItemTooltip(appletContainer, getTitle(), __meta.orientation);
-    addVolumeChangeHandler(() => {
-        tooltip.set_text(getTitle());
-    });
 }
 
 ;// CONCATENATED MODULE: ./src/ui/Notifications/YoutubeDownloadFinishedNotification.ts
@@ -5216,6 +4981,237 @@ function initPolyfills() {
     }
 }
 
+;// CONCATENATED MODULE: ./src/lib/AppletContainer.ts
+const { Applet, AllowedLayout } = imports.ui.applet;
+const { EventType } = imports.gi.Clutter;
+const { panelManager: AppletContainer_panelManager } = imports.ui.main;
+const { getAppletDefinition: AppletContainer_getAppletDefinition } = imports.ui.appletManager;
+function createAppletContainer(args) {
+    const { icon, label, onClick, onScroll, onMiddleClick, onMoved, onRemoved, onRightClick } = args;
+    const appletDefinition = AppletContainer_getAppletDefinition({
+        applet_id: __meta.instanceId,
+    });
+    const panel = AppletContainer_panelManager.panels.find(panel => (panel === null || panel === void 0 ? void 0 : panel.panelId) === appletDefinition.panelId);
+    const applet = new Applet(__meta.orientation, panel.height, __meta.instanceId);
+    let appletReloaded = false;
+    [icon, label].forEach(widget => {
+        applet.actor.add_child(widget);
+    });
+    applet.on_applet_clicked = onClick;
+    applet.on_applet_middle_clicked = onMiddleClick;
+    applet.setAllowedLayout(AllowedLayout.BOTH);
+    applet.on_applet_reloaded = function () {
+        appletReloaded = true;
+    };
+    applet.on_applet_removed_from_panel = function () {
+        appletReloaded ? onMoved() : onRemoved();
+        appletReloaded = false;
+    };
+    applet.actor.connect('event', (actor, event) => {
+        if (event.type() !== EventType.BUTTON_PRESS)
+            return false;
+        if (event.get_button() === 3) {
+            onRightClick();
+        }
+        return false;
+    });
+    applet.actor.connect('scroll-event', (actor, event) => {
+        onScroll(event.get_scroll_direction());
+        return false;
+    });
+    return applet;
+}
+
+;// CONCATENATED MODULE: ./src/ui/Applet/AppletTooltip.ts
+
+const { PanelItemTooltip } = imports.ui.tooltips;
+function createAppletTooltip(args) {
+    const { appletContainer, mpvHandler: { getVolume, addVolumeChangeHandler } } = args;
+    function getTitle() {
+        const volume = getVolume();
+        if (!volume)
+            return DEFAULT_TOOLTIP_TXT;
+        return `Volume: ${volume.toString()} %`;
+    }
+    const tooltip = new PanelItemTooltip(appletContainer, getTitle(), __meta.orientation);
+    addVolumeChangeHandler(() => {
+        tooltip.set_text(getTitle());
+    });
+}
+
+;// CONCATENATED MODULE: ./src/lib/PopupSubMenu.ts
+
+const { BoxLayout: PopupSubMenu_BoxLayout, Label: PopupSubMenu_Label, Icon: PopupSubMenu_Icon, ScrollView } = imports.gi.St;
+const { ActorAlign: PopupSubMenu_ActorAlign, Point } = imports.gi.Clutter;
+const { PolicyType } = imports.gi.Gtk;
+function createSubMenu(args) {
+    const { text } = args;
+    const container = new PopupSubMenu_BoxLayout({
+        vertical: true
+    });
+    const label = new PopupSubMenu_Label({
+        text
+    });
+    const triangle = new PopupSubMenu_Icon({
+        style_class: 'popup-menu-arrow',
+        icon_name: 'pan-end',
+        rotation_angle_z: 90,
+        x_expand: true,
+        x_align: PopupSubMenu_ActorAlign.END,
+        pivot_point: new Point({ x: 0.5, y: 0.5 }),
+        important: true // without this, it looks ugly on Mint-X Themes
+    });
+    const toggle = new PopupSubMenu_BoxLayout({
+        style_class: 'popup-menu-item popup-submenu-menu-item'
+    });
+    createActivWidget({
+        widget: toggle,
+        onActivated: toggleScrollbox
+    });
+    [label, triangle].forEach(widget => toggle.add_child(widget));
+    container.add_child(toggle);
+    const scrollbox = new ScrollView({
+        style_class: 'popup-sub-menu',
+        vscrollbar_policy: PolicyType.AUTOMATIC,
+        hscrollbar_policy: PolicyType.NEVER
+    });
+    const box = new PopupSubMenu_BoxLayout({
+        vertical: true
+    });
+    function toggleScrollbox() {
+        scrollbox.visible ? closeMenu() : openMenu();
+    }
+    function openMenu() {
+        scrollbox.show();
+        triangle.rotation_angle_z = 90;
+    }
+    function closeMenu() {
+        scrollbox.hide();
+        triangle.rotation_angle_z = 0;
+    }
+    // add_child is recommended but doesn't work: https://gitlab.gnome.org/GNOME/gnome-shell/-/issues/3172
+    scrollbox.add_actor(box);
+    [toggle, scrollbox].forEach(widget => container.add_child(widget));
+    return {
+        /** the container which should be used to add it as child to a parent Actor */
+        actor: container,
+        /** the container which should be used to add children  */
+        box,
+    };
+}
+
+;// CONCATENATED MODULE: ./src/ui/ChannelList/ChannelMenuItem.ts
+
+
+function createChannelMenuItem(args) {
+    const { channelName, onActivated, playbackStatus } = args;
+    const playbackIconMap = new Map([
+        ["Playing", PLAY_ICON_NAME],
+        ["Paused", PAUSE_ICON_NAME],
+        ["Loading", LOADING_ICON_NAME],
+        ["Stopped", null]
+    ]);
+    const iconMenuItem = createIconMenuItem({
+        maxCharNumber: MAX_STRING_LENGTH,
+        initialText: channelName,
+        onActivated: () => onActivated(channelName)
+    });
+    function setPlaybackStatus(playbackStatus) {
+        const iconName = playbackIconMap.get(playbackStatus);
+        iconMenuItem.setIconName(iconName);
+    }
+    playbackStatus && setPlaybackStatus(playbackStatus);
+    return {
+        setPlaybackStatus,
+        actor: iconMenuItem.actor,
+        getChannelName: () => channelName
+    };
+}
+
+;// CONCATENATED MODULE: ./src/ui/ChannelList/ChannelList.ts
+
+
+function createChannelList(args) {
+    const { mpvHandler: { getPlaybackStatus, getCurrentChannel, addChannelChangeHandler, addPlaybackStatusChangeHandler, setUrl }, configs: { addStationsListChangeHandler, settingsObject } } = args;
+    const subMenu = createSubMenu({ text: 'My Stations' });
+    const getUserStationNames = () => {
+        return settingsObject.userStations.flatMap(station => station.inc ? [station.name] : []);
+    };
+    const findUrl = (channelName) => {
+        const channel = settingsObject.userStations.find(station => station.name === channelName && station.inc);
+        if (!channel)
+            throw new Error(`couldn't find a url for the provided name. That should not have happened :-/`);
+        return channel.url;
+    };
+    // the channelItems are saved here to the map as well as to the container as on the container only the reduced name are shown. Theoretically it therefore couldn't be differentiated between two long channel names with the same first 30 (or so) characters   
+    let channelItems = [];
+    function setRefreshList(names) {
+        channelItems = [];
+        subMenu.box.remove_all_children();
+        names.forEach(name => {
+            const channelPlaybackstatus = (name === getCurrentChannel()) ? getPlaybackStatus() : 'Stopped';
+            const channelItem = createChannelMenuItem({
+                channelName: name,
+                onActivated: () => setUrl(findUrl(name)),
+                playbackStatus: channelPlaybackstatus
+            });
+            channelItems.push(channelItem);
+            subMenu.box.add_child(channelItem.actor);
+        });
+    }
+    function updateChannel(name) {
+        channelItems.forEach(item => {
+            item.getChannelName() === name ? item.setPlaybackStatus(getPlaybackStatus()) : item.setPlaybackStatus('Stopped');
+        });
+    }
+    function updatePlaybackStatus(playbackStatus) {
+        if (playbackStatus === 'Stopped')
+            return; // already handled by updateChannel
+        const currentChannel = channelItems.find(channelItem => channelItem.getChannelName() === getCurrentChannel());
+        currentChannel === null || currentChannel === void 0 ? void 0 : currentChannel.setPlaybackStatus(playbackStatus);
+    }
+    setRefreshList(getUserStationNames());
+    addChannelChangeHandler((newChannel) => updateChannel(newChannel));
+    addPlaybackStatusChangeHandler((newStatus) => updatePlaybackStatus(newStatus));
+    addStationsListChangeHandler(() => setRefreshList(getUserStationNames()));
+    return subMenu.actor;
+}
+
+;// CONCATENATED MODULE: ./src/ui/Applet/RadioAppletContainer.ts
+
+
+
+
+
+
+
+const { ScrollDirection: RadioAppletContainer_ScrollDirection } = imports.gi.Clutter;
+function createRadioAppletContainer(props) {
+    const { configs, mpvHandler } = props;
+    const appletContainer = createAppletContainer({
+        icon: createRadioAppletIcon({ configs, mpvHandler }),
+        label: createAppletLabel({ configs, mpvHandler }),
+        onMiddleClick: () => mpvHandler.togglePlayPause(),
+        onMoved: () => mpvHandler.deactivateAllListener(),
+        onRemoved: () => { },
+        onClick: () => popupMenu.toggle(),
+        onRightClick: () => { },
+        onScroll: handleScroll
+    });
+    function handleScroll(scrollDirection) {
+        const volumeChange = scrollDirection === RadioAppletContainer_ScrollDirection.UP ? VOLUME_DELTA : -VOLUME_DELTA;
+        mpvHandler.increaseDecreaseVolume(volumeChange);
+    }
+    createAppletTooltip({ mpvHandler, appletContainer });
+    const popupMenu = (0,cinnamonpopup/* createPopupMenu */.S)({ launcher: appletContainer.actor });
+    const channelList = createChannelList({
+        mpvHandler,
+        configs
+    });
+    popupMenu.add_child(channelList);
+    return appletContainer;
+}
+
 ;// CONCATENATED MODULE: ./src/index.ts
 
 
@@ -5240,12 +5236,7 @@ function initPolyfills() {
 
 
 
-
-
-
-
 const { BoxLayout: src_BoxLayout } = imports.gi.St;
-const { ScrollDirection: src_ScrollDirection } = imports.gi.Clutter;
 function main(args) {
     const { orientation, instanceId } = args;
     initPolyfills();
@@ -5262,8 +5253,7 @@ function main(args) {
         // onPlaybackstatusChanged: handlePlaybackstatusChanged,
         configs
     });
-    // const appletContainer = createRadioAppletContainer({configs, mpvHandler})
-    const channelStore = new ChannelStore(configNew.userStations, mpvHandler);
+    const appletContainer = createRadioAppletContainer({ configs, mpvHandler });
     const initialChannelName = mpvHandler.getCurrentChannel();
     const initialPlaybackStatus = mpvHandler.getPlaybackStatus();
     const appletIcon = createRadioAppletIcon({
@@ -5274,25 +5264,17 @@ function main(args) {
         configs,
         mpvHandler
     });
-    const appletContainer = createAppletContainer({
-        icon: appletIcon,
-        label: appletLabel,
-        onClick: handleAppletClicked,
-        onScroll: handleScroll,
-        onMiddleClick: () => mpvHandler.togglePlayPause(),
-        onAppletMoved: () => mpvHandler.deactivateAllListener(),
-        onAppletRemoved: handleAppletRemoved,
-        onRightClick: () => popupMenu === null || popupMenu === void 0 ? void 0 : popupMenu.close()
-    });
+    // const appletContainer = createAppletContainer({
+    //     icon: appletIcon,
+    //     label: appletLabel,
+    //     onClick: handleAppletClicked,
+    //     onScroll: handleScroll,
+    //     onMiddleClick: () => mpvHandler.togglePlayPause(),
+    //     onMoved: () => mpvHandler.deactivateAllListener(),
+    //     onRemoved: handleAppletRemoved,
+    //     onRightClick: () => popupMenu?.close()
+    // })
     const popupMenu = (0,cinnamonpopup/* createPopupMenu */.S)({ launcher: appletContainer.actor });
-    createAppletTooltip({
-        appletContainer: appletContainer,
-        mpvHandler
-    });
-    const channelList = createChannelList({
-        mpvHandler,
-        configs
-    });
     const volumeSlider = createVolumeSlider({
         onVolumeChanged: (volume) => mpvHandler === null || mpvHandler === void 0 ? void 0 : mpvHandler.setVolume(volume)
     });
@@ -5335,8 +5317,7 @@ function main(args) {
         radioActiveSection.add_child(createSeparatorMenuItem());
         radioActiveSection.add_child(widget);
     });
-    popupMenu.add_child(channelList.actor);
-    popupMenu.add_child(radioActiveSection);
+    // popupMenu.add_child(radioActiveSection)
     // CALLBACKS
     async function handleAppletClicked() {
         if (installationInProgress)
@@ -5359,44 +5340,12 @@ function main(args) {
         mpvHandler === null || mpvHandler === void 0 ? void 0 : mpvHandler.deactivateAllListener();
         mpvHandler === null || mpvHandler === void 0 ? void 0 : mpvHandler.stop();
     }
-    function handleScroll(scrollDirection) {
-        const volumeChange = scrollDirection === src_ScrollDirection.UP ? VOLUME_DELTA : -VOLUME_DELTA;
-        mpvHandler.increaseDecreaseVolume(volumeChange);
-    }
     function handleTitleChanged(title) {
         infoSection.setSongTitle(title);
     }
     function handleVolumeChanged(volume) {
         volumeSlider.setVolume(volume);
         lastVolume = volume;
-    }
-    function handleStationsUpdated(stations) {
-        const stationsChanged = channelStore.checkListChanged(stations);
-        if (!stationsChanged)
-            return;
-        channelStore.channelList = stations;
-        // channelList.setStationNames(channelStore.activatedChannelNames)
-        const lastUrlValid = channelStore.checkUrlValid(configNew.lastUrl);
-        if (!lastUrlValid)
-            mpvHandler.stop();
-    }
-    function handlePlaybackstatusChanged(playbackstatus) {
-        if (playbackstatus === 'Stopped') {
-            radioActiveSection.hide();
-            configNew.lastVolume = lastVolume;
-            configNew.lastUrl = null;
-            popupMenu.close();
-        }
-        if (playbackstatus !== 'Stopped' && !radioActiveSection.visible)
-            radioActiveSection.show();
-        if (playbackstatus === 'Playing' || playbackstatus === 'Paused') {
-            playPauseBtn.setPlaybackStatus(playbackstatus);
-        }
-    }
-    function handleUrlChanged(url) {
-        const channelName = url ? channelStore.getChannelName(url) : null;
-        channelName && infoSection.setChannel(channelName);
-        configNew.lastUrl = url;
     }
     function hanldeLengthChanged(length) {
         seeker.setLength(length);

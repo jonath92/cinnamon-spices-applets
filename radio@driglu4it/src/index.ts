@@ -1,7 +1,5 @@
 import { createConfig } from './Config';
-import { ChannelStore } from './ChannelStore';
 import { createChannelList } from './ui/ChannelList/ChannelList';
-import { AdvancedPlaybackStatus, Channel } from './types';
 import { createMpvHandler } from './mpv/MpvHandler';
 import { createVolumeSlider } from './ui/VolumeSlider';
 import { createPopupMenu } from 'cinnamonpopup';
@@ -26,9 +24,9 @@ import { notify } from './ui/Notifications/GenericNotification';
 import { createSeeker } from './ui/Seeker';
 import { VOLUME_DELTA } from './consts';
 import { initPolyfills } from './polyfill';
+import { createRadioAppletContainer } from './ui/Applet/RadioAppletContainer';
 
 const { BoxLayout } = imports.gi.St
-const { ScrollDirection } = imports.gi.Clutter;
 
 // TODO: remove the args fully
 interface Arguments {
@@ -68,10 +66,7 @@ export function main(args: Arguments): imports.ui.applet.Applet {
         configs
     })
 
-    // const appletContainer = createRadioAppletContainer({configs, mpvHandler})
-
-
-    const channelStore = new ChannelStore(configNew.userStations, mpvHandler)
+    const appletContainer = createRadioAppletContainer({configs, mpvHandler})
 
     const initialChannelName = mpvHandler.getCurrentChannel()
     const initialPlaybackStatus = mpvHandler.getPlaybackStatus()
@@ -87,30 +82,18 @@ export function main(args: Arguments): imports.ui.applet.Applet {
         mpvHandler
     })
 
-    const appletContainer = createAppletContainer({
-        icon: appletIcon,
-        label: appletLabel,
-        onClick: handleAppletClicked,
-        onScroll: handleScroll,
-        onMiddleClick: () => mpvHandler.togglePlayPause(),
-        onAppletMoved: () => mpvHandler.deactivateAllListener(),
-        onAppletRemoved: handleAppletRemoved,
-        onRightClick: () => popupMenu?.close()
-    })
+    // const appletContainer = createAppletContainer({
+    //     icon: appletIcon,
+    //     label: appletLabel,
+    //     onClick: handleAppletClicked,
+    //     onScroll: handleScroll,
+    //     onMiddleClick: () => mpvHandler.togglePlayPause(),
+    //     onMoved: () => mpvHandler.deactivateAllListener(),
+    //     onRemoved: handleAppletRemoved,
+    //     onRightClick: () => popupMenu?.close()
+    // })
 
     const popupMenu = createPopupMenu({ launcher: appletContainer.actor })
-
-
-    createAppletTooltip({
-        appletContainer: appletContainer,
-        mpvHandler
-    })
-
-
-    const channelList = createChannelList({
-        mpvHandler, 
-        configs
-    })
 
     const volumeSlider = createVolumeSlider({
         onVolumeChanged: (volume) => mpvHandler?.setVolume(volume)
@@ -164,8 +147,7 @@ export function main(args: Arguments): imports.ui.applet.Applet {
         radioActiveSection.add_child(widget)
     })
 
-    popupMenu.add_child(channelList.actor)
-    popupMenu.add_child(radioActiveSection)
+    // popupMenu.add_child(radioActiveSection)
 
 
 
@@ -194,11 +176,6 @@ export function main(args: Arguments): imports.ui.applet.Applet {
     }
 
 
-    function handleScroll(scrollDirection: imports.gi.Clutter.ScrollDirection) {
-        const volumeChange =
-            scrollDirection === ScrollDirection.UP ? VOLUME_DELTA : -VOLUME_DELTA
-        mpvHandler.increaseDecreaseVolume(volumeChange)
-    }
 
     function handleTitleChanged(title: string) {
         infoSection.setSongTitle(title)
@@ -210,44 +187,6 @@ export function main(args: Arguments): imports.ui.applet.Applet {
         lastVolume = volume
     }
 
-    function handleStationsUpdated(stations: Channel[]) {
-
-        const stationsChanged = channelStore.checkListChanged(stations)
-
-        if (!stationsChanged) return
-
-        channelStore.channelList = stations
-        // channelList.setStationNames(channelStore.activatedChannelNames)
-
-        const lastUrlValid = channelStore.checkUrlValid(configNew.lastUrl)
-        if (!lastUrlValid) mpvHandler.stop()
-    }
-
-    function handlePlaybackstatusChanged(playbackstatus: AdvancedPlaybackStatus) {
-
-        if (playbackstatus === 'Stopped') {
-            radioActiveSection.hide()
-            configNew.lastVolume = lastVolume
-            configNew.lastUrl = null
-            popupMenu.close()
-        }
-
-        if (playbackstatus !== 'Stopped' && !radioActiveSection.visible)
-            radioActiveSection.show()
-
-        if (playbackstatus === 'Playing' || playbackstatus === 'Paused') {
-            playPauseBtn.setPlaybackStatus(playbackstatus)
-        }
-
-    }
-
-    function handleUrlChanged(url: string) {
-
-        const channelName = url ? channelStore.getChannelName(url) : null
-
-        channelName && infoSection.setChannel(channelName)
-        configNew.lastUrl = url
-    }
 
     function hanldeLengthChanged(length: number) {
         seeker.setLength(length)

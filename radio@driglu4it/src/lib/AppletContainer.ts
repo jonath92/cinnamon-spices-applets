@@ -10,8 +10,8 @@ interface Arguments {
     onScroll: (scrollDirection: imports.gi.Clutter.ScrollDirection) => void,
     onMiddleClick: () => void,
     onRightClick: () => void,
-    onAppletMoved: () => void,
-    onAppletRemoved: () => void
+    onMoved: () => void,
+    onRemoved: () => void
 }
 
 export function createAppletContainer(args: Arguments) {
@@ -22,8 +22,8 @@ export function createAppletContainer(args: Arguments) {
         onClick,
         onScroll,
         onMiddleClick,
-        onAppletMoved,
-        onAppletRemoved,
+        onMoved,
+        onRemoved,
         onRightClick
     } = args
 
@@ -52,7 +52,7 @@ export function createAppletContainer(args: Arguments) {
     }
 
     applet.on_applet_removed_from_panel = function () {
-        appletReloaded ? onAppletMoved() : onAppletRemoved()
+        appletReloaded ? onMoved() : onRemoved()
         appletReloaded = false
     }
 

@@ -1,10 +1,16 @@
 
+import { createPopupMenu } from "cinnamonpopup"
 import { createConfig } from "../../Config"
 import { createAppletContainer } from "../../lib/AppletContainer"
 import { createMpvHandler } from "../../mpv/MpvHandler"
 import { createAppletLabel } from "./AppletLabel"
 import { createAppletTooltip } from "./AppletTooltip"
 import { createRadioAppletIcon } from "./RadioAppletIcon"
+import { createChannelList } from '../ChannelList/ChannelList'
+import { VOLUME_DELTA } from "../../consts"
+
+const { ScrollDirection } = imports.gi.Clutter;
+
 
 interface Props {
     configs: ReturnType<typeof createConfig>,
@@ -16,19 +22,35 @@ export function createRadioAppletContainer(props: Props) {
     const { configs, mpvHandler } = props
 
     const appletContainer = createAppletContainer({
-        icon: createRadioAppletIcon({configs, mpvHandler}), 
-        label: createAppletLabel({configs, mpvHandler}), 
+        icon: createRadioAppletIcon({ configs, mpvHandler }),
+        label: createAppletLabel({ configs, mpvHandler }),
         onMiddleClick: () => mpvHandler.togglePlayPause(),
-        onAppletMoved: () => mpvHandler.deactivateAllListener(), 
-        onAppletRemoved: () => {}, 
-        onClick: () => {}, 
-        onRightClick: () => {}, 
-        onScroll: () => {}
+        onMoved: () => mpvHandler.deactivateAllListener(),
+        onRemoved: () => { },
+        onClick: () => popupMenu.toggle(),
+        onRightClick: () => { },
+        onScroll: handleScroll
     })
 
-    // for some weird reasion, it is doesn't work to create the tooltip here but it works when calling in index.ts :-/
-    //createAppletTooltip({mpvHandler, appletContainer})
-    
+    function handleScroll(scrollDirection: imports.gi.Clutter.ScrollDirection) {
+        const volumeChange =
+            scrollDirection === ScrollDirection.UP ? VOLUME_DELTA : -VOLUME_DELTA
+        mpvHandler.increaseDecreaseVolume(volumeChange)
+    }
+
+
+    createAppletTooltip({mpvHandler, appletContainer})
+
+    const popupMenu = createPopupMenu({ launcher: appletContainer.actor })
+
+    const channelList = createChannelList({
+        mpvHandler,
+        configs
+    })
+
+    popupMenu.add_child(channelList)
+
+
     return appletContainer
 
 }
