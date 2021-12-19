@@ -396,7 +396,6 @@ function createMpvHandler() {
         seekListenerId && mediaServerPlayer.disconnectSignal(seekListenerId);
         mediaPropsListenerId = seekListenerId = currentUrl = null;
         playbackStatusChangeHandler.forEach(handler => handler('Stopped'));
-        titleChangeHandler.forEach(handler => handler(undefined));
         settingsObject.lastVolume = lastVolume;
     }
     function deactivateAllListener() {
@@ -4449,7 +4448,7 @@ function createInfoSection() {
         channelInfoItem.setText(newChannel);
     });
     addTitleChangeHandler((newTitle) => {
-        songInfoItem.setText(newTitle || '');
+        songInfoItem.setText(newTitle);
     });
     return infoSection;
 }

@@ -45,9 +45,9 @@ function createMpvHandler() {
 
     const channelNameChangeHandler: ChangeHandler<string >[] = []
     const volumeChangeHandler: ChangeHandler<number>[] = [] //
-    const titleChangeHandler: ChangeHandler<string | undefined>[] = []
-    const lengthChangeHandler: ChangeHandler<number | undefined>[] = []
-    const positionChangeHandler: ChangeHandler<number | undefined>[] = []
+    const titleChangeHandler: ChangeHandler<string>[] = []
+    const lengthChangeHandler: ChangeHandler<number>[] = []
+    const positionChangeHandler: ChangeHandler<number>[] = []
 
     control.open()
     control.connect('stream-added', (ctrl, id) => {
@@ -110,7 +110,6 @@ function createMpvHandler() {
         seekListenerId && mediaServerPlayer.disconnectSignal(seekListenerId)
         mediaPropsListenerId = seekListenerId = currentUrl = null
         playbackStatusChangeHandler.forEach(handler => handler('Stopped'))
-        titleChangeHandler.forEach(handler => handler(undefined))
         settingsObject.lastVolume = lastVolume
     }
 
@@ -449,7 +448,7 @@ function createMpvHandler() {
             volumeChangeHandler.push(changeHandler)
         },
 
-        addTitleChangeHandler: (changeHandler: ChangeHandler<string | undefined>) => {
+        addTitleChangeHandler: (changeHandler: ChangeHandler<string>) => {
             titleChangeHandler.push(changeHandler)
         },
 
@@ -457,7 +456,7 @@ function createMpvHandler() {
             lengthChangeHandler.push(changeHandler)
         },
 
-        addPositionChangeHandler: (changeHandler: ChangeHandler<number | undefined>) => {
+        addPositionChangeHandler: (changeHandler: ChangeHandler<number>) => {
             positionChangeHandler.push(changeHandler)
         },
 

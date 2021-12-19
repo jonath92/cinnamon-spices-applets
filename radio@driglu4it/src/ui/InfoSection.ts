@@ -38,7 +38,7 @@ export function createInfoSection() {
     })
 
     addTitleChangeHandler((newTitle) => {
-        songInfoItem.setText(newTitle || '')
+        songInfoItem.setText(newTitle)
     })
 
     return infoSection
