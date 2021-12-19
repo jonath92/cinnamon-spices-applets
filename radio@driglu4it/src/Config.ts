@@ -15,6 +15,7 @@ interface Settings {
     musicDownloadDir: string
 }
 
+// TODO: throw an error when importing without initiallized before
 export let configs: ReturnType<typeof createConfig>
 
 export const initConfig = () => {

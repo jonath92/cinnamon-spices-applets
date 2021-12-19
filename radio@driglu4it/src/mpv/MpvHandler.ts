@@ -8,22 +8,7 @@ const { spawnCommandLine } = imports.misc.util;
 const { MixerControl } = imports.gi.Cvc;
 
 
-export interface Arguments {
-    // onUrlChanged: (url: string) => void,
-    /** length in seconds */
-    onLengthChanged: (length: number) => void,
-    /** position in seconds */
-    onPositionChanged: (position: number) => void,
-    // checkUrlValid: (url: string) => boolean,
-}
-
-export function createMpvHandler(args: Arguments) {
-    const {
-        // onUrlChanged,
-        onLengthChanged,
-        onPositionChanged,
-        // checkUrlValid,
-    } = args
+export function createMpvHandler() {
 
     const {
         settingsObject,
@@ -34,6 +19,10 @@ export function createMpvHandler(args: Arguments) {
 
     /** the lastUrl is used to determine if mpv is initially (i.e. on cinnamon restart) running for radio purposes and not for something else. It is not sufficient to get the url from a dbus interface and check if the url is valid because some streams (such as .pls streams) change their url dynamically. This approach in not 100% foolproof but probably the best possible approach */
     const lastUrl = settingsObject.lastUrl
+
+    // this is a workaround for now. Optimally the lastVolume should be saved persistently each time the volume is changed but this lead to significant performance issue on scrolling at the moment. However this shouldn't be the case as it is no problem to log the volume each time the volume changes (so it is a problem in the config implementation). As a workaround the volume is only saved persistently when the radio stops but the volume obviously can't be received anymore from dbus when the player has been already stopped ... 
+    let lastVolume: number 
+
 
     const dbus = getDBus()
 
@@ -50,8 +39,10 @@ export function createMpvHandler(args: Arguments) {
     const playbackStatusChangeHandler: ChangeHandler<AdvancedPlaybackStatus>[] = []
     // also executed when set to a falsy value due to radio stopped
     const channelNameChangeHandler: ChangeHandler<string | undefined>[] = []
-    const volumeChangeHandler: ChangeHandler<number  | undefined>[] = [] //
+    const volumeChangeHandler: ChangeHandler<number | undefined>[] = [] //
     const titleChangeHandler: ChangeHandler<string | undefined>[] = []
+    const lengthChangeHandler: ChangeHandler<number | undefined>[] = []
+    const positionChangeHandler: ChangeHandler<number | undefined>[] = []
 
     control.open()
     control.connect('stream-added', (ctrl, id) => {
@@ -83,19 +74,6 @@ export function createMpvHandler(args: Arguments) {
     if (initialPlaybackStatus !== "Stopped") {
         activateMprisPropsListener();
         activateSeekListener()
-
-        //currentUrl && onUrlChanged(currentUrl)
-        //onPlaybackstatusChanged(initialPlaybackStatus)
-
-        //const currentVolulume = getVolume()
-        //currentVolulume && onVolumeChanged(currentVolulume)
-
-        //const currentTitle = getCurrentTitle()
-        //currentTitle && onTitleChanged(currentTitle)
-
-        //onLengthChanged(currentLength)
-        //onPositionChanged(getPosition())
-
         startPositionTimer()
     }
 
@@ -114,16 +92,21 @@ export function createMpvHandler(args: Arguments) {
         }
 
         if (oldOwner) {
-            currentLength = 0
-            stopPositionTimer()
-            mediaPropsListenerId && mediaProps.disconnectSignal(mediaPropsListenerId)
-            seekListenerId && mediaServerPlayer.disconnectSignal(seekListenerId)
-            mediaPropsListenerId = seekListenerId = currentUrl = null
-            playbackStatusChangeHandler.forEach(handler => handler('Stopped'))
-            channelNameChangeHandler.forEach(handler => handler(undefined))
-            volumeChangeHandler.forEach(handler => handler(undefined))
+            handleMpvStopped()
         }
     })
+
+    function handleMpvStopped(): void {
+        currentLength = 0
+        stopPositionTimer()
+        mediaPropsListenerId && mediaProps.disconnectSignal(mediaPropsListenerId)
+        seekListenerId && mediaServerPlayer.disconnectSignal(seekListenerId)
+        mediaPropsListenerId = seekListenerId = currentUrl = null
+        playbackStatusChangeHandler.forEach(handler => handler('Stopped'))
+        channelNameChangeHandler.forEach(handler => handler(undefined))
+        volumeChangeHandler.forEach(handler => handler(undefined))
+        settingsObject.lastVolume = lastVolume
+    }
 
     function deactivateAllListener(): void {
         dbus.disconnectSignal(nameOwnerSignalId)
@@ -160,7 +143,7 @@ export function createMpvHandler(args: Arguments) {
     }
 
     function checkUrlValid(channelUrl: string): boolean {
-        return settingsObject.userStations.some(cnl => cnl.url === channelUrl && cnl.inc )
+        return settingsObject.userStations.some(cnl => cnl.url === channelUrl && cnl.inc)
 
     }
 
@@ -175,8 +158,7 @@ export function createMpvHandler(args: Arguments) {
 
         const lengthInSeconds = microSecondsToRoundedSeconds(length);
 
-        onLengthChanged(lengthInSeconds);
-
+        lengthChangeHandler.forEach(handler => handler(lengthInSeconds))
         const startLoading = (length === 0);
         const finishedLoading = length !== 0 && currentLength === 0;
 
@@ -200,7 +182,7 @@ export function createMpvHandler(args: Arguments) {
     function handlePositionChanged(position: number): void {
 
         stopPositionTimer()
-        onPositionChanged(position)
+        positionChangeHandler.forEach(handler => handler(position))
         startPositionTimer()
     }
 
@@ -211,8 +193,7 @@ export function createMpvHandler(args: Arguments) {
         positionTimerId = setInterval(() => {
 
             const position = Math.min(getPosition(), currentLength)
-
-            onPositionChanged(position)
+            positionChangeHandler.forEach(handler => handler(position))
 
             if (position === currentLength) {
                 playbackStatusChangeHandler.forEach(handler => handler('Loading'))
@@ -244,7 +225,7 @@ export function createMpvHandler(args: Arguments) {
         handleLengthChanged(0)
 
         if (positionTimerId) stopPositionTimer()
-        onPositionChanged(0)
+        positionChangeHandler.forEach(handler => handler(0))
 
         channelNameChangeHandler.forEach(changeHandler => changeHandler(getCurrentChannelName()))
     }
@@ -259,6 +240,7 @@ export function createMpvHandler(args: Arguments) {
         const normalizedVolume = Math.round(mprisVolume * 100)
         setCvcVolume(normalizedVolume)
         volumeChangeHandler.forEach(changeHandler => changeHandler(normalizedVolume))
+        lastVolume = normalizedVolume
     }
 
     function handleCvcVolumeChanged(): void {
@@ -451,8 +433,12 @@ export function createMpvHandler(args: Arguments) {
             volumeChangeHandler.push(changeHandler)
         },
 
-        addTitleChangeHandler: (changeHandler: ChangeHandler<string  | undefined>) =>{
+        addTitleChangeHandler: (changeHandler: ChangeHandler<string | undefined>) => {
             titleChangeHandler.push(changeHandler)
+        },
+
+        addLengthChangeHandler: (changeHandler: ChangeHandler<number | undefined>) => {
+            lengthChangeHandler.push(changeHandler)
         },
 
         // it is very confusing but dbus must be returned!

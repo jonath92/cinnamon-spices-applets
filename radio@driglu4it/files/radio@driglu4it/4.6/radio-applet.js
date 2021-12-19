@@ -209,6 +209,7 @@ __webpack_require__.d(__webpack_exports__, {
 
 ;// CONCATENATED MODULE: ./src/Config.ts
 const { AppletSettings } = imports.ui.settings;
+// TODO: throw an error when importing without initiallized before
 let configs;
 const initConfig = () => {
     configs = createConfig();
@@ -326,15 +327,12 @@ const { getDBusProperties, getDBus, getDBusProxyWithOwner } = imports.misc.inter
 const { spawnCommandLine } = imports.misc.util;
 // see https://lazka.github.io/pgi-docs/Cvc-1.0/index.html
 const { MixerControl } = imports.gi.Cvc;
-function createMpvHandler(args) {
-    const { 
-    // onUrlChanged,
-    onLengthChanged, onPositionChanged,
-    // checkUrlValid,
-     } = args;
+function createMpvHandler() {
     const { settingsObject, getInitialVolume, addStationsListChangeHandler } = configs;
     /** the lastUrl is used to determine if mpv is initially (i.e. on cinnamon restart) running for radio purposes and not for something else. It is not sufficient to get the url from a dbus interface and check if the url is valid because some streams (such as .pls streams) change their url dynamically. This approach in not 100% foolproof but probably the best possible approach */
     const lastUrl = settingsObject.lastUrl;
+    // this is a workaround for now. Optimally the lastVolume should be saved persistently each time the volume is changed but this lead to significant performance issue on scrolling at the moment. However this shouldn't be the case as it is no problem to log the volume each time the volume changes (so it is a problem in the config implementation). As a workaround the volume is only saved persistently when the radio stops but the volume obviously can't be received anymore from dbus when the player has been already stopped ... 
+    let lastVolume;
     const dbus = getDBus();
     const mediaServerPlayer = getDBusProxyWithOwner(MEDIA_PLAYER_2_PLAYER_NAME, MPV_MPRIS_BUS_NAME);
     const mediaProps = getDBusProperties(MPV_MPRIS_BUS_NAME, MEDIA_PLAYER_2_PATH);
@@ -346,6 +344,8 @@ function createMpvHandler(args) {
     const channelNameChangeHandler = [];
     const volumeChangeHandler = []; //
     const titleChangeHandler = [];
+    const lengthChangeHandler = [];
+    const positionChangeHandler = [];
     control.open();
     control.connect('stream-added', (ctrl, id) => {
         const addedStream = control.lookup_stream_id(id);
@@ -367,14 +367,6 @@ function createMpvHandler(args) {
     if (initialPlaybackStatus !== "Stopped") {
         activateMprisPropsListener();
         activateSeekListener();
-        //currentUrl && onUrlChanged(currentUrl)
-        //onPlaybackstatusChanged(initialPlaybackStatus)
-        //const currentVolulume = getVolume()
-        //currentVolulume && onVolumeChanged(currentVolulume)
-        //const currentTitle = getCurrentTitle()
-        //currentTitle && onTitleChanged(currentTitle)
-        //onLengthChanged(currentLength)
-        //onPositionChanged(getPosition())
         startPositionTimer();
     }
     const nameOwnerSignalId = dbus.connectSignal('NameOwnerChanged', (...args) => {
@@ -389,16 +381,20 @@ function createMpvHandler(args) {
             pauseAllOtherMediaPlayers();
         }
         if (oldOwner) {
-            currentLength = 0;
-            stopPositionTimer();
-            mediaPropsListenerId && mediaProps.disconnectSignal(mediaPropsListenerId);
-            seekListenerId && mediaServerPlayer.disconnectSignal(seekListenerId);
-            mediaPropsListenerId = seekListenerId = currentUrl = null;
-            playbackStatusChangeHandler.forEach(handler => handler('Stopped'));
-            channelNameChangeHandler.forEach(handler => handler(undefined));
-            volumeChangeHandler.forEach(handler => handler(undefined));
+            handleMpvStopped();
         }
     });
+    function handleMpvStopped() {
+        currentLength = 0;
+        stopPositionTimer();
+        mediaPropsListenerId && mediaProps.disconnectSignal(mediaPropsListenerId);
+        seekListenerId && mediaServerPlayer.disconnectSignal(seekListenerId);
+        mediaPropsListenerId = seekListenerId = currentUrl = null;
+        playbackStatusChangeHandler.forEach(handler => handler('Stopped'));
+        channelNameChangeHandler.forEach(handler => handler(undefined));
+        volumeChangeHandler.forEach(handler => handler(undefined));
+        settingsObject.lastVolume = lastVolume;
+    }
     function deactivateAllListener() {
         dbus.disconnectSignal(nameOwnerSignalId);
         if (mediaPropsListenerId)
@@ -439,7 +435,7 @@ function createMpvHandler(args) {
     /** @param length in microseconds */
     function handleLengthChanged(length) {
         const lengthInSeconds = microSecondsToRoundedSeconds(length);
-        onLengthChanged(lengthInSeconds);
+        lengthChangeHandler.forEach(handler => handler(lengthInSeconds));
         const startLoading = (length === 0);
         const finishedLoading = length !== 0 && currentLength === 0;
         currentLength = lengthInSeconds;
@@ -458,7 +454,7 @@ function createMpvHandler(args) {
     /**  @param position in seconds! */
     function handlePositionChanged(position) {
         stopPositionTimer();
-        onPositionChanged(position);
+        positionChangeHandler.forEach(handler => handler(position));
         startPositionTimer();
     }
     function startPositionTimer() {
@@ -466,7 +462,7 @@ function createMpvHandler(args) {
             return;
         positionTimerId = setInterval(() => {
             const position = Math.min(getPosition(), currentLength);
-            onPositionChanged(position);
+            positionChangeHandler.forEach(handler => handler(position));
             if (position === currentLength) {
                 playbackStatusChangeHandler.forEach(handler => handler('Loading'));
                 bufferExceeded = true;
@@ -492,7 +488,7 @@ function createMpvHandler(args) {
         handleLengthChanged(0);
         if (positionTimerId)
             stopPositionTimer();
-        onPositionChanged(0);
+        positionChangeHandler.forEach(handler => handler(0));
         channelNameChangeHandler.forEach(changeHandler => changeHandler(getCurrentChannelName()));
     }
     function handleMprisVolumeChanged(mprisVolume) {
@@ -503,6 +499,7 @@ function createMpvHandler(args) {
         const normalizedVolume = Math.round(mprisVolume * 100);
         setCvcVolume(normalizedVolume);
         volumeChangeHandler.forEach(changeHandler => changeHandler(normalizedVolume));
+        lastVolume = normalizedVolume;
     }
     function handleCvcVolumeChanged() {
         const normalizedVolume = Math.round(cvcStream.volume / control.get_vol_max_norm() * 100);
@@ -648,6 +645,9 @@ function createMpvHandler(args) {
         },
         addTitleChangeHandler: (changeHandler) => {
             titleChangeHandler.push(changeHandler);
+        },
+        addLengthChangeHandler: (changeHandler) => {
+            lengthChangeHandler.push(changeHandler);
         },
         // it is very confusing but dbus must be returned!
         // Otherwilse all listeners stop working after about 20 seconds which is fucking difficult to debug
@@ -5309,14 +5309,8 @@ function createRadioAppletContainer(props) {
 
 function main() {
     initPolyfills();
-    // this is a workaround for now. Optimally the lastVolume should be saved persistently each time the volume is changed but this lead to significant performance issue on scrolling at the moment. However this shouldn't be the case as it is no problem to log the volume each time the volume changes (so it is a problem in the config implementation). As a workaround the volume is only saved persistently when the radio stops but the volume obviously can't be received anymore from dbus when the player has been already stopped ... 
-    let lastVolume;
     initConfig();
-    const mpvHandler = createMpvHandler({
-        onLengthChanged: hanldeLengthChanged,
-        onPositionChanged: handlePositionChanged,
-        // onPlaybackstatusChanged: handlePlaybackstatusChanged,
-    });
+    const mpvHandler = createMpvHandler();
     const appletContainer = createRadioAppletContainer({ mpvHandler });
     const volumeSlider = createVolumeSlider({
         onVolumeChanged: (volume) => mpvHandler === null || mpvHandler === void 0 ? void 0 : mpvHandler.setVolume(volume)
@@ -5326,9 +5320,8 @@ function main() {
     });
     function handleVolumeChanged(volume) {
         volumeSlider.setVolume(volume);
-        lastVolume = volume;
     }
-    function hanldeLengthChanged(length) {
+    function handleLengthChanged(length) {
         seeker.setLength(length);
     }
     function handlePositionChanged(position) {
