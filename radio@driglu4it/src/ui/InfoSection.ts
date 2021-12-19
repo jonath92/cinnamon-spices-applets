@@ -34,7 +34,7 @@ export function createInfoSection() {
     })
 
     addChannelChangeHandler((newChannel) => {
-        channelInfoItem.setText(newChannel || '')
+        channelInfoItem.setText(newChannel)
     })
 
     addTitleChangeHandler((newTitle) => {

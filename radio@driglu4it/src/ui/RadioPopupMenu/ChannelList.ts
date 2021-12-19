@@ -58,14 +58,13 @@ export function createChannelList() {
 
     function updateChannel(name: string | undefined) {
         channelItems.forEach(item => {
-
             item.getChannelName() === name ? item.setPlaybackStatus(getPlaybackStatus()) : item.setPlaybackStatus('Stopped')
         })
     }
 
     function updatePlaybackStatus(playbackStatus: AdvancedPlaybackStatus) {
 
-        if (playbackStatus === 'Stopped') return // already handled by updateChannel
+        if (playbackStatus === 'Stopped') channelItems.forEach(item => item.setPlaybackStatus('Stopped'))
 
         const currentChannel = channelItems.find(channelItem => channelItem.getChannelName() === getCurrentChannel())
         currentChannel?.setPlaybackStatus(playbackStatus)

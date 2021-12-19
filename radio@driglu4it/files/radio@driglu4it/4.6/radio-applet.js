@@ -344,7 +344,6 @@ function createMpvHandler() {
     let cvcStream;
     let isLoading = false;
     const playbackStatusChangeHandler = [];
-    // also executed when set to a falsy value due to radio stopped
     const channelNameChangeHandler = [];
     const volumeChangeHandler = []; //
     const titleChangeHandler = [];
@@ -397,7 +396,6 @@ function createMpvHandler() {
         seekListenerId && mediaServerPlayer.disconnectSignal(seekListenerId);
         mediaPropsListenerId = seekListenerId = currentUrl = null;
         playbackStatusChangeHandler.forEach(handler => handler('Stopped'));
-        channelNameChangeHandler.forEach(handler => handler(undefined));
         titleChangeHandler.forEach(handler => handler(undefined));
         settingsObject.lastVolume = lastVolume;
     }
@@ -496,7 +494,10 @@ function createMpvHandler() {
         if (positionTimerId)
             stopPositionTimer();
         positionChangeHandler.forEach(handler => handler(0));
-        channelNameChangeHandler.forEach(changeHandler => changeHandler(getCurrentChannelName()));
+        const currentChannelName = getCurrentChannelName();
+        if (!currentChannelName)
+            return; // TODO: this never happens (the stufff in the props change handler should be here)
+        channelNameChangeHandler.forEach(changeHandler => changeHandler(currentChannelName));
     }
     function handleMprisVolumeChanged(mprisVolume) {
         if (mprisVolume * 100 > MAX_VOLUME) {
@@ -4445,7 +4446,7 @@ function createInfoSection() {
         infoSection.add_child(infoItem.actor);
     });
     addChannelChangeHandler((newChannel) => {
-        channelInfoItem.setText(newChannel || '');
+        channelInfoItem.setText(newChannel);
     });
     addTitleChangeHandler((newTitle) => {
         songInfoItem.setText(newTitle || '');
@@ -4809,7 +4810,7 @@ function createChannelList() {
     }
     function updatePlaybackStatus(playbackStatus) {
         if (playbackStatus === 'Stopped')
-            return; // already handled by updateChannel
+            channelItems.forEach(item => item.setPlaybackStatus('Stopped'));
         const currentChannel = channelItems.find(channelItem => channelItem.getChannelName() === getCurrentChannel());
         currentChannel === null || currentChannel === void 0 ? void 0 : currentChannel.setPlaybackStatus(playbackStatus);
     }

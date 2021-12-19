@@ -42,8 +42,8 @@ function createMpvHandler() {
     let isLoading: boolean = false
 
     const playbackStatusChangeHandler: ChangeHandler<AdvancedPlaybackStatus>[] = []
-    // also executed when set to a falsy value due to radio stopped
-    const channelNameChangeHandler: ChangeHandler<string | undefined>[] = []
+
+    const channelNameChangeHandler: ChangeHandler<string >[] = []
     const volumeChangeHandler: ChangeHandler<number>[] = [] //
     const titleChangeHandler: ChangeHandler<string | undefined>[] = []
     const lengthChangeHandler: ChangeHandler<number | undefined>[] = []
@@ -110,7 +110,6 @@ function createMpvHandler() {
         seekListenerId && mediaServerPlayer.disconnectSignal(seekListenerId)
         mediaPropsListenerId = seekListenerId = currentUrl = null
         playbackStatusChangeHandler.forEach(handler => handler('Stopped'))
-        channelNameChangeHandler.forEach(handler => handler(undefined))
         titleChangeHandler.forEach(handler => handler(undefined))
         settingsObject.lastVolume = lastVolume
     }
@@ -235,7 +234,11 @@ function createMpvHandler() {
         if (positionTimerId) stopPositionTimer()
         positionChangeHandler.forEach(handler => handler(0))
 
-        channelNameChangeHandler.forEach(changeHandler => changeHandler(getCurrentChannelName()))
+        const currentChannelName = getCurrentChannelName()
+
+        if (!currentChannelName) return // TODO: this never happens (the stufff in the props change handler should be here)
+
+        channelNameChangeHandler.forEach(changeHandler => changeHandler(currentChannelName))
     }
 
     function handleMprisVolumeChanged(mprisVolume: number): void {
@@ -438,7 +441,7 @@ function createMpvHandler() {
             playbackStatusChangeHandler.push(changeHandler)
         },
 
-        addChannelChangeHandler: (changeHandler: ChangeHandler<string | undefined>) => {
+        addChannelChangeHandler: (changeHandler: ChangeHandler<string>) => {
             channelNameChangeHandler.push(changeHandler)
         },
 
