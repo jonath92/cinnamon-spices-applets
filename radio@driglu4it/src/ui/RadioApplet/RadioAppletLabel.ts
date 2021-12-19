@@ -1,25 +1,24 @@
-import { createConfig } from "../../Config"
+import { configs } from "../../Config"
 import { createAppletLabel } from "../../lib/AppletLabel"
 import { createMpvHandler } from "../../mpv/MpvHandler"
 
 interface Props {
-    configs: ReturnType<typeof createConfig>, 
     mpvHandler: ReturnType<typeof createMpvHandler>
 }
 
 export function createRadioAppletLabel(props: Props) {
 
-    const { 
-        configs: {
-            settingsObject, 
-            addChannelOnPanelChangeHandler
-        }, 
+    const {
         mpvHandler: {
-            getCurrentChannelName: getCurrentChannel, 
+            getCurrentChannelName: getCurrentChannel,
             addChannelChangeHandler
         }
-
     } = props
+
+    const {
+        settingsObject,
+        addChannelOnPanelChangeHandler
+    } = configs
 
     const label = createAppletLabel({
         visible: settingsObject.channelNameOnPanel,

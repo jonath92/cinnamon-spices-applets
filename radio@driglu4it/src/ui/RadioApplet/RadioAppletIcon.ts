@@ -2,29 +2,29 @@ import { createAppletIcon } from "../../lib/AppletIcon"
 import { createMpvHandler } from "../../mpv/MpvHandler"
 import { RADIO_SYMBOLIC_ICON_NAME, LOADING_ICON_NAME } from "../../consts"
 import { AdvancedPlaybackStatus } from "../../types"
-import { createConfig } from "../../Config"
+import { configs } from "../../Config"
 
 const { IconType } = imports.gi.St
 
 interface Arguments {
-    configs: ReturnType<typeof createConfig>,
     mpvHandler: ReturnType<typeof createMpvHandler>
 }
 
 export function createRadioAppletIcon(args: Arguments) {
 
     const {
-        configs: {
-            settingsObject,
-            addIconTypeChangeHandler,
-            addColorPlayingChangeHandler,
-            addColorPausedChangeHandler
-        },
         mpvHandler: {
             getPlaybackStatus,
             addPlaybackStatusChangeHandler
         }
     } = args
+
+    const {
+        settingsObject,
+        addIconTypeChangeHandler,
+        addColorPlayingChangeHandler,
+        addColorPausedChangeHandler
+    } = configs
 
     function getIconType() {
         return settingsObject.iconType === 'SYMBOLIC' ?

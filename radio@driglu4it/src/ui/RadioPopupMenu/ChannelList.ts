@@ -2,11 +2,10 @@ import { createSubMenu } from "../../lib/PopupSubMenu";
 import { createChannelMenuItem } from "./ChannelMenuItem";
 import { AdvancedPlaybackStatus } from "../../types";
 import { createMpvHandler } from "../../mpv/MpvHandler";
-import { createConfig } from "../../Config";
+import { configs } from "../../Config";
 
 interface Arguments {
     mpvHandler: ReturnType<typeof createMpvHandler>,
-    configs: ReturnType<typeof createConfig>
 }
 
 export function createChannelList(args: Arguments) {
@@ -16,14 +15,15 @@ export function createChannelList(args: Arguments) {
             getPlaybackStatus,
             getCurrentChannelName: getCurrentChannel,
             addChannelChangeHandler,
-            addPlaybackStatusChangeHandler, 
+            addPlaybackStatusChangeHandler,
             setUrl
         },
-        configs: {
-            addStationsListChangeHandler,
-            settingsObject
-        }
     } = args
+
+    const { 
+        addStationsListChangeHandler,
+        settingsObject 
+    } = configs
 
     const subMenu = createSubMenu({ text: 'My Stations' })
 
@@ -52,7 +52,7 @@ export function createChannelList(args: Arguments) {
 
             const channelItem = createChannelMenuItem({
                 channelName: name,
-                onActivated: () => setUrl(findUrl(name)), 
+                onActivated: () => setUrl(findUrl(name)),
                 playbackStatus: channelPlaybackstatus
             })
 
@@ -81,6 +81,6 @@ export function createChannelList(args: Arguments) {
     addChannelChangeHandler((newChannel) => updateChannel(newChannel))
     addPlaybackStatusChangeHandler((newStatus) => updatePlaybackStatus(newStatus))
     addStationsListChangeHandler(() => setRefreshList(getUserStationNames()))
-    
+
     return subMenu.actor
 }

@@ -209,6 +209,10 @@ __webpack_require__.d(__webpack_exports__, {
 
 ;// CONCATENATED MODULE: ./src/Config.ts
 const { AppletSettings } = imports.ui.settings;
+let configs;
+const initConfig = () => {
+    configs = createConfig();
+};
 const createConfig = () => {
     // all settings are saved to this object
     const settingsObject = {};
@@ -317,6 +321,7 @@ const LOADING_ICON_NAME = 'view-refresh-symbolic';
 
 ;// CONCATENATED MODULE: ./src/mpv/MpvHandler.ts
 
+
 const { getDBusProperties, getDBus, getDBusProxyWithOwner } = imports.misc.interfaces;
 const { spawnCommandLine } = imports.misc.util;
 // see https://lazka.github.io/pgi-docs/Cvc-1.0/index.html
@@ -324,9 +329,10 @@ const { MixerControl } = imports.gi.Cvc;
 function createMpvHandler(args) {
     const { 
     // onUrlChanged,
-    onLengthChanged, onPositionChanged, 
+    onLengthChanged, onPositionChanged,
     // checkUrlValid,
-    configs: { settingsObject, getInitialVolume, addStationsListChangeHandler } } = args;
+     } = args;
+    const { settingsObject, getInitialVolume, addStationsListChangeHandler } = configs;
     /** the lastUrl is used to determine if mpv is initially (i.e. on cinnamon restart) running for radio purposes and not for something else. It is not sufficient to get the url from a dbus interface and check if the url is valid because some streams (such as .pls streams) change their url dynamically. This approach in not 100% foolproof but probably the best possible approach */
     const lastUrl = settingsObject.lastUrl;
     const dbus = getDBus();
@@ -4456,8 +4462,10 @@ function createAppletLabel(props) {
 
 ;// CONCATENATED MODULE: ./src/ui/RadioApplet/RadioAppletLabel.ts
 
+
 function createRadioAppletLabel(props) {
-    const { configs: { settingsObject, addChannelOnPanelChangeHandler }, mpvHandler: { getCurrentChannelName: getCurrentChannel, addChannelChangeHandler } } = props;
+    const { mpvHandler: { getCurrentChannelName: getCurrentChannel, addChannelChangeHandler } } = props;
+    const { settingsObject, addChannelOnPanelChangeHandler } = configs;
     const label = createAppletLabel({
         visible: settingsObject.channelNameOnPanel,
         text: getCurrentChannel() || ''
@@ -4521,9 +4529,11 @@ function createAppletIcon(props) {
 ;// CONCATENATED MODULE: ./src/ui/RadioApplet/RadioAppletIcon.ts
 
 
+
 const { IconType: RadioAppletIcon_IconType } = imports.gi.St;
 function createRadioAppletIcon(args) {
-    const { configs: { settingsObject, addIconTypeChangeHandler, addColorPlayingChangeHandler, addColorPausedChangeHandler }, mpvHandler: { getPlaybackStatus, addPlaybackStatusChangeHandler } } = args;
+    const { mpvHandler: { getPlaybackStatus, addPlaybackStatusChangeHandler } } = args;
+    const { settingsObject, addIconTypeChangeHandler, addColorPlayingChangeHandler, addColorPausedChangeHandler } = configs;
     function getIconType() {
         return settingsObject.iconType === 'SYMBOLIC' ?
             RadioAppletIcon_IconType.SYMBOLIC : RadioAppletIcon_IconType.FULLCOLOR;
@@ -4784,8 +4794,10 @@ function createChannelMenuItem(args) {
 ;// CONCATENATED MODULE: ./src/ui/RadioPopupMenu/ChannelList.ts
 
 
+
 function createChannelList(args) {
-    const { mpvHandler: { getPlaybackStatus, getCurrentChannelName: getCurrentChannel, addChannelChangeHandler, addPlaybackStatusChangeHandler, setUrl }, configs: { addStationsListChangeHandler, settingsObject } } = args;
+    const { mpvHandler: { getPlaybackStatus, getCurrentChannelName: getCurrentChannel, addChannelChangeHandler, addPlaybackStatusChangeHandler, setUrl }, } = args;
+    const { addStationsListChangeHandler, settingsObject } = configs;
     const subMenu = createSubMenu({ text: 'My Stations' });
     const getUserStationNames = () => {
         return settingsObject.userStations.flatMap(station => station.inc ? [station.name] : []);
@@ -5073,8 +5085,10 @@ function notifyYoutubeDownloadStarted(args) {
 
 
 
+
 function createDownloadButton(args) {
-    const { mpvHandler: { getCurrentTitle }, configs: { settingsObject } } = args;
+    const { mpvHandler: { getCurrentTitle }, } = args;
+    const { settingsObject } = configs;
     const downloadButton = createControlBtn({
         iconName: DOWNLOAD_ICON_NAME,
         tooltipTxt: "Download current song from Youtube",
@@ -5108,7 +5122,7 @@ function createDownloadButton(args) {
 const { BoxLayout: MediaControlToolbar_BoxLayout } = imports.gi.St;
 const { ActorAlign: MediaControlToolbar_ActorAlign } = imports.gi.Clutter;
 const createMediaControlToolbar = (args) => {
-    const { mpvHandler, configs } = args;
+    const { mpvHandler, } = args;
     const toolbar = new MediaControlToolbar_BoxLayout({
         style_class: "radio-applet-media-control-toolbar",
         x_align: MediaControlToolbar_ActorAlign.CENTER
@@ -5123,7 +5137,7 @@ const createMediaControlToolbar = (args) => {
         mpvHandler
     });
     const downloadBtn = createDownloadButton({
-        mpvHandler, configs
+        mpvHandler
     });
     [playPauseBtn, downloadBtn, copyBtn, stopBtn].forEach(btn => toolbar.add_child(btn));
     return toolbar;
@@ -5137,11 +5151,10 @@ const createMediaControlToolbar = (args) => {
 
 const { BoxLayout: RadioPopupMenu_BoxLayout } = imports.gi.St;
 function createRadioPopupMenu(props) {
-    const { launcher, configs, mpvHandler } = props;
+    const { launcher, mpvHandler } = props;
     const { getPlaybackStatus } = mpvHandler;
     const popupMenu = (0,cinnamonpopup/* createPopupMenu */.S)({ launcher });
     const channelList = createChannelList({
-        configs,
         mpvHandler
     });
     const radioActiveSection = new RadioPopupMenu_BoxLayout({
@@ -5150,7 +5163,6 @@ function createRadioPopupMenu(props) {
     });
     const mediaControlToolbar = createMediaControlToolbar({
         mpvHandler,
-        configs
     });
     const infoSection = createInfoSection({
         mpvHandler
@@ -5246,11 +5258,11 @@ function downloadMrisPluginInteractive() {
 
 const { ScrollDirection: RadioAppletContainer_ScrollDirection } = imports.gi.Clutter;
 function createRadioAppletContainer(props) {
-    const { configs, mpvHandler } = props;
+    const { mpvHandler } = props;
     let installationInProgress = false;
     const appletContainer = createAppletContainer({
-        icon: createRadioAppletIcon({ configs, mpvHandler }),
-        label: createRadioAppletLabel({ configs, mpvHandler }),
+        icon: createRadioAppletIcon({ mpvHandler }),
+        label: createRadioAppletLabel({ mpvHandler }),
         onMiddleClick: () => mpvHandler.togglePlayPause(),
         onMoved: () => mpvHandler.deactivateAllListener(),
         onRemoved: handleAppletRemoved,
@@ -5259,7 +5271,7 @@ function createRadioAppletContainer(props) {
         onScroll: handleScroll
     });
     createRadioAppletTooltip({ mpvHandler, appletContainer });
-    const popupMenu = createRadioPopupMenu({ launcher: appletContainer.actor, mpvHandler, configs });
+    const popupMenu = createRadioPopupMenu({ launcher: appletContainer.actor, mpvHandler });
     function handleAppletRemoved() {
         mpvHandler === null || mpvHandler === void 0 ? void 0 : mpvHandler.deactivateAllListener();
         mpvHandler === null || mpvHandler === void 0 ? void 0 : mpvHandler.stop();
@@ -5299,14 +5311,13 @@ function main() {
     initPolyfills();
     // this is a workaround for now. Optimally the lastVolume should be saved persistently each time the volume is changed but this lead to significant performance issue on scrolling at the moment. However this shouldn't be the case as it is no problem to log the volume each time the volume changes (so it is a problem in the config implementation). As a workaround the volume is only saved persistently when the radio stops but the volume obviously can't be received anymore from dbus when the player has been already stopped ... 
     let lastVolume;
-    const configs = createConfig();
+    initConfig();
     const mpvHandler = createMpvHandler({
         onLengthChanged: hanldeLengthChanged,
         onPositionChanged: handlePositionChanged,
         // onPlaybackstatusChanged: handlePlaybackstatusChanged,
-        configs
     });
-    const appletContainer = createRadioAppletContainer({ configs, mpvHandler });
+    const appletContainer = createRadioAppletContainer({ mpvHandler });
     const volumeSlider = createVolumeSlider({
         onVolumeChanged: (volume) => mpvHandler === null || mpvHandler === void 0 ? void 0 : mpvHandler.setVolume(volume)
     });

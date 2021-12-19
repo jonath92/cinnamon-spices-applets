@@ -1,19 +1,15 @@
 import { createPopupMenu } from "cinnamonpopup"
-import { createConfig } from "../../Config"
 import { createSeparatorMenuItem } from "../../lib/PopupSeperator"
 import { createMpvHandler } from "../../mpv/MpvHandler"
 import { createInfoSection } from "../InfoSection"
 import { createChannelList } from "./ChannelList"
-import { createCopyButton } from "./MediaControlToolbar/CopyButton"
 import { createMediaControlToolbar } from "./MediaControlToolbar/MediaControlToolbar"
-import { createPlayPauseButton } from "./MediaControlToolbar/PlayPauseButton"
 
 const { BoxLayout } = imports.gi.St
 
-export function createRadioPopupMenu(props: { launcher: imports.gi.St.BoxLayout, mpvHandler: ReturnType<typeof createMpvHandler>, configs: ReturnType<typeof createConfig> }) {
+export function createRadioPopupMenu(props: { launcher: imports.gi.St.BoxLayout, mpvHandler: ReturnType<typeof createMpvHandler>}) {
     const {
         launcher,
-        configs,
         mpvHandler
     } = props
 
@@ -22,7 +18,6 @@ export function createRadioPopupMenu(props: { launcher: imports.gi.St.BoxLayout,
     const popupMenu = createPopupMenu({ launcher })
 
     const channelList = createChannelList({
-        configs,
         mpvHandler
     })
 
@@ -33,7 +28,6 @@ export function createRadioPopupMenu(props: { launcher: imports.gi.St.BoxLayout,
 
     const mediaControlToolbar = createMediaControlToolbar({
         mpvHandler, 
-        configs
     }) 
 
     const infoSection = createInfoSection({

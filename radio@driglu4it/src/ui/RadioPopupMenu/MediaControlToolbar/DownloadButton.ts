@@ -1,4 +1,4 @@
-import { createConfig } from "../../../Config";
+import { configs } from "../../../Config";
 import { DOWNLOAD_ICON_NAME } from "../../../consts";
 import { downloadSongFromYoutube } from "../../../functions/downloadFromYoutube";
 import { createMpvHandler } from "../../../mpv/MpvHandler";
@@ -9,7 +9,6 @@ import { createControlBtn } from "./ControlBtn";
 
 interface Arguments {
     mpvHandler: ReturnType<typeof createMpvHandler>
-    configs: ReturnType<typeof createConfig>
 }
 
 export function createDownloadButton(args: Arguments) {
@@ -18,10 +17,11 @@ export function createDownloadButton(args: Arguments) {
         mpvHandler: {
             getCurrentTitle
         }, 
-        configs: {
-            settingsObject
-        }
     } = args
+
+    const {
+        settingsObject
+    } = configs
 
     const downloadButton = createControlBtn({
         iconName: DOWNLOAD_ICON_NAME,

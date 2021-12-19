@@ -1,7 +1,7 @@
 import { PlayPause, AdvancedPlaybackStatus, ChangeHandler } from '../types'
 import { MPV_MPRIS_BUS_NAME, MEDIA_PLAYER_2_PATH, MPRIS_PLUGIN_PATH, MAX_VOLUME, MEDIA_PLAYER_2_NAME, MEDIA_PLAYER_2_PLAYER_NAME, MPV_CVC_NAME } from '../consts'
 import { MprisMediaPlayerDbus, MprisPropsDbus } from '../types';
-import { createConfig } from '../Config';
+import { configs } from '../Config';
 const { getDBusProperties, getDBus, getDBusProxyWithOwner } = imports.misc.interfaces
 const { spawnCommandLine } = imports.misc.util;
 // see https://lazka.github.io/pgi-docs/Cvc-1.0/index.html
@@ -15,8 +15,6 @@ export interface Arguments {
     /** position in seconds */
     onPositionChanged: (position: number) => void,
     // checkUrlValid: (url: string) => boolean,
-
-    configs: ReturnType<typeof createConfig>
 }
 
 export function createMpvHandler(args: Arguments) {
@@ -25,12 +23,14 @@ export function createMpvHandler(args: Arguments) {
         onLengthChanged,
         onPositionChanged,
         // checkUrlValid,
-        configs: {
-            settingsObject,
-            getInitialVolume,
-            addStationsListChangeHandler
-        }
     } = args
+
+    const {
+        settingsObject,
+        getInitialVolume,
+        addStationsListChangeHandler
+    } = configs
+
 
     /** the lastUrl is used to determine if mpv is initially (i.e. on cinnamon restart) running for radio purposes and not for something else. It is not sufficient to get the url from a dbus interface and check if the url is valid because some streams (such as .pls streams) change their url dynamically. This approach in not 100% foolproof but probably the best possible approach */
     const lastUrl = settingsObject.lastUrl

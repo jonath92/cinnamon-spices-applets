@@ -15,7 +15,13 @@ interface Settings {
     musicDownloadDir: string
 }
 
-export const createConfig = () => {
+export let configs: ReturnType<typeof createConfig>
+
+export const initConfig = () => {
+    configs = createConfig()
+}
+
+const createConfig = () => {
 
     // all settings are saved to this object
     const settingsObject = {} as Omit<Settings, 'initialVolume'>
