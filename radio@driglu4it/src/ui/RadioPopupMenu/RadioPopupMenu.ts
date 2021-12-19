@@ -1,38 +1,31 @@
 import { createPopupMenu } from "cinnamonpopup"
 import { createSeparatorMenuItem } from "../../lib/PopupSeperator"
-import { createMpvHandler } from "../../mpv/MpvHandler"
+import { mpvHandler } from "../../mpv/MpvHandler"
 import { createInfoSection } from "../InfoSection"
 import { createChannelList } from "./ChannelList"
 import { createMediaControlToolbar } from "./MediaControlToolbar/MediaControlToolbar"
 
 const { BoxLayout } = imports.gi.St
 
-export function createRadioPopupMenu(props: { launcher: imports.gi.St.BoxLayout, mpvHandler: ReturnType<typeof createMpvHandler>}) {
+export function createRadioPopupMenu(props: { launcher: imports.gi.St.BoxLayout }) {
     const {
         launcher,
-        mpvHandler
     } = props
 
     const { getPlaybackStatus } = mpvHandler
 
     const popupMenu = createPopupMenu({ launcher })
 
-    const channelList = createChannelList({
-        mpvHandler
-    })
+    const channelList = createChannelList()
 
     const radioActiveSection = new BoxLayout({
         vertical: true,
         visible: getPlaybackStatus() !== 'Stopped'
     });
 
-    const mediaControlToolbar = createMediaControlToolbar({
-        mpvHandler, 
-    }) 
+    const mediaControlToolbar = createMediaControlToolbar()
 
-    const infoSection = createInfoSection({
-        mpvHandler
-    });
+    const infoSection = createInfoSection();
 
     [infoSection, mediaControlToolbar].forEach(widget => {
         radioActiveSection.add_child(createSeparatorMenuItem())

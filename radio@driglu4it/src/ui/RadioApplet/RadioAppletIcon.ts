@@ -1,23 +1,17 @@
 import { createAppletIcon } from "../../lib/AppletIcon"
-import { createMpvHandler } from "../../mpv/MpvHandler"
+import { mpvHandler } from "../../mpv/MpvHandler"
 import { RADIO_SYMBOLIC_ICON_NAME, LOADING_ICON_NAME } from "../../consts"
 import { AdvancedPlaybackStatus } from "../../types"
 import { configs } from "../../Config"
 
 const { IconType } = imports.gi.St
 
-interface Arguments {
-    mpvHandler: ReturnType<typeof createMpvHandler>
-}
-
-export function createRadioAppletIcon(args: Arguments) {
+export function createRadioAppletIcon() {
 
     const {
-        mpvHandler: {
-            getPlaybackStatus,
-            addPlaybackStatusChangeHandler
-        }
-    } = args
+        getPlaybackStatus,
+        addPlaybackStatusChangeHandler
+    } = mpvHandler
 
     const {
         settingsObject,

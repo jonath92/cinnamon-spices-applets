@@ -1,21 +1,14 @@
 import { PAUSE_ICON_NAME, PLAY_ICON_NAME } from "../../../consts"
-import { createMpvHandler } from "../../../mpv/MpvHandler"
-import { PlayPause } from "../../../types"
+import { mpvHandler } from "../../../mpv/MpvHandler"
 import { createControlBtn } from "./ControlBtn"
 
-interface Arguments {
-    mpvHandler: ReturnType<typeof createMpvHandler>
-}
-
-export function createPlayPauseButton(args: Arguments) {
+export function createPlayPauseButton() {
 
     const {
-        mpvHandler: {
-            getPlaybackStatus, 
-            togglePlayPause, 
-            addPlaybackStatusChangeHandler
-        }
-    } = args
+        getPlaybackStatus, 
+        togglePlayPause, 
+        addPlaybackStatusChangeHandler
+    } = mpvHandler
 
     const radioStarted = () => {
         return getPlaybackStatus() === 'Playing' ||  getPlaybackStatus() === 'Loading'
@@ -34,8 +27,6 @@ export function createPlayPauseButton(args: Arguments) {
             controlBtn.tooltip.set_text('Play')
         }
     }
-
-
 
     addPlaybackStatusChangeHandler(() => {
         initUpdateControlBtn()

@@ -1,23 +1,16 @@
 import { configs } from "../../../Config";
 import { DOWNLOAD_ICON_NAME } from "../../../consts";
 import { downloadSongFromYoutube } from "../../../functions/downloadFromYoutube";
-import { createMpvHandler } from "../../../mpv/MpvHandler";
+import { mpvHandler } from "../../../mpv/MpvHandler";
 import { notifyYoutubeDownloadFailed } from "../../Notifications/YoutubeDownloadFailedNotification";
 import { notifyYoutubeDownloadFinished } from "../../Notifications/YoutubeDownloadFinishedNotification";
 import { notifyYoutubeDownloadStarted } from "../../Notifications/YoutubeDownloadStartedNotification";
 import { createControlBtn } from "./ControlBtn";
 
-interface Arguments {
-    mpvHandler: ReturnType<typeof createMpvHandler>
-}
 
-export function createDownloadButton(args: Arguments) {
+export function createDownloadButton() {
 
-    const {
-        mpvHandler: {
-            getCurrentTitle
-        }, 
-    } = args
+    const { getCurrentTitle } = mpvHandler
 
     const {
         settingsObject

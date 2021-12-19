@@ -1,6 +1,6 @@
 
 import { createAppletContainer } from "../../lib/AppletContainer"
-import { createMpvHandler } from "../../mpv/MpvHandler"
+import { mpvHandler } from "../../mpv/MpvHandler"
 import { createRadioAppletLabel } from "./RadioAppletLabel"
 import { createRadioAppletTooltip } from "./RadioAppletTooltip"
 import { createRadioAppletIcon } from "./RadioAppletIcon"
@@ -11,19 +11,13 @@ import { notify } from "../Notifications/GenericNotification"
 
 const { ScrollDirection } = imports.gi.Clutter;
 
-interface Props {
-    mpvHandler: ReturnType<typeof createMpvHandler>
-}
-
-export function createRadioAppletContainer(props: Props) {
-
-    const { mpvHandler } = props
+export function createRadioAppletContainer() {
 
     let installationInProgress = false
 
     const appletContainer = createAppletContainer({
-        icon: createRadioAppletIcon({ mpvHandler }),
-        label: createRadioAppletLabel({ mpvHandler }),
+        icon: createRadioAppletIcon(),
+        label: createRadioAppletLabel(),
         onMiddleClick: () => mpvHandler.togglePlayPause(),
         onMoved: () => mpvHandler.deactivateAllListener(),
         onRemoved: handleAppletRemoved,
@@ -32,9 +26,9 @@ export function createRadioAppletContainer(props: Props) {
         onScroll: handleScroll
     })
 
-    createRadioAppletTooltip({ mpvHandler, appletContainer })
+    createRadioAppletTooltip({ appletContainer })
 
-    const popupMenu = createRadioPopupMenu({ launcher: appletContainer.actor, mpvHandler })
+    const popupMenu = createRadioPopupMenu({ launcher: appletContainer.actor})
 
     function handleAppletRemoved() {
         mpvHandler?.deactivateAllListener()

@@ -1,28 +1,23 @@
 import { createSubMenu } from "../../lib/PopupSubMenu";
 import { createChannelMenuItem } from "./ChannelMenuItem";
 import { AdvancedPlaybackStatus } from "../../types";
-import { createMpvHandler } from "../../mpv/MpvHandler";
+import { mpvHandler } from "../../mpv/MpvHandler";
 import { configs } from "../../Config";
 
-interface Arguments {
-    mpvHandler: ReturnType<typeof createMpvHandler>,
-}
 
-export function createChannelList(args: Arguments) {
+export function createChannelList() {
 
     const {
-        mpvHandler: {
-            getPlaybackStatus,
-            getCurrentChannelName: getCurrentChannel,
-            addChannelChangeHandler,
-            addPlaybackStatusChangeHandler,
-            setUrl
-        },
-    } = args
+        getPlaybackStatus,
+        getCurrentChannelName: getCurrentChannel,
+        addChannelChangeHandler,
+        addPlaybackStatusChangeHandler,
+        setUrl
+    } = mpvHandler
 
-    const { 
+    const {
         addStationsListChangeHandler,
-        settingsObject 
+        settingsObject
     } = configs
 
     const subMenu = createSubMenu({ text: 'My Stations' })

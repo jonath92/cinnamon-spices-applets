@@ -1,18 +1,13 @@
 import { STOP_ICON_NAME } from "../../../consts";
-import { createMpvHandler } from "../../../mpv/MpvHandler";
+import { mpvHandler } from "../../../mpv/MpvHandler";
 import { createControlBtn } from "./ControlBtn";
 
-interface Arguments {
-    mpvHandler: ReturnType<typeof createMpvHandler>
-}
 
-export function createStopBtn(args: Arguments) {
+export function createStopBtn() {
 
     const {
-        mpvHandler: {
-            stop
-        }
-    } = args
+        stop
+    } = mpvHandler
 
     const stopBtn = createControlBtn({
         iconName: STOP_ICON_NAME,

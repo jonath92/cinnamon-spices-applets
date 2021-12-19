@@ -1,5 +1,5 @@
 import { initConfig } from './Config';
-import { createMpvHandler } from './mpv/MpvHandler';
+import { initMpvHandler } from './mpv/MpvHandler';
 import { createVolumeSlider } from './ui/VolumeSlider';
 import { createSeeker } from './ui/Seeker';
 import { initPolyfills } from './polyfill';
@@ -9,35 +9,30 @@ import { createRadioAppletContainer } from './ui/RadioApplet/RadioAppletContaine
 export function main(): imports.ui.applet.Applet {
 
 
+    // order must be retained!
     initPolyfills()
     initConfig()
+    initMpvHandler()
 
-    const mpvHandler = createMpvHandler()
-
-    const appletContainer = createRadioAppletContainer({mpvHandler})
-
-
-    const volumeSlider = createVolumeSlider({
-        onVolumeChanged: (volume) => mpvHandler?.setVolume(volume)
-    })
-
-    const seeker = createSeeker({
-        onPositionChanged: (value) => mpvHandler?.setPosition(value)
-    })
+    const appletContainer = createRadioAppletContainer()
 
 
-    function handleVolumeChanged(volume: number) {
-        volumeSlider.setVolume(volume)
-    }
+    // const volumeSlider = createVolumeSlider({
+    //     onVolumeChanged: (volume) => mpvHandler?.setVolume(volume)
+    // })
+
+    // const seeker = createSeeker({
+    //     onPositionChanged: (value) => mpvHandler?.setPosition(value)
+    // })
 
 
-    function handleLengthChanged(length: number) {
-        seeker.setLength(length)
-    }
+    // function handleLengthChanged(length: number) {
+    //     seeker.setLength(length)
+    // }
 
-    function handlePositionChanged(position: number) {
-        seeker?.setPosition(position)
-    }
+    // function handlePositionChanged(position: number) {
+    //     seeker?.setPosition(position)
+    // }
 
     return appletContainer
 

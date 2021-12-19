@@ -1,24 +1,24 @@
-import { DEFAULT_TOOLTIP_TXT, MPV_CVC_NAME } from "../../consts"
-import { createMpvHandler } from "../../mpv/MpvHandler"
+import { DEFAULT_TOOLTIP_TXT } from "../../consts"
+import { mpvHandler } from "../../mpv/MpvHandler"
 
 const { PanelItemTooltip } = imports.ui.tooltips
 
 interface Arguments {
     appletContainer: imports.ui.applet.Applet
-    mpvHandler: ReturnType<typeof createMpvHandler>
 }
 
 export function createRadioAppletTooltip(args: Arguments) {
 
     const {
-        appletContainer, 
-        mpvHandler: {
-            getVolume, 
-            addVolumeChangeHandler
-        }
+        appletContainer,
     } = args
 
-    function getTitle(): string{
+    const {
+        getVolume,
+        addVolumeChangeHandler
+    } = mpvHandler
+
+    function getTitle(): string {
         const volume = getVolume()
         if (!volume) return DEFAULT_TOOLTIP_TXT
         return `Volume: ${volume.toString()} %`

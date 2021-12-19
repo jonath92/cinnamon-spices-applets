@@ -1,19 +1,12 @@
 import { COPY_ICON_NAME } from "../../../consts";
-import { createMpvHandler } from "../../../mpv/MpvHandler";
+import { mpvHandler } from "../../../mpv/MpvHandler";
 import { createControlBtn } from "./ControlBtn";
 const { Clipboard, ClipboardType } = imports.gi.St
 
-interface Arguments {
-    mpvHandler: ReturnType<typeof createMpvHandler>
-}
 
-export function createCopyButton(args: Arguments) {
 
-    const {
-        mpvHandler: {
-            getCurrentTitle
-        }
-    } = args
+export function createCopyButton() {
+    const { getCurrentTitle } = mpvHandler
 
     const defaultTooltipTxt = "Copy current song title to Clipboard"
 
@@ -46,5 +39,5 @@ export function createCopyButton(args: Arguments) {
     }
 
     return controlBtn.actor
-    
+
 }

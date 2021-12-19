@@ -327,6 +327,10 @@ const { getDBusProperties, getDBus, getDBusProxyWithOwner } = imports.misc.inter
 const { spawnCommandLine } = imports.misc.util;
 // see https://lazka.github.io/pgi-docs/Cvc-1.0/index.html
 const { MixerControl } = imports.gi.Cvc;
+let mpvHandler;
+const initMpvHandler = () => {
+    mpvHandler = createMpvHandler();
+};
 function createMpvHandler() {
     const { settingsObject, getInitialVolume, addStationsListChangeHandler } = configs;
     /** the lastUrl is used to determine if mpv is initially (i.e. on cinnamon restart) running for radio purposes and not for something else. It is not sufficient to get the url from a dbus interface and check if the url is valid because some streams (such as .pls streams) change their url dynamically. This approach in not 100% foolproof but probably the best possible approach */
@@ -652,306 +656,6 @@ function createMpvHandler() {
         // it is very confusing but dbus must be returned!
         // Otherwilse all listeners stop working after about 20 seconds which is fucking difficult to debug
         dbus
-    };
-}
-
-;// CONCATENATED MODULE: ./src/lib/ActivWidget.ts
-const { KEY_space, KEY_KP_Enter, KEY_Return } = imports.gi.Clutter;
-function createActivWidget(args) {
-    const { widget, onActivated } = args;
-    // TODO: understand can_focus
-    widget.can_focus = true;
-    widget.reactive = true;
-    widget.track_hover = true;
-    widget.connect('button-release-event', () => {
-        onActivated === null || onActivated === void 0 ? void 0 : onActivated();
-        return false;
-    });
-    // TODO: This is needed because some themes (at least Adapta-Nokto but maybe also others) don't provide style for the hover pseudo class. But it would be much easier to once (and on theme changes) programmatically set the hover pseudo class equal to the active pseudo class when the hover class isn't provided by the theme. 
-    widget.connect('notify::hover', () => {
-        widget.change_style_pseudo_class('active', widget.hover);
-        if (widget.hover)
-            widget.grab_key_focus();
-    });
-    widget.connect('key-press-event', (actor, event) => {
-        const symbol = event.get_key_symbol();
-        const relevantKeys = [KEY_space, KEY_KP_Enter, KEY_Return];
-        if (relevantKeys.includes(symbol) && widget.hover)
-            onActivated === null || onActivated === void 0 ? void 0 : onActivated();
-        return false;
-    });
-}
-
-;// CONCATENATED MODULE: ./src/lib/Slider.ts
-const { DrawingArea } = imports.gi.St;
-const { cairo_set_source_color, grab_pointer, ungrab_pointer } = imports.gi.Clutter;
-function createSlider(args) {
-    const style_class = 'popup-slider-menu-item';
-    const { initialValue, onValueChanged } = args;
-    let value;
-    if (initialValue)
-        value = limitToMinMax(initialValue);
-    const drawing = new DrawingArea({
-        style_class,
-        reactive: true,
-        x_expand: true
-    });
-    drawing.connect('repaint', () => {
-        const cr = drawing.get_context();
-        const themeNode = drawing.get_theme_node();
-        const [width, height] = drawing.get_surface_size();
-        const handleRadius = themeNode.get_length('-slider-handle-radius');
-        const sliderHeight = themeNode.get_length('-slider-height');
-        const sliderBorderWidth = themeNode.get_length('-slider-border-width');
-        const sliderBorderRadius = Math.min(width, sliderHeight) / 2;
-        const sliderBorderColor = themeNode.get_color('-slider-border-color');
-        const sliderColor = themeNode.get_color('-slider-background-color');
-        const sliderActiveBorderColor = themeNode.get_color('-slider-active-border-color');
-        const sliderActiveColor = themeNode.get_color('-slider-active-background-color');
-        const TAU = Math.PI * 2;
-        const handleX = handleRadius + (width - 2 * handleRadius) * value;
-        cr.arc(sliderBorderRadius + sliderBorderWidth, height / 2, sliderBorderRadius, TAU * 1 / 4, TAU * 3 / 4);
-        cr.lineTo(handleX, (height - sliderHeight) / 2);
-        cr.lineTo(handleX, (height + sliderHeight) / 2);
-        cr.lineTo(sliderBorderRadius + sliderBorderWidth, (height + sliderHeight) / 2);
-        cairo_set_source_color(cr, sliderActiveColor);
-        cr.fillPreserve();
-        cairo_set_source_color(cr, sliderActiveBorderColor);
-        cr.setLineWidth(sliderBorderWidth);
-        cr.stroke();
-        cr.arc(width - sliderBorderRadius - sliderBorderWidth, height / 2, sliderBorderRadius, TAU * 3 / 4, TAU * 1 / 4);
-        cr.lineTo(handleX, (height + sliderHeight) / 2);
-        cr.lineTo(handleX, (height - sliderHeight) / 2);
-        cr.lineTo(width - sliderBorderRadius - sliderBorderWidth, (height - sliderHeight) / 2);
-        cairo_set_source_color(cr, sliderColor);
-        cr.fillPreserve();
-        cairo_set_source_color(cr, sliderBorderColor);
-        cr.setLineWidth(sliderBorderWidth);
-        cr.stroke();
-        const handleY = height / 2;
-        const color = themeNode.get_foreground_color();
-        cairo_set_source_color(cr, color);
-        cr.arc(handleX, handleY, handleRadius, 0, 2 * Math.PI);
-        cr.fill();
-        cr.$dispose();
-    });
-    drawing.connect('button-press-event', (actor, event) => {
-        grab_pointer(drawing);
-        const motionId = drawing.connect('motion-event', (actor, event) => {
-            moveHandle(event);
-            return false;
-        });
-        const buttonReleaseId = drawing.connect('button-release-event', () => {
-            drawing.disconnect(buttonReleaseId);
-            drawing.disconnect(motionId);
-            ungrab_pointer();
-            return false;
-        });
-        moveHandle(event);
-        return false;
-    });
-    function moveHandle(event) {
-        const [absX, absY] = event.get_coords();
-        const [sliderX, sliderY] = drawing.get_transformed_position();
-        const relX = absX - (sliderX || 0);
-        const width = drawing.width;
-        const handleRadius = drawing.get_theme_node().get_length('-slider-handle-radius');
-        const newValue = (relX - handleRadius) / (width - 2 * handleRadius);
-        const newValueLimitToMinMax = limitToMinMax(newValue);
-        setValue(newValueLimitToMinMax);
-    }
-    function limitToMinMax(value) {
-        return Math.max(Math.min(value, 1), 0);
-    }
-    function setValue(newValue, silent = false) {
-        const correctedValue = limitToMinMax(newValue);
-        if (correctedValue === value)
-            return;
-        value = correctedValue;
-        if (!silent)
-            onValueChanged === null || onValueChanged === void 0 ? void 0 : onValueChanged(value);
-        drawing.queue_repaint();
-    }
-    function getValue() {
-        return value;
-    }
-    return {
-        actor: drawing,
-        setValue,
-        getValue
-    };
-}
-
-;// CONCATENATED MODULE: ./src/ui/VolumeSlider.ts
-
-
-
-const { BoxLayout, Icon, IconType } = imports.gi.St;
-const { Tooltip } = imports.ui.tooltips;
-const { KEY_Right, KEY_Left, ScrollDirection } = imports.gi.Clutter;
-function createVolumeSlider(args) {
-    const { onVolumeChanged } = args;
-    let tooltip;
-    const container = new BoxLayout({
-        style_class: POPUP_MENU_ITEM_CLASS,
-    });
-    createActivWidget({
-        widget: container
-    });
-    /** in Percent and rounded! */
-    let volume;
-    const slider = createSlider({
-        onValueChanged: handleSliderValueChanged
-    });
-    const icon = new Icon({
-        icon_type: IconType.SYMBOLIC,
-        style_class: POPUP_ICON_CLASS,
-        reactive: true
-    });
-    [icon, slider.actor].forEach(widget => {
-        container.add_child(widget);
-    });
-    container.connect('key-press-event', (actor, event) => {
-        const key = event.get_key_symbol();
-        if (key === KEY_Right || key === KEY_Left) {
-            const direction = (key === KEY_Right) ? 'increase' : 'decrease';
-            deltaChange(direction);
-        }
-        return false;
-    });
-    container.connect('scroll-event', (actor, event) => {
-        const scrollDirection = event.get_scroll_direction();
-        const direction = (scrollDirection === ScrollDirection.UP) ? 'increase' : 'decrease';
-        deltaChange(direction);
-        return false;
-    });
-    icon.connect('button-press-event', () => {
-        slider.setValue(0);
-        return false;
-    });
-    /**
-     *
-     * @param newValue between 0 and 1
-     */
-    function handleSliderValueChanged(newValue) {
-        updateVolume(newValue * 100, true);
-    }
-    function deltaChange(direction) {
-        const delta = (direction === 'increase') ? VOLUME_DELTA : -VOLUME_DELTA;
-        const newValue = slider.getValue() + delta / 100;
-        slider.setValue(newValue);
-    }
-    /**
-     *
-     * @param newVolume in percent but doesn't need to be rounded
-     * @param showTooltip
-     */
-    function updateVolume(newVolume, showTooltip) {
-        const newVolumeRounded = Math.round(newVolume);
-        if (newVolumeRounded === volume)
-            return;
-        volume = newVolumeRounded;
-        slider.setValue(volume / 100);
-        icon.set_icon_name(getVolumeIcon({ volume }));
-        setTooltip(volume);
-        showTooltip && tooltip.show();
-        onVolumeChanged === null || onVolumeChanged === void 0 ? void 0 : onVolumeChanged(volume);
-    }
-    /**
-     *
-     * @param volume in Percent and rounded!
-     */
-    function setTooltip(volume) {
-        if (!tooltip)
-            tooltip = new Tooltip(slider.actor, ' ');
-        tooltip.set_text(`Volume: ${volume.toString()} %`);
-    }
-    /**
-     *
-     * @param newVolume in percent (0-100)
-     */
-    function setVolume(newVolume) {
-        updateVolume(newVolume, false);
-    }
-    return {
-        actor: container,
-        setVolume
-    };
-}
-
-;// CONCATENATED MODULE: ./src/ui/Seeker.ts
-
-
-
-const { BoxLayout: Seeker_BoxLayout, Label } = imports.gi.St;
-function createTimeLabel() {
-    return new Label({
-        // used to ensure that the width doesn't change on some fonts
-        style: 'font-family: mono'
-    });
-}
-function createSeeker(args) {
-    const { onPositionChanged } = args;
-    const container = new Seeker_BoxLayout({
-        style_class: POPUP_MENU_ITEM_CLASS
-    });
-    createActivWidget({
-        widget: container
-    });
-    // length in seconds
-    let length = 100;
-    // position in seconds
-    let position;
-    const positionLabel = createTimeLabel();
-    const lengthLabel = createTimeLabel();
-    const slider = createSlider({
-        initialValue: 0.5,
-        onValueChanged: handleValueChanged
-    });
-    [positionLabel, slider.actor, lengthLabel].forEach(widget => {
-        container.add_child(widget);
-    });
-    /** @param value in seconds */
-    function setLength(value) {
-        length = value;
-        lengthLabel.set_text(secondsToFormatedMin(value));
-        refreshSliderValue();
-    }
-    /** @param value in seconds */
-    function setPosition(value) {
-        position = value;
-        positionLabel.set_text(secondsToFormatedMin(position));
-        refreshSliderValue();
-    }
-    function refreshSliderValue() {
-        const sliderValue = length === 0 ? 0 : Math.min(position / length, 1);
-        slider.setValue(sliderValue, true);
-    }
-    function handleValueChanged(value) {
-        const newPosition = value * length;
-        onPositionChanged(newPosition);
-    }
-    /**
-     * converts seconds to a string in the form of: mm:ss
-     *
-     * e.g. 10 seconds = 00:10, 100 seconds = 01:40,  6000 seconds = 100:00
-     *
-     * @param seconds
-     * @returns
-     */
-    function secondsToFormatedMin(seconds) {
-        const minutes = Math.floor(seconds / 60);
-        const remainingSeconds = seconds - minutes * 60;
-        // ensures minutes and seconds are shown with at least two digits
-        return [minutes, remainingSeconds].map(value => {
-            const valueString = value.toString().padStart(2, '0');
-            return valueString;
-        }).join(":");
-    }
-    return {
-        actor: container,
-        setLength,
-        setPosition
     };
 }
 
@@ -4450,11 +4154,11 @@ function createAppletContainer(args) {
 }
 
 ;// CONCATENATED MODULE: ./src/lib/AppletLabel.ts
-const { Label: AppletLabel_Label } = imports.gi.St;
+const { Label } = imports.gi.St;
 const { ActorAlign } = imports.gi.Clutter;
 const { EllipsizeMode } = imports.gi.Pango;
 function createAppletLabel(props) {
-    const label = new AppletLabel_Label(Object.assign({ reactive: true, track_hover: true, style_class: 'applet-label', y_align: ActorAlign.CENTER, y_expand: false }, props));
+    const label = new Label(Object.assign({ reactive: true, track_hover: true, style_class: 'applet-label', y_align: ActorAlign.CENTER, y_expand: false }, props));
     // No idea why needed but without the label is not shown 
     label.clutter_text.ellipsize = EllipsizeMode.NONE;
     return label;
@@ -4463,8 +4167,9 @@ function createAppletLabel(props) {
 ;// CONCATENATED MODULE: ./src/ui/RadioApplet/RadioAppletLabel.ts
 
 
-function createRadioAppletLabel(props) {
-    const { mpvHandler: { getCurrentChannelName: getCurrentChannel, addChannelChangeHandler } } = props;
+
+function createRadioAppletLabel() {
+    const { getCurrentChannelName: getCurrentChannel, addChannelChangeHandler } = mpvHandler;
     const { settingsObject, addChannelOnPanelChangeHandler } = configs;
     const label = createAppletLabel({
         visible: settingsObject.channelNameOnPanel,
@@ -4477,9 +4182,11 @@ function createRadioAppletLabel(props) {
 
 ;// CONCATENATED MODULE: ./src/ui/RadioApplet/RadioAppletTooltip.ts
 
+
 const { PanelItemTooltip } = imports.ui.tooltips;
 function createRadioAppletTooltip(args) {
-    const { appletContainer, mpvHandler: { getVolume, addVolumeChangeHandler } } = args;
+    const { appletContainer, } = args;
+    const { getVolume, addVolumeChangeHandler } = mpvHandler;
     function getTitle() {
         const volume = getVolume();
         if (!volume)
@@ -4495,7 +4202,7 @@ function createRadioAppletTooltip(args) {
 ;// CONCATENATED MODULE: ./src/lib/AppletIcon.ts
 const { panelManager: AppletIcon_panelManager } = imports.ui.main;
 const { getAppletDefinition: AppletIcon_getAppletDefinition } = imports.ui.appletManager;
-const { Icon: AppletIcon_Icon, IconType: AppletIcon_IconType } = imports.gi.St;
+const { Icon, IconType } = imports.gi.St;
 function createAppletIcon(props) {
     let { iconType } = props;
     const appletDefinition = AppletIcon_getAppletDefinition({
@@ -4507,9 +4214,9 @@ function createAppletIcon(props) {
         return panel.getPanelZoneIconSize(locationLabel, iconType);
     }
     function getStyleClass() {
-        return iconType === AppletIcon_IconType.SYMBOLIC ? 'system-status-icon' : 'applet-icon';
+        return iconType === IconType.SYMBOLIC ? 'system-status-icon' : 'applet-icon';
     }
-    const icon = new AppletIcon_Icon({
+    const icon = new Icon({
         icon_type: iconType,
         style_class: getStyleClass(),
         icon_size: getIconSize()
@@ -4530,9 +4237,10 @@ function createAppletIcon(props) {
 
 
 
+
 const { IconType: RadioAppletIcon_IconType } = imports.gi.St;
-function createRadioAppletIcon(args) {
-    const { mpvHandler: { getPlaybackStatus, addPlaybackStatusChangeHandler } } = args;
+function createRadioAppletIcon() {
+    const { getPlaybackStatus, addPlaybackStatusChangeHandler } = mpvHandler;
     const { settingsObject, addIconTypeChangeHandler, addColorPlayingChangeHandler, addColorPausedChangeHandler } = configs;
     function getIconType() {
         return settingsObject.iconType === 'SYMBOLIC' ?
@@ -4577,13 +4285,13 @@ function createRadioAppletIcon(args) {
 // EXTERNAL MODULE: ./node_modules/cinnamonpopup/index.js
 var cinnamonpopup = __webpack_require__(447);
 ;// CONCATENATED MODULE: ./src/lib/PopupSeperator.ts
-const { BoxLayout: PopupSeperator_BoxLayout, DrawingArea: PopupSeperator_DrawingArea } = imports.gi.St;
+const { BoxLayout, DrawingArea } = imports.gi.St;
 const { LinearGradient } = imports.gi.cairo;
 function createSeparatorMenuItem() {
-    const container = new PopupSeperator_BoxLayout({
+    const container = new BoxLayout({
         style_class: 'popup-menu-item'
     });
-    const drawingArea = new PopupSeperator_DrawingArea({
+    const drawingArea = new DrawingArea({
         style_class: 'popup-separator-menu-item',
         x_expand: true
     });
@@ -4611,6 +4319,33 @@ function createSeparatorMenuItem() {
         cr.$dispose;
     });
     return container;
+}
+
+;// CONCATENATED MODULE: ./src/lib/ActivWidget.ts
+const { KEY_space, KEY_KP_Enter, KEY_Return } = imports.gi.Clutter;
+function createActivWidget(args) {
+    const { widget, onActivated } = args;
+    // TODO: understand can_focus
+    widget.can_focus = true;
+    widget.reactive = true;
+    widget.track_hover = true;
+    widget.connect('button-release-event', () => {
+        onActivated === null || onActivated === void 0 ? void 0 : onActivated();
+        return false;
+    });
+    // TODO: This is needed because some themes (at least Adapta-Nokto but maybe also others) don't provide style for the hover pseudo class. But it would be much easier to once (and on theme changes) programmatically set the hover pseudo class equal to the active pseudo class when the hover class isn't provided by the theme. 
+    widget.connect('notify::hover', () => {
+        widget.change_style_pseudo_class('active', widget.hover);
+        if (widget.hover)
+            widget.grab_key_focus();
+    });
+    widget.connect('key-press-event', (actor, event) => {
+        const symbol = event.get_key_symbol();
+        const relevantKeys = [KEY_space, KEY_KP_Enter, KEY_Return];
+        if (relevantKeys.includes(symbol) && widget.hover)
+            onActivated === null || onActivated === void 0 ? void 0 : onActivated();
+        return false;
+    });
 }
 
 ;// CONCATENATED MODULE: ./src/functions/limitString.ts
@@ -4674,9 +4409,10 @@ function createIconMenuItem(args) {
 ;// CONCATENATED MODULE: ./src/ui/InfoSection.ts
 
 
+
 const { BoxLayout: InfoSection_BoxLayout } = imports.gi.St;
-function createInfoSection(args) {
-    const { mpvHandler: { addChannelChangeHandler, addTitleChangeHandler, getCurrentChannelName, getCurrentTitle } } = args;
+function createInfoSection() {
+    const { addChannelChangeHandler, addTitleChangeHandler, getCurrentChannelName, getCurrentTitle } = mpvHandler;
     const channelInfoItem = createIconMenuItem({
         iconName: RADIO_SYMBOLIC_ICON_NAME,
         initialText: getCurrentChannelName(),
@@ -4795,8 +4531,9 @@ function createChannelMenuItem(args) {
 
 
 
-function createChannelList(args) {
-    const { mpvHandler: { getPlaybackStatus, getCurrentChannelName: getCurrentChannel, addChannelChangeHandler, addPlaybackStatusChangeHandler, setUrl }, } = args;
+
+function createChannelList() {
+    const { getPlaybackStatus, getCurrentChannelName: getCurrentChannel, addChannelChangeHandler, addPlaybackStatusChangeHandler, setUrl } = mpvHandler;
     const { addStationsListChangeHandler, settingsObject } = configs;
     const subMenu = createSubMenu({ text: 'My Stations' });
     const getUserStationNames = () => {
@@ -4845,7 +4582,7 @@ function createChannelList(args) {
 ;// CONCATENATED MODULE: ./src/ui/RadioPopupMenu/MediaControlToolbar/ControlBtn.ts
 
 const { Button, Icon: ControlBtn_Icon, IconType: ControlBtn_IconType } = imports.gi.St;
-const { Tooltip: ControlBtn_Tooltip } = imports.ui.tooltips;
+const { Tooltip } = imports.ui.tooltips;
 function createControlBtn(args) {
     const { iconName, tooltipTxt, onClick } = args;
     const icon = new ControlBtn_Icon({
@@ -4865,7 +4602,7 @@ function createControlBtn(args) {
         widget: btn,
         onActivated: onClick
     });
-    const tooltip = new ControlBtn_Tooltip(btn, tooltipTxt || '');
+    const tooltip = new Tooltip(btn, tooltipTxt || '');
     return {
         actor: btn,
         icon,
@@ -4876,8 +4613,9 @@ function createControlBtn(args) {
 ;// CONCATENATED MODULE: ./src/ui/RadioPopupMenu/MediaControlToolbar/PlayPauseButton.ts
 
 
-function createPlayPauseButton(args) {
-    const { mpvHandler: { getPlaybackStatus, togglePlayPause, addPlaybackStatusChangeHandler } } = args;
+
+function createPlayPauseButton() {
+    const { getPlaybackStatus, togglePlayPause, addPlaybackStatusChangeHandler } = mpvHandler;
     const radioStarted = () => {
         return getPlaybackStatus() === 'Playing' || getPlaybackStatus() === 'Loading';
     };
@@ -4904,9 +4642,10 @@ function createPlayPauseButton(args) {
 ;// CONCATENATED MODULE: ./src/ui/RadioPopupMenu/MediaControlToolbar/CopyButton.ts
 
 
+
 const { Clipboard, ClipboardType } = imports.gi.St;
-function createCopyButton(args) {
-    const { mpvHandler: { getCurrentTitle } } = args;
+function createCopyButton() {
+    const { getCurrentTitle } = mpvHandler;
     const defaultTooltipTxt = "Copy current song title to Clipboard";
     const controlBtn = createControlBtn({
         iconName: COPY_ICON_NAME,
@@ -4937,8 +4676,9 @@ function createCopyButton(args) {
 ;// CONCATENATED MODULE: ./src/ui/RadioPopupMenu/MediaControlToolbar/StopButton.ts
 
 
-function createStopBtn(args) {
-    const { mpvHandler: { stop } } = args;
+
+function createStopBtn() {
+    const { stop } = mpvHandler;
     const stopBtn = createControlBtn({
         iconName: STOP_ICON_NAME,
         tooltipTxt: "Stop",
@@ -5086,8 +4826,9 @@ function notifyYoutubeDownloadStarted(args) {
 
 
 
-function createDownloadButton(args) {
-    const { mpvHandler: { getCurrentTitle }, } = args;
+
+function createDownloadButton() {
+    const { getCurrentTitle } = mpvHandler;
     const { settingsObject } = configs;
     const downloadButton = createControlBtn({
         iconName: DOWNLOAD_ICON_NAME,
@@ -5121,24 +4862,15 @@ function createDownloadButton(args) {
 
 const { BoxLayout: MediaControlToolbar_BoxLayout } = imports.gi.St;
 const { ActorAlign: MediaControlToolbar_ActorAlign } = imports.gi.Clutter;
-const createMediaControlToolbar = (args) => {
-    const { mpvHandler, } = args;
+const createMediaControlToolbar = () => {
     const toolbar = new MediaControlToolbar_BoxLayout({
         style_class: "radio-applet-media-control-toolbar",
         x_align: MediaControlToolbar_ActorAlign.CENTER
     });
-    const playPauseBtn = createPlayPauseButton({
-        mpvHandler
-    });
-    const copyBtn = createCopyButton({
-        mpvHandler
-    });
-    const stopBtn = createStopBtn({
-        mpvHandler
-    });
-    const downloadBtn = createDownloadButton({
-        mpvHandler
-    });
+    const playPauseBtn = createPlayPauseButton();
+    const copyBtn = createCopyButton();
+    const stopBtn = createStopBtn();
+    const downloadBtn = createDownloadButton();
     [playPauseBtn, downloadBtn, copyBtn, stopBtn].forEach(btn => toolbar.add_child(btn));
     return toolbar;
 };
@@ -5149,24 +4881,19 @@ const createMediaControlToolbar = (args) => {
 
 
 
+
 const { BoxLayout: RadioPopupMenu_BoxLayout } = imports.gi.St;
 function createRadioPopupMenu(props) {
-    const { launcher, mpvHandler } = props;
+    const { launcher, } = props;
     const { getPlaybackStatus } = mpvHandler;
     const popupMenu = (0,cinnamonpopup/* createPopupMenu */.S)({ launcher });
-    const channelList = createChannelList({
-        mpvHandler
-    });
+    const channelList = createChannelList();
     const radioActiveSection = new RadioPopupMenu_BoxLayout({
         vertical: true,
         visible: getPlaybackStatus() !== 'Stopped'
     });
-    const mediaControlToolbar = createMediaControlToolbar({
-        mpvHandler,
-    });
-    const infoSection = createInfoSection({
-        mpvHandler
-    });
+    const mediaControlToolbar = createMediaControlToolbar();
+    const infoSection = createInfoSection();
     [infoSection, mediaControlToolbar].forEach(widget => {
         radioActiveSection.add_child(createSeparatorMenuItem());
         radioActiveSection.add_child(widget);
@@ -5256,13 +4983,13 @@ function downloadMrisPluginInteractive() {
 
 
 
-const { ScrollDirection: RadioAppletContainer_ScrollDirection } = imports.gi.Clutter;
-function createRadioAppletContainer(props) {
-    const { mpvHandler } = props;
+
+const { ScrollDirection } = imports.gi.Clutter;
+function createRadioAppletContainer() {
     let installationInProgress = false;
     const appletContainer = createAppletContainer({
-        icon: createRadioAppletIcon({ mpvHandler }),
-        label: createRadioAppletLabel({ mpvHandler }),
+        icon: createRadioAppletIcon(),
+        label: createRadioAppletLabel(),
         onMiddleClick: () => mpvHandler.togglePlayPause(),
         onMoved: () => mpvHandler.deactivateAllListener(),
         onRemoved: handleAppletRemoved,
@@ -5270,14 +4997,14 @@ function createRadioAppletContainer(props) {
         onRightClick: () => popupMenu === null || popupMenu === void 0 ? void 0 : popupMenu.close(),
         onScroll: handleScroll
     });
-    createRadioAppletTooltip({ mpvHandler, appletContainer });
-    const popupMenu = createRadioPopupMenu({ launcher: appletContainer.actor, mpvHandler });
+    createRadioAppletTooltip({ appletContainer });
+    const popupMenu = createRadioPopupMenu({ launcher: appletContainer.actor });
     function handleAppletRemoved() {
         mpvHandler === null || mpvHandler === void 0 ? void 0 : mpvHandler.deactivateAllListener();
         mpvHandler === null || mpvHandler === void 0 ? void 0 : mpvHandler.stop();
     }
     function handleScroll(scrollDirection) {
-        const volumeChange = scrollDirection === RadioAppletContainer_ScrollDirection.UP ? VOLUME_DELTA : -VOLUME_DELTA;
+        const volumeChange = scrollDirection === ScrollDirection.UP ? VOLUME_DELTA : -VOLUME_DELTA;
         mpvHandler.increaseDecreaseVolume(volumeChange);
     }
     async function handleClick() {
@@ -5305,28 +5032,24 @@ function createRadioAppletContainer(props) {
 
 
 
-
-
 function main() {
+    // order must be retained!
     initPolyfills();
     initConfig();
-    const mpvHandler = createMpvHandler();
-    const appletContainer = createRadioAppletContainer({ mpvHandler });
-    const volumeSlider = createVolumeSlider({
-        onVolumeChanged: (volume) => mpvHandler === null || mpvHandler === void 0 ? void 0 : mpvHandler.setVolume(volume)
-    });
-    const seeker = createSeeker({
-        onPositionChanged: (value) => mpvHandler === null || mpvHandler === void 0 ? void 0 : mpvHandler.setPosition(value)
-    });
-    function handleVolumeChanged(volume) {
-        volumeSlider.setVolume(volume);
-    }
-    function handleLengthChanged(length) {
-        seeker.setLength(length);
-    }
-    function handlePositionChanged(position) {
-        seeker === null || seeker === void 0 ? void 0 : seeker.setPosition(position);
-    }
+    initMpvHandler();
+    const appletContainer = createRadioAppletContainer();
+    // const volumeSlider = createVolumeSlider({
+    //     onVolumeChanged: (volume) => mpvHandler?.setVolume(volume)
+    // })
+    // const seeker = createSeeker({
+    //     onPositionChanged: (value) => mpvHandler?.setPosition(value)
+    // })
+    // function handleLengthChanged(length: number) {
+    //     seeker.setLength(length)
+    // }
+    // function handlePositionChanged(position: number) {
+    //     seeker?.setPosition(position)
+    // }
     return appletContainer;
 }
 

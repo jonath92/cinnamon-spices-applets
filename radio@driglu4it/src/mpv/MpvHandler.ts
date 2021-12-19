@@ -7,8 +7,13 @@ const { spawnCommandLine } = imports.misc.util;
 // see https://lazka.github.io/pgi-docs/Cvc-1.0/index.html
 const { MixerControl } = imports.gi.Cvc;
 
+export let mpvHandler: ReturnType<typeof createMpvHandler>
 
-export function createMpvHandler() {
+export const initMpvHandler = () => {
+    mpvHandler = createMpvHandler()
+}
+
+function createMpvHandler() {
 
     const {
         settingsObject,
