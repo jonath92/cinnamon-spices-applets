@@ -230,6 +230,7 @@ function createMpvHandler() {
 
     function handleUrlChanged(newUrl: string): void {
         currentUrl = newUrl
+        settingsObject.lastUrl = newUrl
         handleLengthChanged(0)
 
         if (positionTimerId) stopPositionTimer()
@@ -448,6 +449,10 @@ function createMpvHandler() {
 
         addLengthChangeHandler: (changeHandler: ChangeHandler<number | undefined>) => {
             lengthChangeHandler.push(changeHandler)
+        },
+
+        addPositionChangeHandler: (changeHandler: ChangeHandler<number | undefined>) => {
+            positionChangeHandler.push(changeHandler)
         },
 
         // it is very confusing but dbus must be returned!

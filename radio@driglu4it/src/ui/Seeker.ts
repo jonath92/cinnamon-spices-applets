@@ -14,7 +14,7 @@ export function createSeeker() {
         getPosition,
         setPosition, 
         addLengthChangeHandler,
-        // TODO: add position changeHandler
+        addPositionChangeHandler
     } = mpvHandler
 
     const container = new BoxLayout({
@@ -50,34 +50,6 @@ export function createSeeker() {
         slider.setValue(getPosition() / getLength(), true)
     }
 
-    addLengthChangeHandler(updateSeeker)
-
-    // /** @param value in seconds */
-    // function setLength(value: number) {
-    //     length = value
-    //     lengthLabel.set_text(secondsToFormatedMin(value))
-    //     refreshSliderValue()
-    // }
-
-    // /** @param value in seconds */
-    // function setPosition(value: number) {
-    //     position = value;
-    //     positionLabel.set_text(secondsToFormatedMin(position))
-    //     refreshSliderValue()
-    // }
-
-    // function refreshSliderValue() {
-    //     const sliderValue = length === 0 ? 0 : Math.min(getPosition() / getLength(), 1)
-    //     slider.setValue(sliderValue, true)
-    // }
-
-    // function handleValueChanged(value: number) {
-    //     const newPosition = value * length
-
-    //     onPositionChanged(newPosition)
-    // }
-
-
     /**
      * converts seconds to a string in the form of: mm:ss 
      * 
@@ -96,6 +68,9 @@ export function createSeeker() {
             return valueString
         }).join(":")
     }
+
+    addLengthChangeHandler(updateSeeker)
+    addPositionChangeHandler(updateSeeker)
 
     return container
 }

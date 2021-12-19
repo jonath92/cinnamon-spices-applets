@@ -492,6 +492,7 @@ function createMpvHandler() {
     }
     function handleUrlChanged(newUrl) {
         currentUrl = newUrl;
+        settingsObject.lastUrl = newUrl;
         handleLengthChanged(0);
         if (positionTimerId)
             stopPositionTimer();
@@ -656,6 +657,9 @@ function createMpvHandler() {
         },
         addLengthChangeHandler: (changeHandler) => {
             lengthChangeHandler.push(changeHandler);
+        },
+        addPositionChangeHandler: (changeHandler) => {
+            positionChangeHandler.push(changeHandler);
         },
         // it is very confusing but dbus must be returned!
         // Otherwilse all listeners stop working after about 20 seconds which is fucking difficult to debug
@@ -4553,9 +4557,7 @@ const { BoxLayout: Seeker_BoxLayout, Label: Seeker_Label } = imports.gi.St;
 // used to ensure that the width doesn't change on some fonts
 const LABEL_STYLE = 'font-family: mono';
 function createSeeker() {
-    const { getLength, getPosition, setPosition, addLengthChangeHandler,
-    // TODO: add position changeHandler
-     } = mpvHandler;
+    const { getLength, getPosition, setPosition, addLengthChangeHandler, addPositionChangeHandler } = mpvHandler;
     const container = new Seeker_BoxLayout({
         style_class: POPUP_MENU_ITEM_CLASS
     });
@@ -4582,27 +4584,6 @@ function createSeeker() {
         lengthLabel.set_text(secondsToFormatedMin(getLength()));
         slider.setValue(getPosition() / getLength(), true);
     }
-    addLengthChangeHandler(updateSeeker);
-    // /** @param value in seconds */
-    // function setLength(value: number) {
-    //     length = value
-    //     lengthLabel.set_text(secondsToFormatedMin(value))
-    //     refreshSliderValue()
-    // }
-    // /** @param value in seconds */
-    // function setPosition(value: number) {
-    //     position = value;
-    //     positionLabel.set_text(secondsToFormatedMin(position))
-    //     refreshSliderValue()
-    // }
-    // function refreshSliderValue() {
-    //     const sliderValue = length === 0 ? 0 : Math.min(getPosition() / getLength(), 1)
-    //     slider.setValue(sliderValue, true)
-    // }
-    // function handleValueChanged(value: number) {
-    //     const newPosition = value * length
-    //     onPositionChanged(newPosition)
-    // }
     /**
      * converts seconds to a string in the form of: mm:ss
      *
@@ -4620,6 +4601,8 @@ function createSeeker() {
             return valueString;
         }).join(":");
     }
+    addLengthChangeHandler(updateSeeker);
+    addPositionChangeHandler(updateSeeker);
     return container;
 }
 
