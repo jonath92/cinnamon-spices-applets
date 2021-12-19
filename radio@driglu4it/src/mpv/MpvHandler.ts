@@ -26,7 +26,7 @@ function createMpvHandler() {
     const lastUrl = settingsObject.lastUrl
 
     // this is a workaround for now. Optimally the lastVolume should be saved persistently each time the volume is changed but this lead to significant performance issue on scrolling at the moment. However this shouldn't be the case as it is no problem to log the volume each time the volume changes (so it is a problem in the config implementation). As a workaround the volume is only saved persistently when the radio stops but the volume obviously can't be received anymore from dbus when the player has been already stopped ... 
-    let lastVolume: number 
+    let lastVolume: number
 
 
     const dbus = getDBus()
@@ -301,7 +301,7 @@ function createMpvHandler() {
 
         const currentVolulume = getVolume()
 
-        if (!currentVolulume) return
+        if (currentVolulume == null) return
 
         // newVolume is the current Volume plus(or minus) volumeChange 
         // but at least 0 and maximum Max_Volume
@@ -378,12 +378,16 @@ function createMpvHandler() {
         return mpvRunning ? mediaServerPlayer.PlaybackStatus : 'Stopped'
     }
 
-    function getVolume(): number | null {
+    /** Volume in Percent */
+    function getVolume(props?: { dimension?: 'percent' | 'fraction' }): number | null {
 
         if (getPlaybackStatus() === 'Stopped')
             return null
 
-        return Math.round(mediaServerPlayer.Volume * 100)
+        const volumeFraction = mediaServerPlayer.Volume
+
+        return (props?.dimension === 'fraction') ? volumeFraction : Math.round(volumeFraction * 100)
+
     }
 
     function microSecondsToRoundedSeconds(microSeconds: number): number {

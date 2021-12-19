@@ -545,7 +545,7 @@ function createMpvHandler() {
     }
     function increaseDecreaseVolume(volumeChange) {
         const currentVolulume = getVolume();
-        if (!currentVolulume)
+        if (currentVolulume == null)
             return;
         // newVolume is the current Volume plus(or minus) volumeChange 
         // but at least 0 and maximum Max_Volume
@@ -602,10 +602,12 @@ function createMpvHandler() {
         const mpvRunning = dbus.ListNamesSync()[0].includes(MPV_MPRIS_BUS_NAME);
         return mpvRunning ? mediaServerPlayer.PlaybackStatus : 'Stopped';
     }
-    function getVolume() {
+    /** Volume in Percent */
+    function getVolume(props) {
         if (getPlaybackStatus() === 'Stopped')
             return null;
-        return Math.round(mediaServerPlayer.Volume * 100);
+        const volumeFraction = mediaServerPlayer.Volume;
+        return ((props === null || props === void 0 ? void 0 : props.dimension) === 'fraction') ? volumeFraction : Math.round(volumeFraction * 100);
     }
     function microSecondsToRoundedSeconds(microSeconds) {
         const seconds = microSeconds / 1000000;
@@ -4606,6 +4608,103 @@ function createSeeker() {
     return container;
 }
 
+;// CONCATENATED MODULE: ./src/ui/VolumeSlider.ts
+
+
+
+
+const { BoxLayout: VolumeSlider_BoxLayout, Icon: VolumeSlider_Icon, IconType: VolumeSlider_IconType } = imports.gi.St;
+const { Tooltip } = imports.ui.tooltips;
+const { KEY_Right, KEY_Left, ScrollDirection } = imports.gi.Clutter;
+function createVolumeSlider() {
+    var _a;
+    const { getVolume } = mpvHandler;
+    const container = new VolumeSlider_BoxLayout({
+        style_class: POPUP_MENU_ITEM_CLASS,
+    });
+    createActivWidget({
+        widget: container
+    });
+    /** in Percent and rounded! */
+    // let volume: number
+    const slider = createSlider({
+        initialValue: mpvHandler.getVolume({ dimension: 'fraction' }) || 0,
+        onValueChanged: handleSliderValueChanged
+    });
+    const tooltip = new Tooltip(slider.actor, `Volume: ${(_a = getVolume()) === null || _a === void 0 ? void 0 : _a.toString()} %`);
+    tooltip.show();
+    const icon = new VolumeSlider_Icon({
+        icon_type: VolumeSlider_IconType.SYMBOLIC,
+        style_class: POPUP_ICON_CLASS,
+        reactive: true
+    });
+    [icon, slider.actor].forEach(widget => {
+        container.add_child(widget);
+    });
+    container.connect('key-press-event', (actor, event) => {
+        const key = event.get_key_symbol();
+        if (key === KEY_Right || key === KEY_Left) {
+            const direction = (key === KEY_Right) ? 'increase' : 'decrease';
+            deltaChange(direction);
+        }
+        return false;
+    });
+    container.connect('scroll-event', (actor, event) => {
+        const scrollDirection = event.get_scroll_direction();
+        const direction = (scrollDirection === ScrollDirection.UP) ? 'increase' : 'decrease';
+        deltaChange(direction);
+        return false;
+    });
+    icon.connect('button-press-event', () => {
+        slider.setValue(0);
+        return false;
+    });
+    /**
+     *
+     * @param newValue between 0 and 1
+     */
+    function handleSliderValueChanged(newValue) {
+        // updateVolume(newValue * 100, true)
+    }
+    function deltaChange(direction) {
+        const delta = (direction === 'increase') ? VOLUME_DELTA : -VOLUME_DELTA;
+        const newValue = slider.getValue() + delta / 100;
+        slider.setValue(newValue);
+    }
+    // /**
+    //  * 
+    //  * @param newVolume in percent but doesn't need to be rounded
+    //  * @param showTooltip
+    //  */
+    // function updateVolume(newVolume: number, showTooltip: boolean) {
+    //     const newVolumeRounded = Math.round(newVolume)
+    //     if (newVolumeRounded === volume) return
+    //     volume = newVolumeRounded
+    //     slider.setValue(volume / 100)
+    //     icon.set_icon_name(getVolumeIcon({ volume }))
+    //     setTooltip(volume)
+    //     showTooltip && tooltip.show()
+    //     onVolumeChanged?.(volume)
+    // }
+    // /**
+    //  * 
+    //  * @param volume in Percent and rounded!
+    //  */
+    // function setTooltip(volume: number) {
+    //     if (!tooltip)
+    //         tooltip = new Tooltip(slider.actor, ' ')
+    //     tooltip.set_text(`Volume: ${volume.toString()} %`)
+    // }
+    // /**
+    //  * 
+    //  * @param newVolume in percent (0-100)
+    //  */
+    // function setVolume(newVolume: number) {
+    //     updateVolume(newVolume, false)
+    // }
+    return container;
+}
+
 ;// CONCATENATED MODULE: ./src/lib/PopupSubMenu.ts
 
 const { BoxLayout: PopupSubMenu_BoxLayout, Label: PopupSubMenu_Label, Icon: PopupSubMenu_Icon, ScrollView } = imports.gi.St;
@@ -4750,7 +4849,7 @@ function createChannelList() {
 ;// CONCATENATED MODULE: ./src/ui/RadioPopupMenu/MediaControlToolbar/ControlBtn.ts
 
 const { Button, Icon: ControlBtn_Icon, IconType: ControlBtn_IconType } = imports.gi.St;
-const { Tooltip } = imports.ui.tooltips;
+const { Tooltip: ControlBtn_Tooltip } = imports.ui.tooltips;
 function createControlBtn(args) {
     const { iconName, tooltipTxt, onClick } = args;
     const icon = new ControlBtn_Icon({
@@ -4770,7 +4869,7 @@ function createControlBtn(args) {
         widget: btn,
         onActivated: onClick
     });
-    const tooltip = new Tooltip(btn, tooltipTxt || '');
+    const tooltip = new ControlBtn_Tooltip(btn, tooltipTxt || '');
     return {
         actor: btn,
         icon,
@@ -5051,17 +5150,17 @@ const createMediaControlToolbar = () => {
 
 
 
+
 const { BoxLayout: RadioPopupMenu_BoxLayout } = imports.gi.St;
 function createRadioPopupMenu(props) {
     const { launcher, } = props;
     const { getPlaybackStatus, addPlaybackStatusChangeHandler } = mpvHandler;
     const popupMenu = (0,cinnamonpopup/* createPopupMenu */.S)({ launcher });
-    const channelList = createChannelList();
     const radioActiveSection = new RadioPopupMenu_BoxLayout({
         vertical: true,
         visible: getPlaybackStatus() !== 'Stopped'
     });
-    [createInfoSection(), createMediaControlToolbar(), createSeeker()].forEach(widget => {
+    [createInfoSection(), createMediaControlToolbar(), createVolumeSlider(), createSeeker()].forEach(widget => {
         radioActiveSection.add_child(createSeparatorMenuItem());
         radioActiveSection.add_child(widget);
     });
@@ -5154,7 +5253,7 @@ function downloadMrisPluginInteractive() {
 
 
 
-const { ScrollDirection } = imports.gi.Clutter;
+const { ScrollDirection: RadioAppletContainer_ScrollDirection } = imports.gi.Clutter;
 function createRadioAppletContainer() {
     let installationInProgress = false;
     const appletContainer = createAppletContainer({
@@ -5174,7 +5273,7 @@ function createRadioAppletContainer() {
         mpvHandler === null || mpvHandler === void 0 ? void 0 : mpvHandler.stop();
     }
     function handleScroll(scrollDirection) {
-        const volumeChange = scrollDirection === ScrollDirection.UP ? VOLUME_DELTA : -VOLUME_DELTA;
+        const volumeChange = scrollDirection === RadioAppletContainer_ScrollDirection.UP ? VOLUME_DELTA : -VOLUME_DELTA;
         mpvHandler.increaseDecreaseVolume(volumeChange);
     }
     async function handleClick() {

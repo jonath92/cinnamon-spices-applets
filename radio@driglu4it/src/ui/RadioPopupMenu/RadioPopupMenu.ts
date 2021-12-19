@@ -3,6 +3,7 @@ import { createSeparatorMenuItem } from "../../lib/PopupSeperator"
 import { mpvHandler } from "../../mpv/MpvHandler"
 import { createInfoSection } from "../InfoSection"
 import { createSeeker } from "../Seeker"
+import { createVolumeSlider } from "../VolumeSlider"
 import { createChannelList } from "./ChannelList"
 import { createMediaControlToolbar } from "./MediaControlToolbar/MediaControlToolbar"
 
@@ -20,14 +21,12 @@ export function createRadioPopupMenu(props: { launcher: imports.gi.St.BoxLayout 
 
     const popupMenu = createPopupMenu({ launcher })
 
-    const channelList = createChannelList()
-
     const radioActiveSection = new BoxLayout({
         vertical: true,
         visible: getPlaybackStatus() !== 'Stopped'
     });
 
-    [createInfoSection(), createMediaControlToolbar(), createSeeker()].forEach(widget => {
+    [createInfoSection(), createMediaControlToolbar(), createVolumeSlider(), createSeeker()].forEach(widget => {
         radioActiveSection.add_child(createSeparatorMenuItem())
         radioActiveSection.add_child(widget)
     })

@@ -1,22 +1,18 @@
 import { createActivWidget } from "../lib/ActivWidget";
 import { createSlider } from "../lib/Slider";
 import { getVolumeIcon, POPUP_ICON_CLASS, POPUP_MENU_ITEM_CLASS, VOLUME_DELTA } from '../consts'
+import { mpvHandler } from "../mpv/MpvHandler";
 
 const { BoxLayout, Icon, IconType } = imports.gi.St
 const { Tooltip } = imports.ui.tooltips
 const { KEY_Right, KEY_Left, ScrollDirection } = imports.gi.Clutter
 
-interface Arguments {
-    onVolumeChanged: (value: number) => void
-}
 
-export function createVolumeSlider(args: Arguments) {
+export function createVolumeSlider() {
 
     const {
-        onVolumeChanged
-    } = args
-
-    let tooltip: imports.ui.tooltips.Tooltip
+        getVolume
+    } = mpvHandler
 
     const container = new BoxLayout({
         style_class: POPUP_MENU_ITEM_CLASS,
@@ -27,11 +23,16 @@ export function createVolumeSlider(args: Arguments) {
     })
 
     /** in Percent and rounded! */
-    let volume: number
+    // let volume: number
 
     const slider = createSlider({
+        initialValue: mpvHandler.getVolume({dimension: 'fraction'}) || 0,
         onValueChanged: handleSliderValueChanged
     })
+
+    const tooltip = new Tooltip(slider.actor, `Volume: ${getVolume()?.toString()} %`)
+    tooltip.show()
+
 
     const icon = new Icon({
         icon_type: IconType.SYMBOLIC,
@@ -74,7 +75,7 @@ export function createVolumeSlider(args: Arguments) {
      * @param newValue between 0 and 1
      */
     function handleSliderValueChanged(newValue: number) {
-        updateVolume(newValue * 100, true)
+        // updateVolume(newValue * 100, true)
     }
 
     function deltaChange(direction: 'increase' | 'decrease') {
@@ -83,48 +84,45 @@ export function createVolumeSlider(args: Arguments) {
         slider.setValue(newValue)
     }
 
-    /**
-     * 
-     * @param newVolume in percent but doesn't need to be rounded
-     * @param showTooltip
-     */
-    function updateVolume(newVolume: number, showTooltip: boolean) {
-        const newVolumeRounded = Math.round(newVolume)
+    // /**
+    //  * 
+    //  * @param newVolume in percent but doesn't need to be rounded
+    //  * @param showTooltip
+    //  */
+    // function updateVolume(newVolume: number, showTooltip: boolean) {
+    //     const newVolumeRounded = Math.round(newVolume)
 
-        if (newVolumeRounded === volume) return
+    //     if (newVolumeRounded === volume) return
 
-        volume = newVolumeRounded
+    //     volume = newVolumeRounded
 
-        slider.setValue(volume / 100)
-        icon.set_icon_name(getVolumeIcon({ volume }))
-        setTooltip(volume)
+    //     slider.setValue(volume / 100)
+    //     icon.set_icon_name(getVolumeIcon({ volume }))
+    //     setTooltip(volume)
 
-        showTooltip && tooltip.show()
-        onVolumeChanged?.(volume)
-    }
+    //     showTooltip && tooltip.show()
+    //     onVolumeChanged?.(volume)
+    // }
 
-    /**
-     * 
-     * @param volume in Percent and rounded!
-     */
-    function setTooltip(volume: number) {
+    // /**
+    //  * 
+    //  * @param volume in Percent and rounded!
+    //  */
+    // function setTooltip(volume: number) {
 
-        if (!tooltip)
-            tooltip = new Tooltip(slider.actor, ' ')
+    //     if (!tooltip)
+    //         tooltip = new Tooltip(slider.actor, ' ')
 
-        tooltip.set_text(`Volume: ${volume.toString()} %`)
-    }
+    //     tooltip.set_text(`Volume: ${volume.toString()} %`)
+    // }
 
-    /**
-     * 
-     * @param newVolume in percent (0-100)
-     */
-    function setVolume(newVolume: number) {
-        updateVolume(newVolume, false)
-    }
+    // /**
+    //  * 
+    //  * @param newVolume in percent (0-100)
+    //  */
+    // function setVolume(newVolume: number) {
+    //     updateVolume(newVolume, false)
+    // }
 
-    return {
-        actor: container,
-        setVolume
-    }
+    return container
 }
