@@ -397,6 +397,7 @@ function createMpvHandler() {
         playbackStatusChangeHandler.forEach(handler => handler('Stopped'));
         channelNameChangeHandler.forEach(handler => handler(undefined));
         volumeChangeHandler.forEach(handler => handler(undefined));
+        titleChangeHandler.forEach(handler => handler(undefined));
         settingsObject.lastVolume = lastVolume;
     }
     function deactivateAllListener() {
@@ -4885,7 +4886,7 @@ const createMediaControlToolbar = () => {
 const { BoxLayout: RadioPopupMenu_BoxLayout } = imports.gi.St;
 function createRadioPopupMenu(props) {
     const { launcher, } = props;
-    const { getPlaybackStatus } = mpvHandler;
+    const { getPlaybackStatus, addPlaybackStatusChangeHandler } = mpvHandler;
     const popupMenu = (0,cinnamonpopup/* createPopupMenu */.S)({ launcher });
     const channelList = createChannelList();
     const radioActiveSection = new RadioPopupMenu_BoxLayout({
@@ -4900,6 +4901,9 @@ function createRadioPopupMenu(props) {
     });
     popupMenu.add_child(channelList);
     popupMenu.add_child(radioActiveSection);
+    addPlaybackStatusChangeHandler((newValue) => {
+        radioActiveSection.visible = newValue !== 'Stopped';
+    });
     return popupMenu;
 }
 

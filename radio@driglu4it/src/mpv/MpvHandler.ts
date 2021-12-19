@@ -110,6 +110,7 @@ function createMpvHandler() {
         playbackStatusChangeHandler.forEach(handler => handler('Stopped'))
         channelNameChangeHandler.forEach(handler => handler(undefined))
         volumeChangeHandler.forEach(handler => handler(undefined))
+        titleChangeHandler.forEach(handler => handler(undefined))
         settingsObject.lastVolume = lastVolume
     }
 

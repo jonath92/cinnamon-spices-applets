@@ -12,7 +12,10 @@ export function createRadioPopupMenu(props: { launcher: imports.gi.St.BoxLayout 
         launcher,
     } = props
 
-    const { getPlaybackStatus } = mpvHandler
+    const {
+        getPlaybackStatus,
+        addPlaybackStatusChangeHandler
+    } = mpvHandler
 
     const popupMenu = createPopupMenu({ launcher })
 
@@ -34,6 +37,10 @@ export function createRadioPopupMenu(props: { launcher: imports.gi.St.BoxLayout 
 
     popupMenu.add_child(channelList)
     popupMenu.add_child(radioActiveSection)
+
+    addPlaybackStatusChangeHandler((newValue) => {
+        radioActiveSection.visible = newValue !== 'Stopped'
+    })
 
     return popupMenu
 }
