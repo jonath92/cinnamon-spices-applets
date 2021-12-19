@@ -2,18 +2,10 @@ import { createConfig } from './Config';
 import { createMpvHandler } from './mpv/MpvHandler';
 import { createVolumeSlider } from './ui/VolumeSlider';
 import { createPopupMenu } from 'cinnamonpopup';
-import { createSeparatorMenuItem } from './lib/PopupSeperator';
-import { createMediaControlToolbar } from './ui/RadioPopupMenu/MediaControlToolbar';
-import { createPlayPauseButton } from './ui/RadioPopupMenu/PlayPauseButton';
 import { createStopBtn } from './ui/RadioPopupMenu/StopButton';
-import { createInfoSection } from './ui/InfoSection';
 import { createDownloadButton } from './ui/RadioPopupMenu/DownloadButton';
-import { createCopyButton } from './ui/RadioPopupMenu/CopyButton';
 import { downloadSongFromYoutube } from './functions/downloadFromYoutube';
 import { installMpvWithMpris } from './mpv/CheckInstallation';
-import { copyText } from './functions/copyText';
-import { createRadioAppletIcon } from './ui/RadioApplet/RadioAppletIcon';
-import { createRadioAppletLabel } from './ui/RadioApplet/RadioAppletLabel';
 import { notifyYoutubeDownloadFinished } from './ui/Notifications/YoutubeDownloadFinishedNotification';
 import { notifyYoutubeDownloadStarted } from './ui/Notifications/YoutubeDownloadStartedNotification';
 import { notifyYoutubeDownloadFailed } from './ui/Notifications/YoutubeDownloadFailedNotification';
@@ -80,34 +72,27 @@ export function main(args: Arguments): imports.ui.applet.Applet {
         onClick: handleDownloadBtnClicked
     })
 
-    const copyBtn = createCopyButton({
-        onClick: () => {
-            const currentTitle = mpvHandler.getCurrentTitle()
-            currentTitle && copyText(currentTitle)
-        }
-    })
 
-    const mediaControlToolbar = createMediaControlToolbar({
-        controlBtns: [ downloadBtn.actor, copyBtn.actor, stopBtn.actor]
-    })
+    // const mediaControlToolbar = createMediaControlToolbar({
+    //     controlBtns: [ downloadBtn.actor, copyBtn.actor, stopBtn.actor]
+    // })
 
     const seeker = createSeeker({
         onPositionChanged: (value) => mpvHandler?.setPosition(value)
     })
 
-    const radioActiveSection = new BoxLayout({
-        vertical: true,
-        visible: initialPlaybackStatus !== 'Stopped'
-    });
+    // const radioActiveSection = new BoxLayout({
+    //     vertical: true,
+    //     visible: initialPlaybackStatus !== 'Stopped'
+    // });
 
-    [
-        mediaControlToolbar,
-        volumeSlider.actor,
-        seeker.actor
-    ].forEach(widget => {
-        radioActiveSection.add_child(createSeparatorMenuItem())
-        radioActiveSection.add_child(widget)
-    })
+    // [
+    //     volumeSlider.actor,
+    //     seeker.actor
+    // ].forEach(widget => {
+    //     radioActiveSection.add_child(createSeparatorMenuItem())
+    //     radioActiveSection.add_child(widget)
+    // })
 
     // popupMenu.add_child(radioActiveSection)
 

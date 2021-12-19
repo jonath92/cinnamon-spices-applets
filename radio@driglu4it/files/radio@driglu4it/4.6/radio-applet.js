@@ -875,56 +875,6 @@ function createVolumeSlider(args) {
 
 // EXTERNAL MODULE: ./node_modules/cinnamonpopup/index.js
 var cinnamonpopup = __webpack_require__(447);
-;// CONCATENATED MODULE: ./src/lib/PopupSeperator.ts
-const { BoxLayout: PopupSeperator_BoxLayout, DrawingArea: PopupSeperator_DrawingArea } = imports.gi.St;
-const { LinearGradient } = imports.gi.cairo;
-function createSeparatorMenuItem() {
-    const container = new PopupSeperator_BoxLayout({
-        style_class: 'popup-menu-item'
-    });
-    const drawingArea = new PopupSeperator_DrawingArea({
-        style_class: 'popup-separator-menu-item',
-        x_expand: true
-    });
-    container.add_child(drawingArea);
-    drawingArea.connect('repaint', () => {
-        const cr = drawingArea.get_context();
-        const themeNode = drawingArea.get_theme_node();
-        const [width, height] = drawingArea.get_surface_size();
-        const margin = themeNode.get_length('-margin-horizontal');
-        const gradientHeight = themeNode.get_length('-gradient-height');
-        const startColor = themeNode.get_color('-gradient-start');
-        const endColor = themeNode.get_color('-gradient-end');
-        const gradientWidth = (width - margin * 2);
-        const gradientOffset = (height - gradientHeight) / 2;
-        const pattern = new LinearGradient(margin, gradientOffset, width - margin, gradientOffset + gradientHeight);
-        // TODO
-        // const colors = ['red', 'green', 'blue', 'alpha'].map(color => startColor[color] / 255)
-        // https://github.com/microsoft/TypeScript/issues/4130#issuecomment-499525897
-        pattern.addColorStopRGBA(0, startColor.red / 255, startColor.green / 255, startColor.blue / 255, startColor.alpha / 255);
-        pattern.addColorStopRGBA(0.5, endColor.red / 255, endColor.green / 255, endColor.blue / 255, endColor.alpha / 255);
-        pattern.addColorStopRGBA(1, startColor.red / 255, startColor.green / 255, startColor.blue / 255, startColor.alpha / 255);
-        cr.setSource(pattern);
-        cr.rectangle(margin, gradientOffset, gradientWidth, gradientHeight);
-        cr.fill();
-        cr.$dispose;
-    });
-    return container;
-}
-
-;// CONCATENATED MODULE: ./src/ui/RadioPopupMenu/MediaControlToolbar.ts
-const { BoxLayout: MediaControlToolbar_BoxLayout } = imports.gi.St;
-const { ActorAlign } = imports.gi.Clutter;
-const createMediaControlToolbar = (args) => {
-    const { controlBtns } = args;
-    const toolbar = new MediaControlToolbar_BoxLayout({
-        style_class: "radio-applet-media-control-toolbar",
-        x_align: ActorAlign.CENTER
-    });
-    controlBtns.forEach(btn => toolbar.add_child(btn));
-    return toolbar;
-};
-
 ;// CONCATENATED MODULE: ./src/ui/RadioPopupMenu/ControlBtn.ts
 
 const { Button, Icon: ControlBtn_Icon, IconType: ControlBtn_IconType } = imports.gi.St;
@@ -983,37 +933,6 @@ function createDownloadButton(args) {
     });
     return {
         actor: downloadButton.actor
-    };
-}
-
-;// CONCATENATED MODULE: ./src/ui/RadioPopupMenu/CopyButton.ts
-
-
-function createCopyButton(args) {
-    const { onClick } = args;
-    const defaultTooltipTxt = "Copy current song title to Clipboard";
-    const controlBtn = createControlBtn({
-        iconName: COPY_ICON_NAME,
-        tooltipTxt: defaultTooltipTxt,
-        onClick: handleClick
-    });
-    function handleClick() {
-        controlBtn.tooltip.show();
-        onClick();
-        // showCopyInTooltip()
-    }
-    // For some reasons I don't understand, this function has stopped working after refactoring the popup Menu. No idea how to debug this. Therefore deactivating this for now :-(. It is thrown an  warning when clicking on the button but this has nothing to do with the tooltip
-    function showCopyInTooltip() {
-        const tooltip = controlBtn.tooltip;
-        tooltip.set_text("Copied");
-        tooltip.show();
-        setTimeout(() => {
-            tooltip.hide();
-            tooltip.set_text(defaultTooltipTxt);
-        }, 500);
-    }
-    return {
-        actor: controlBtn.actor,
     };
 }
 
@@ -1154,12 +1073,6 @@ function downloadMrisPluginInteractive() {
         // and https://www.gnu.org/software/wget/manual/html_node/Exit-Status.html
         return (exitCode === 0) ? resolve() : reject(stderr);
     });
-}
-
-;// CONCATENATED MODULE: ./src/functions/copyText.ts
-const { Clipboard, ClipboardType } = imports.gi.St;
-function copyText(text) {
-    Clipboard.get_default().set_text(ClipboardType.CLIPBOARD, text);
 }
 
 ;// CONCATENATED MODULE: ./src/ui/Notifications/YoutubeDownloadFinishedNotification.ts
@@ -4797,10 +4710,10 @@ function createAppletContainer(args) {
 
 ;// CONCATENATED MODULE: ./src/lib/AppletLabel.ts
 const { Label: AppletLabel_Label } = imports.gi.St;
-const { ActorAlign: AppletLabel_ActorAlign } = imports.gi.Clutter;
+const { ActorAlign } = imports.gi.Clutter;
 const { EllipsizeMode } = imports.gi.Pango;
 function createAppletLabel(props) {
-    const label = new AppletLabel_Label(Object.assign({ reactive: true, track_hover: true, style_class: 'applet-label', y_align: AppletLabel_ActorAlign.CENTER, y_expand: false }, props));
+    const label = new AppletLabel_Label(Object.assign({ reactive: true, track_hover: true, style_class: 'applet-label', y_align: ActorAlign.CENTER, y_expand: false }, props));
     // No idea why needed but without the label is not shown 
     label.clutter_text.ellipsize = EllipsizeMode.NONE;
     return label;
@@ -4914,6 +4827,43 @@ function createRadioAppletIcon(args) {
     addColorPausedChangeHandler(() => setRefreshIcon());
     setRefreshIcon();
     return icon;
+}
+
+;// CONCATENATED MODULE: ./src/lib/PopupSeperator.ts
+const { BoxLayout: PopupSeperator_BoxLayout, DrawingArea: PopupSeperator_DrawingArea } = imports.gi.St;
+const { LinearGradient } = imports.gi.cairo;
+function createSeparatorMenuItem() {
+    const container = new PopupSeperator_BoxLayout({
+        style_class: 'popup-menu-item'
+    });
+    const drawingArea = new PopupSeperator_DrawingArea({
+        style_class: 'popup-separator-menu-item',
+        x_expand: true
+    });
+    container.add_child(drawingArea);
+    drawingArea.connect('repaint', () => {
+        const cr = drawingArea.get_context();
+        const themeNode = drawingArea.get_theme_node();
+        const [width, height] = drawingArea.get_surface_size();
+        const margin = themeNode.get_length('-margin-horizontal');
+        const gradientHeight = themeNode.get_length('-gradient-height');
+        const startColor = themeNode.get_color('-gradient-start');
+        const endColor = themeNode.get_color('-gradient-end');
+        const gradientWidth = (width - margin * 2);
+        const gradientOffset = (height - gradientHeight) / 2;
+        const pattern = new LinearGradient(margin, gradientOffset, width - margin, gradientOffset + gradientHeight);
+        // TODO
+        // const colors = ['red', 'green', 'blue', 'alpha'].map(color => startColor[color] / 255)
+        // https://github.com/microsoft/TypeScript/issues/4130#issuecomment-499525897
+        pattern.addColorStopRGBA(0, startColor.red / 255, startColor.green / 255, startColor.blue / 255, startColor.alpha / 255);
+        pattern.addColorStopRGBA(0.5, endColor.red / 255, endColor.green / 255, endColor.blue / 255, endColor.alpha / 255);
+        pattern.addColorStopRGBA(1, startColor.red / 255, startColor.green / 255, startColor.blue / 255, startColor.alpha / 255);
+        cr.setSource(pattern);
+        cr.rectangle(margin, gradientOffset, gradientWidth, gradientHeight);
+        cr.fill();
+        cr.$dispose;
+    });
+    return container;
 }
 
 ;// CONCATENATED MODULE: ./src/functions/limitString.ts
@@ -5143,6 +5093,52 @@ function createChannelList(args) {
     return subMenu.actor;
 }
 
+;// CONCATENATED MODULE: ./src/ui/RadioPopupMenu/CopyButton.ts
+
+
+const { Clipboard, ClipboardType } = imports.gi.St;
+function createCopyButton(args) {
+    const { mpvHandler: { getCurrentTitle } } = args;
+    const defaultTooltipTxt = "Copy current song title to Clipboard";
+    const controlBtn = createControlBtn({
+        iconName: COPY_ICON_NAME,
+        tooltipTxt: defaultTooltipTxt,
+        onClick: handleClick
+    });
+    function handleClick() {
+        controlBtn.tooltip.show();
+        const currentTitle = getCurrentTitle();
+        if (!currentTitle)
+            return;
+        Clipboard.get_default().set_text(ClipboardType.CLIPBOARD, currentTitle);
+        showCopyInTooltip();
+    }
+    // For some reasons I don't understand, this function has stopped working after refactoring the popup Menu. No idea how to debug this. Therefore deactivating this for now :-(. It is thrown an  warning when clicking on the button but this has nothing to do with the tooltip
+    function showCopyInTooltip() {
+        const tooltip = controlBtn.tooltip;
+        tooltip.set_text("Copied");
+        tooltip.show();
+        setTimeout(() => {
+            tooltip.hide();
+            tooltip.set_text(defaultTooltipTxt);
+        }, 500);
+    }
+    return controlBtn.actor;
+}
+
+;// CONCATENATED MODULE: ./src/ui/RadioPopupMenu/MediaControlToolbar.ts
+const { BoxLayout: MediaControlToolbar_BoxLayout } = imports.gi.St;
+const { ActorAlign: MediaControlToolbar_ActorAlign } = imports.gi.Clutter;
+const createMediaControlToolbar = (args) => {
+    const { controlBtns } = args;
+    const toolbar = new MediaControlToolbar_BoxLayout({
+        style_class: "radio-applet-media-control-toolbar",
+        x_align: MediaControlToolbar_ActorAlign.CENTER
+    });
+    controlBtns.forEach(btn => toolbar.add_child(btn));
+    return toolbar;
+};
+
 ;// CONCATENATED MODULE: ./src/ui/RadioPopupMenu/PlayPauseButton.ts
 
 
@@ -5178,6 +5174,7 @@ function createPlayPauseButton(args) {
 
 
 
+
 const { BoxLayout: RadioPopupMenu_BoxLayout } = imports.gi.St;
 function createRadioPopupMenu(props) {
     const { launcher, configs, mpvHandler } = props;
@@ -5194,8 +5191,11 @@ function createRadioPopupMenu(props) {
     const playPauseBtn = createPlayPauseButton({
         mpvHandler
     });
+    const copyBtn = createCopyButton({
+        mpvHandler
+    });
     const mediaControlToolbar = createMediaControlToolbar({
-        controlBtns: [playPauseBtn]
+        controlBtns: [playPauseBtn, copyBtn]
     });
     const infoSection = createInfoSection({
         mpvHandler
@@ -5258,10 +5258,6 @@ function createRadioAppletContainer(props) {
 
 
 
-
-
-
-
 const { BoxLayout: src_BoxLayout } = imports.gi.St;
 function main(args) {
     const { orientation, instanceId } = args;
@@ -5290,30 +5286,23 @@ function main(args) {
     const downloadBtn = createDownloadButton({
         onClick: handleDownloadBtnClicked
     });
-    const copyBtn = createCopyButton({
-        onClick: () => {
-            const currentTitle = mpvHandler.getCurrentTitle();
-            currentTitle && copyText(currentTitle);
-        }
-    });
-    const mediaControlToolbar = createMediaControlToolbar({
-        controlBtns: [downloadBtn.actor, copyBtn.actor, stopBtn.actor]
-    });
+    // const mediaControlToolbar = createMediaControlToolbar({
+    //     controlBtns: [ downloadBtn.actor, copyBtn.actor, stopBtn.actor]
+    // })
     const seeker = createSeeker({
         onPositionChanged: (value) => mpvHandler === null || mpvHandler === void 0 ? void 0 : mpvHandler.setPosition(value)
     });
-    const radioActiveSection = new src_BoxLayout({
-        vertical: true,
-        visible: initialPlaybackStatus !== 'Stopped'
-    });
-    [
-        mediaControlToolbar,
-        volumeSlider.actor,
-        seeker.actor
-    ].forEach(widget => {
-        radioActiveSection.add_child(createSeparatorMenuItem());
-        radioActiveSection.add_child(widget);
-    });
+    // const radioActiveSection = new BoxLayout({
+    //     vertical: true,
+    //     visible: initialPlaybackStatus !== 'Stopped'
+    // });
+    // [
+    //     volumeSlider.actor,
+    //     seeker.actor
+    // ].forEach(widget => {
+    //     radioActiveSection.add_child(createSeparatorMenuItem())
+    //     radioActiveSection.add_child(widget)
+    // })
     // popupMenu.add_child(radioActiveSection)
     // CALLBACKS
     async function handleAppletClicked() {

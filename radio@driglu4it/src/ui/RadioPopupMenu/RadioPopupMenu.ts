@@ -4,6 +4,7 @@ import { createSeparatorMenuItem } from "../../lib/PopupSeperator"
 import { createMpvHandler } from "../../mpv/MpvHandler"
 import { createInfoSection } from "../InfoSection"
 import { createChannelList } from "./ChannelList"
+import { createCopyButton } from "./CopyButton"
 import { createMediaControlToolbar } from "./MediaControlToolbar"
 import { createPlayPauseButton } from "./PlayPauseButton"
 
@@ -30,13 +31,16 @@ export function createRadioPopupMenu(props: { launcher: imports.gi.St.BoxLayout,
         visible: getPlaybackStatus() !== 'Stopped'
     });
 
-
     const playPauseBtn = createPlayPauseButton({
         mpvHandler
     })
 
+    const copyBtn = createCopyButton({
+        mpvHandler
+    })
+
     const mediaControlToolbar = createMediaControlToolbar({
-        controlBtns: [playPauseBtn]
+        controlBtns: [playPauseBtn, copyBtn]
     }) 
 
     const infoSection = createInfoSection({
