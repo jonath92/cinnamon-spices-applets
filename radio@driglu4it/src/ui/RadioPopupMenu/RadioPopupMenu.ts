@@ -32,7 +32,8 @@ export function createRadioPopupMenu(props: { launcher: imports.gi.St.BoxLayout,
     });
 
     const mediaControlToolbar = createMediaControlToolbar({
-        mpvHandler
+        mpvHandler, 
+        configs
     }) 
 
     const infoSection = createInfoSection({

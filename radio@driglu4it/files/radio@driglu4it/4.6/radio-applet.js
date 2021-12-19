@@ -921,16 +921,6 @@ function getDownloadPath(stdout) {
     return (_a = arrayOfLines === null || arrayOfLines === void 0 ? void 0 : arrayOfLines.find(line => line.includes(searchString))) === null || _a === void 0 ? void 0 : _a.split(searchString)[1];
 }
 
-;// CONCATENATED MODULE: ./src/functions/promiseHelpers.ts
-const { spawnCommandLineAsyncIO: promiseHelpers_spawnCommandLineAsyncIO } = imports.misc.util;
-const spawnCommandLinePromise = function (command) {
-    return new Promise((resolve, reject) => {
-        promiseHelpers_spawnCommandLineAsyncIO(command, (stdout, stderr, exitCode) => {
-            (stdout) ? resolve([null, stdout, 0]) : resolve([stderr, null, exitCode]);
-        });
-    });
-};
-
 ;// CONCATENATED MODULE: ./src/ui/Notifications/NotificationBase.ts
 const { SystemNotificationSource, Notification } = imports.ui.messageTray;
 const { messageTray } = imports.ui.main;
@@ -951,67 +941,6 @@ function createBasicNotification(args) {
         messageSource.notify(notification);
     };
     return notification;
-}
-
-;// CONCATENATED MODULE: ./src/ui/Notifications/GenericNotification.ts
-
-function notify(args) {
-    const { text } = args;
-    const notification = createBasicNotification({
-        notificationText: text
-    });
-    notification.notify();
-}
-
-;// CONCATENATED MODULE: ./src/mpv/CheckInstallation.ts
-
-
-
-const { find_program_in_path, file_test, FileTest } = imports.gi.GLib;
-async function installMpvWithMpris() {
-    const mprisPluginDownloaded = checkMprisPluginDownloaded();
-    const mpvInstalled = checkMpvInstalled();
-    !mprisPluginDownloaded && await downloadMrisPluginInteractive();
-    if (!mpvInstalled) {
-        const notificationText = `Please ${mprisPluginDownloaded ? '' : 'also'} install the mpv package.`;
-        notify({ text: notificationText });
-        await installMpvInteractive();
-    }
-}
-function checkMpvInstalled() {
-    return find_program_in_path('mpv');
-}
-function checkMprisPluginDownloaded() {
-    return file_test(MPRIS_PLUGIN_PATH, FileTest.IS_REGULAR);
-}
-function installMpvInteractive() {
-    return new Promise(async (resolve, reject) => {
-        if (checkMpvInstalled())
-            return resolve();
-        if (!find_program_in_path("apturl"))
-            return reject();
-        const [stderr, stdout, exitCode] = await spawnCommandLinePromise(`
-            apturl apt://mpv`);
-        // exitCode 0 means sucessfully. See: man apturl
-        return (exitCode === 0) ? resolve() : reject(stderr);
-    });
-}
-function downloadMrisPluginInteractive() {
-    return new Promise(async (resolve, reject) => {
-        if (checkMprisPluginDownloaded()) {
-            return resolve();
-        }
-        let [stderr, stdout, exitCode] = await spawnCommandLinePromise(`python3  ${__meta.path}/download-dialog-mpris.py`);
-        if ((stdout === null || stdout === void 0 ? void 0 : stdout.trim()) !== 'Continue') {
-            return reject();
-        }
-        [stderr, stdout, exitCode] = await spawnCommandLinePromise(`
-            wget ${MPRIS_PLUGIN_URL} -O ${MPRIS_PLUGIN_PATH}`);
-        // Wget always prints to stderr - exitcode 0 means it was sucessfull 
-        // see:  https://stackoverflow.com/questions/13066518/why-does-wget-output-to-stderr-rather-than-stdout
-        // and https://www.gnu.org/software/wget/manual/html_node/Exit-Status.html
-        return (exitCode === 0) ? resolve() : reject(stderr);
-    });
 }
 
 ;// CONCATENATED MODULE: ./src/ui/Notifications/YoutubeDownloadFinishedNotification.ts
@@ -5137,14 +5066,49 @@ function createStopBtn(args) {
     return stopBtn.actor;
 }
 
+;// CONCATENATED MODULE: ./src/ui/RadioPopupMenu/MediaControlToolbar/DownloadButton.ts
+
+
+
+
+
+
+function createDownloadButton(args) {
+    const { mpvHandler: { getCurrentTitle }, configs: { settingsObject } } = args;
+    const downloadButton = createControlBtn({
+        iconName: DOWNLOAD_ICON_NAME,
+        tooltipTxt: "Download current song from Youtube",
+        onClick: handleClick
+    });
+    function handleClick() {
+        const title = getCurrentTitle();
+        if (!title)
+            return;
+        const downloadProcess = downloadSongFromYoutube({
+            downloadDir: settingsObject.musicDownloadDir,
+            title,
+            onDownloadFinished: (path) => notifyYoutubeDownloadFinished({
+                downloadPath: path
+            }),
+            onDownloadFailed: notifyYoutubeDownloadFailed
+        });
+        notifyYoutubeDownloadStarted({
+            title,
+            onCancelClicked: () => downloadProcess.cancel()
+        });
+    }
+    return downloadButton.actor;
+}
+
 ;// CONCATENATED MODULE: ./src/ui/RadioPopupMenu/MediaControlToolbar/MediaControlToolbar.ts
+
 
 
 
 const { BoxLayout: MediaControlToolbar_BoxLayout } = imports.gi.St;
 const { ActorAlign: MediaControlToolbar_ActorAlign } = imports.gi.Clutter;
 const createMediaControlToolbar = (args) => {
-    const { mpvHandler } = args;
+    const { mpvHandler, configs } = args;
     const toolbar = new MediaControlToolbar_BoxLayout({
         style_class: "radio-applet-media-control-toolbar",
         x_align: MediaControlToolbar_ActorAlign.CENTER
@@ -5158,7 +5122,10 @@ const createMediaControlToolbar = (args) => {
     const stopBtn = createStopBtn({
         mpvHandler
     });
-    [playPauseBtn, copyBtn, stopBtn].forEach(btn => toolbar.add_child(btn));
+    const downloadBtn = createDownloadButton({
+        mpvHandler, configs
+    });
+    [playPauseBtn, downloadBtn, copyBtn, stopBtn].forEach(btn => toolbar.add_child(btn));
     return toolbar;
 };
 
@@ -5182,7 +5149,8 @@ function createRadioPopupMenu(props) {
         visible: getPlaybackStatus() !== 'Stopped'
     });
     const mediaControlToolbar = createMediaControlToolbar({
-        mpvHandler
+        mpvHandler,
+        configs
     });
     const infoSection = createInfoSection({
         mpvHandler
@@ -5194,6 +5162,77 @@ function createRadioPopupMenu(props) {
     popupMenu.add_child(channelList);
     popupMenu.add_child(radioActiveSection);
     return popupMenu;
+}
+
+;// CONCATENATED MODULE: ./src/functions/promiseHelpers.ts
+const { spawnCommandLineAsyncIO: promiseHelpers_spawnCommandLineAsyncIO } = imports.misc.util;
+const spawnCommandLinePromise = function (command) {
+    return new Promise((resolve, reject) => {
+        promiseHelpers_spawnCommandLineAsyncIO(command, (stdout, stderr, exitCode) => {
+            (stdout) ? resolve([null, stdout, 0]) : resolve([stderr, null, exitCode]);
+        });
+    });
+};
+
+;// CONCATENATED MODULE: ./src/ui/Notifications/GenericNotification.ts
+
+function notify(args) {
+    const { text } = args;
+    const notification = createBasicNotification({
+        notificationText: text
+    });
+    notification.notify();
+}
+
+;// CONCATENATED MODULE: ./src/mpv/CheckInstallation.ts
+
+
+
+const { find_program_in_path, file_test, FileTest } = imports.gi.GLib;
+async function installMpvWithMpris() {
+    const mprisPluginDownloaded = checkMprisPluginDownloaded();
+    const mpvInstalled = checkMpvInstalled();
+    !mprisPluginDownloaded && await downloadMrisPluginInteractive();
+    if (!mpvInstalled) {
+        const notificationText = `Please ${mprisPluginDownloaded ? '' : 'also'} install the mpv package.`;
+        notify({ text: notificationText });
+        await installMpvInteractive();
+    }
+}
+function checkMpvInstalled() {
+    return find_program_in_path('mpv');
+}
+function checkMprisPluginDownloaded() {
+    return file_test(MPRIS_PLUGIN_PATH, FileTest.IS_REGULAR);
+}
+function installMpvInteractive() {
+    return new Promise(async (resolve, reject) => {
+        if (checkMpvInstalled())
+            return resolve();
+        if (!find_program_in_path("apturl"))
+            return reject();
+        const [stderr, stdout, exitCode] = await spawnCommandLinePromise(`
+            apturl apt://mpv`);
+        // exitCode 0 means sucessfully. See: man apturl
+        return (exitCode === 0) ? resolve() : reject(stderr);
+    });
+}
+function downloadMrisPluginInteractive() {
+    return new Promise(async (resolve, reject) => {
+        if (checkMprisPluginDownloaded()) {
+            return resolve();
+        }
+        let [stderr, stdout, exitCode] = await spawnCommandLinePromise(`python3  ${__meta.path}/download-dialog-mpris.py`);
+        if ((stdout === null || stdout === void 0 ? void 0 : stdout.trim()) !== 'Continue') {
+            return reject();
+        }
+        [stderr, stdout, exitCode] = await spawnCommandLinePromise(`
+            wget ${MPRIS_PLUGIN_URL} -O ${MPRIS_PLUGIN_PATH}`);
+        // Wget always prints to stderr - exitcode 0 means it was sucessfull 
+        // see:  https://stackoverflow.com/questions/13066518/why-does-wget-output-to-stderr-rather-than-stdout
+        // and https://www.gnu.org/software/wget/manual/html_node/Exit-Status.html
+        return (exitCode === 0) ? resolve() : reject(stderr);
+    });
 }
 
 ;// CONCATENATED MODULE: ./src/ui/RadioApplet/RadioAppletContainer.ts
@@ -5261,8 +5300,6 @@ function createRadioAppletContainer(props) {
 
 
 
-
-
 function main(args) {
     const { orientation, instanceId } = args;
     initPolyfills();
@@ -5309,23 +5346,6 @@ function main(args) {
     // })
     // popupMenu.add_child(radioActiveSection)
     // CALLBACKS
-    async function handleAppletClicked() {
-        if (installationInProgress)
-            return;
-        try {
-            installationInProgress = true;
-            await installMpvWithMpris();
-            popupMenu.toggle();
-        }
-        catch (error) {
-            const notificationText = "Couldn't start the applet. Make sure mpv is installed and the mpv mpris plugin saved in the configs folder.";
-            notify({ text: notificationText });
-            global.logError(error);
-        }
-        finally {
-            installationInProgress = false;
-        }
-    }
     function handleVolumeChanged(volume) {
         volumeSlider.setVolume(volume);
         lastVolume = volume;

@@ -2,18 +2,22 @@ import { createMpvHandler } from "../../../mpv/MpvHandler";
 import { createPlayPauseButton } from "./PlayPauseButton";
 import { createCopyButton } from './CopyButton'
 import { createStopBtn } from "./StopButton";
+import { createDownloadButton } from "./DownloadButton";
+import { createConfig } from "../../../Config";
 
 const { BoxLayout } = imports.gi.St
 const { ActorAlign } = imports.gi.Clutter
 
 interface Arguments {
     mpvHandler: ReturnType<typeof createMpvHandler>
+    configs: ReturnType<typeof createConfig>
 }
 
 export const createMediaControlToolbar = (args: Arguments) => {
 
     const {
-        mpvHandler
+        mpvHandler, 
+        configs
     } = args
 
     const toolbar = new BoxLayout({
@@ -33,8 +37,13 @@ export const createMediaControlToolbar = (args: Arguments) => {
         mpvHandler
     });
 
+    const downloadBtn = createDownloadButton({
+        mpvHandler, configs
+    });
 
-    [playPauseBtn, copyBtn, stopBtn].forEach(btn =>
+
+
+    [playPauseBtn, downloadBtn, copyBtn, stopBtn].forEach(btn =>
         toolbar.add_child(btn)
     )
 
