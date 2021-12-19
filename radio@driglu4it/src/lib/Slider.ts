@@ -20,7 +20,7 @@ export function createSlider(args: SliderArguments) {
     } = args
 
     let value: number
-    if (initialValue) value = limitToMinMax(initialValue)
+    if (initialValue != null) value = limitToMinMax(initialValue)
 
     const drawing = new DrawingArea({
         style_class,

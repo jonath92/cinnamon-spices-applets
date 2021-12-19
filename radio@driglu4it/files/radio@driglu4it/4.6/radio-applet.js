@@ -4457,7 +4457,7 @@ function createSlider(args) {
     const style_class = 'popup-slider-menu-item';
     const { initialValue, onValueChanged } = args;
     let value;
-    if (initialValue)
+    if (initialValue != null)
         value = limitToMinMax(initialValue);
     const drawing = new Slider_DrawingArea({
         style_class,
