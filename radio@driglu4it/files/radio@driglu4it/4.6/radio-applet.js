@@ -875,67 +875,6 @@ function createVolumeSlider(args) {
 
 // EXTERNAL MODULE: ./node_modules/cinnamonpopup/index.js
 var cinnamonpopup = __webpack_require__(447);
-;// CONCATENATED MODULE: ./src/ui/RadioPopupMenu/ControlBtn.ts
-
-const { Button, Icon: ControlBtn_Icon, IconType: ControlBtn_IconType } = imports.gi.St;
-const { Tooltip: ControlBtn_Tooltip } = imports.ui.tooltips;
-function createControlBtn(args) {
-    const { iconName, tooltipTxt, onClick } = args;
-    const icon = new ControlBtn_Icon({
-        icon_type: ControlBtn_IconType.SYMBOLIC,
-        icon_name: iconName || '',
-        style_class: 'popup-menu-icon' // this specifies the icon-size
-    });
-    const btn = new Button({
-        reactive: true,
-        can_focus: true,
-        // It is challenging to get a reasonable style on all themes. I have tried using the 'sound-player-overlay' class but didn't get it working. However might be possible anyway.  
-        style_class: "popup-menu-item",
-        style: "width:20px; padding:10px!important",
-        child: icon
-    });
-    createActivWidget({
-        widget: btn,
-        onActivated: onClick
-    });
-    const tooltip = new ControlBtn_Tooltip(btn, tooltipTxt || '');
-    return {
-        actor: btn,
-        icon,
-        tooltip
-    };
-}
-
-;// CONCATENATED MODULE: ./src/ui/RadioPopupMenu/StopButton.ts
-
-
-function createStopBtn(args) {
-    const { onClick } = args;
-    const stopBtn = createControlBtn({
-        iconName: STOP_ICON_NAME,
-        tooltipTxt: "Stop",
-        onClick
-    });
-    return {
-        actor: stopBtn.actor
-    };
-}
-
-;// CONCATENATED MODULE: ./src/ui/RadioPopupMenu/DownloadButton.ts
-
-
-function createDownloadButton(args) {
-    const { onClick } = args;
-    const downloadButton = createControlBtn({
-        iconName: DOWNLOAD_ICON_NAME,
-        tooltipTxt: "Download current song from Youtube",
-        onClick
-    });
-    return {
-        actor: downloadButton.actor
-    };
-}
-
 ;// CONCATENATED MODULE: ./src/functions/downloadFromYoutube.ts
 const { spawnCommandLineAsyncIO } = imports.misc.util;
 const { get_home_dir: downloadFromYoutube_get_home_dir } = imports.gi.GLib;
@@ -5093,53 +5032,38 @@ function createChannelList(args) {
     return subMenu.actor;
 }
 
-;// CONCATENATED MODULE: ./src/ui/RadioPopupMenu/CopyButton.ts
+;// CONCATENATED MODULE: ./src/ui/RadioPopupMenu/MediaControlToolbar/ControlBtn.ts
 
-
-const { Clipboard, ClipboardType } = imports.gi.St;
-function createCopyButton(args) {
-    const { mpvHandler: { getCurrentTitle } } = args;
-    const defaultTooltipTxt = "Copy current song title to Clipboard";
-    const controlBtn = createControlBtn({
-        iconName: COPY_ICON_NAME,
-        tooltipTxt: defaultTooltipTxt,
-        onClick: handleClick
+const { Button, Icon: ControlBtn_Icon, IconType: ControlBtn_IconType } = imports.gi.St;
+const { Tooltip: ControlBtn_Tooltip } = imports.ui.tooltips;
+function createControlBtn(args) {
+    const { iconName, tooltipTxt, onClick } = args;
+    const icon = new ControlBtn_Icon({
+        icon_type: ControlBtn_IconType.SYMBOLIC,
+        icon_name: iconName || '',
+        style_class: 'popup-menu-icon' // this specifies the icon-size
     });
-    function handleClick() {
-        controlBtn.tooltip.show();
-        const currentTitle = getCurrentTitle();
-        if (!currentTitle)
-            return;
-        Clipboard.get_default().set_text(ClipboardType.CLIPBOARD, currentTitle);
-        showCopyInTooltip();
-    }
-    // For some reasons I don't understand, this function has stopped working after refactoring the popup Menu. No idea how to debug this. Therefore deactivating this for now :-(. It is thrown an  warning when clicking on the button but this has nothing to do with the tooltip
-    function showCopyInTooltip() {
-        const tooltip = controlBtn.tooltip;
-        tooltip.set_text("Copied");
-        tooltip.show();
-        setTimeout(() => {
-            tooltip.hide();
-            tooltip.set_text(defaultTooltipTxt);
-        }, 500);
-    }
-    return controlBtn.actor;
+    const btn = new Button({
+        reactive: true,
+        can_focus: true,
+        // It is challenging to get a reasonable style on all themes. I have tried using the 'sound-player-overlay' class but didn't get it working. However might be possible anyway.  
+        style_class: "popup-menu-item",
+        style: "width:20px; padding:10px!important",
+        child: icon
+    });
+    createActivWidget({
+        widget: btn,
+        onActivated: onClick
+    });
+    const tooltip = new ControlBtn_Tooltip(btn, tooltipTxt || '');
+    return {
+        actor: btn,
+        icon,
+        tooltip
+    };
 }
 
-;// CONCATENATED MODULE: ./src/ui/RadioPopupMenu/MediaControlToolbar.ts
-const { BoxLayout: MediaControlToolbar_BoxLayout } = imports.gi.St;
-const { ActorAlign: MediaControlToolbar_ActorAlign } = imports.gi.Clutter;
-const createMediaControlToolbar = (args) => {
-    const { controlBtns } = args;
-    const toolbar = new MediaControlToolbar_BoxLayout({
-        style_class: "radio-applet-media-control-toolbar",
-        x_align: MediaControlToolbar_ActorAlign.CENTER
-    });
-    controlBtns.forEach(btn => toolbar.add_child(btn));
-    return toolbar;
-};
-
-;// CONCATENATED MODULE: ./src/ui/RadioPopupMenu/PlayPauseButton.ts
+;// CONCATENATED MODULE: ./src/ui/RadioPopupMenu/MediaControlToolbar/PlayPauseButton.ts
 
 
 function createPlayPauseButton(args) {
@@ -5167,9 +5091,78 @@ function createPlayPauseButton(args) {
     return controlBtn.actor;
 }
 
+;// CONCATENATED MODULE: ./src/ui/RadioPopupMenu/MediaControlToolbar/CopyButton.ts
+
+
+const { Clipboard, ClipboardType } = imports.gi.St;
+function createCopyButton(args) {
+    const { mpvHandler: { getCurrentTitle } } = args;
+    const defaultTooltipTxt = "Copy current song title to Clipboard";
+    const controlBtn = createControlBtn({
+        iconName: COPY_ICON_NAME,
+        tooltipTxt: defaultTooltipTxt,
+        onClick: handleClick
+    });
+    function handleClick() {
+        controlBtn.tooltip.show();
+        const currentTitle = getCurrentTitle();
+        if (!currentTitle)
+            return;
+        Clipboard.get_default().set_text(ClipboardType.CLIPBOARD, currentTitle);
+        //showCopyInTooltip()
+    }
+    // For some reasons I don't understand, this function has stopped working after refactoring the popup Menu. No idea how to debug this. Therefore deactivating this for now :-(. It is thrown an  warning when clicking on the button but this has nothing to do with the tooltip
+    function showCopyInTooltip() {
+        const tooltip = controlBtn.tooltip;
+        tooltip.set_text("Copied");
+        tooltip.show();
+        setTimeout(() => {
+            tooltip.hide();
+            tooltip.set_text(defaultTooltipTxt);
+        }, 500);
+    }
+    return controlBtn.actor;
+}
+
+;// CONCATENATED MODULE: ./src/ui/RadioPopupMenu/MediaControlToolbar/StopButton.ts
+
+
+function createStopBtn(args) {
+    const { mpvHandler: { stop } } = args;
+    const stopBtn = createControlBtn({
+        iconName: STOP_ICON_NAME,
+        tooltipTxt: "Stop",
+        onClick: stop
+    });
+    return stopBtn.actor;
+}
+
+;// CONCATENATED MODULE: ./src/ui/RadioPopupMenu/MediaControlToolbar/MediaControlToolbar.ts
+
+
+
+const { BoxLayout: MediaControlToolbar_BoxLayout } = imports.gi.St;
+const { ActorAlign: MediaControlToolbar_ActorAlign } = imports.gi.Clutter;
+const createMediaControlToolbar = (args) => {
+    const { mpvHandler } = args;
+    const toolbar = new MediaControlToolbar_BoxLayout({
+        style_class: "radio-applet-media-control-toolbar",
+        x_align: MediaControlToolbar_ActorAlign.CENTER
+    });
+    const playPauseBtn = createPlayPauseButton({
+        mpvHandler
+    });
+    const copyBtn = createCopyButton({
+        mpvHandler
+    });
+    const stopBtn = createStopBtn({
+        mpvHandler
+    });
+    [playPauseBtn, copyBtn, stopBtn].forEach(btn => toolbar.add_child(btn));
+    return toolbar;
+};
+
 ;// CONCATENATED MODULE: ./src/ui/RadioPopupMenu/RadioPopupMenu.ts
-
-
 
 
 
@@ -5188,14 +5181,8 @@ function createRadioPopupMenu(props) {
         vertical: true,
         visible: getPlaybackStatus() !== 'Stopped'
     });
-    const playPauseBtn = createPlayPauseButton({
-        mpvHandler
-    });
-    const copyBtn = createCopyButton({
-        mpvHandler
-    });
     const mediaControlToolbar = createMediaControlToolbar({
-        controlBtns: [playPauseBtn, copyBtn]
+        mpvHandler
     });
     const infoSection = createInfoSection({
         mpvHandler
@@ -5256,9 +5243,6 @@ function createRadioAppletContainer(props) {
 
 
 
-
-
-const { BoxLayout: src_BoxLayout } = imports.gi.St;
 function main(args) {
     const { orientation, instanceId } = args;
     initPolyfills();
@@ -5280,12 +5264,12 @@ function main(args) {
         onVolumeChanged: (volume) => mpvHandler === null || mpvHandler === void 0 ? void 0 : mpvHandler.setVolume(volume)
     });
     //toolbar
-    const stopBtn = createStopBtn({
-        onClick: () => mpvHandler.stop()
-    });
-    const downloadBtn = createDownloadButton({
-        onClick: handleDownloadBtnClicked
-    });
+    // const stopBtn = createStopBtn({
+    //     onClick: () => mpvHandler.stop()
+    // })
+    // const downloadBtn = createDownloadButton({
+    //     onClick: handleDownloadBtnClicked
+    // })
     // const mediaControlToolbar = createMediaControlToolbar({
     //     controlBtns: [ downloadBtn.actor, copyBtn.actor, stopBtn.actor]
     // })

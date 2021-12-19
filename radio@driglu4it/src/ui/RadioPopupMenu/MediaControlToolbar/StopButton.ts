@@ -1,23 +1,24 @@
-import { STOP_ICON_NAME } from "../../consts";
+import { STOP_ICON_NAME } from "../../../consts";
+import { createMpvHandler } from "../../../mpv/MpvHandler";
 import { createControlBtn } from "./ControlBtn";
 
 interface Arguments {
-    onClick: { (): void }
+    mpvHandler: ReturnType<typeof createMpvHandler>
 }
 
 export function createStopBtn(args: Arguments) {
 
     const {
-        onClick
+        mpvHandler: {
+            stop
+        }
     } = args
 
     const stopBtn = createControlBtn({
         iconName: STOP_ICON_NAME,
         tooltipTxt: "Stop",
-        onClick
+        onClick: stop
     });
 
-    return {
-        actor: stopBtn.actor
-    }
+    return stopBtn.actor
 }

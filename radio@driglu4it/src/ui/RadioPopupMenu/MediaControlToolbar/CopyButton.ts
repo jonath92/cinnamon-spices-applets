@@ -1,5 +1,5 @@
-import { COPY_ICON_NAME } from "../../consts";
-import { createMpvHandler } from "../../mpv/MpvHandler";
+import { COPY_ICON_NAME } from "../../../consts";
+import { createMpvHandler } from "../../../mpv/MpvHandler";
 import { createControlBtn } from "./ControlBtn";
 const { Clipboard, ClipboardType } = imports.gi.St
 
@@ -26,9 +26,7 @@ export function createCopyButton(args: Arguments) {
     function handleClick() {
         controlBtn.tooltip.show()
 
-
         const currentTitle = getCurrentTitle()
-
         if (!currentTitle) return
 
         Clipboard.get_default().set_text(ClipboardType.CLIPBOARD, currentTitle)

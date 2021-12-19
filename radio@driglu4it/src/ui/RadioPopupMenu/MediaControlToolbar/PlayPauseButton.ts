@@ -1,6 +1,6 @@
-import { PAUSE_ICON_NAME, PLAY_ICON_NAME } from "../../consts"
-import { createMpvHandler } from "../../mpv/MpvHandler"
-import { PlayPause } from "../../types"
+import { PAUSE_ICON_NAME, PLAY_ICON_NAME } from "../../../consts"
+import { createMpvHandler } from "../../../mpv/MpvHandler"
+import { PlayPause } from "../../../types"
 import { createControlBtn } from "./ControlBtn"
 
 interface Arguments {

@@ -2,8 +2,7 @@ import { createConfig } from './Config';
 import { createMpvHandler } from './mpv/MpvHandler';
 import { createVolumeSlider } from './ui/VolumeSlider';
 import { createPopupMenu } from 'cinnamonpopup';
-import { createStopBtn } from './ui/RadioPopupMenu/StopButton';
-import { createDownloadButton } from './ui/RadioPopupMenu/DownloadButton';
+
 import { downloadSongFromYoutube } from './functions/downloadFromYoutube';
 import { installMpvWithMpris } from './mpv/CheckInstallation';
 import { notifyYoutubeDownloadFinished } from './ui/Notifications/YoutubeDownloadFinishedNotification';
@@ -13,8 +12,6 @@ import { notify } from './ui/Notifications/GenericNotification';
 import { createSeeker } from './ui/Seeker';
 import { initPolyfills } from './polyfill';
 import { createRadioAppletContainer } from './ui/RadioApplet/RadioAppletContainer';
-
-const { BoxLayout } = imports.gi.St
 
 // TODO: remove the args fully
 interface Arguments {
@@ -64,13 +61,13 @@ export function main(args: Arguments): imports.ui.applet.Applet {
 
     //toolbar
 
-    const stopBtn = createStopBtn({
-        onClick: () => mpvHandler.stop()
-    })
+    // const stopBtn = createStopBtn({
+    //     onClick: () => mpvHandler.stop()
+    // })
 
-    const downloadBtn = createDownloadButton({
-        onClick: handleDownloadBtnClicked
-    })
+    // const downloadBtn = createDownloadButton({
+    //     onClick: handleDownloadBtnClicked
+    // })
 
 
     // const mediaControlToolbar = createMediaControlToolbar({
