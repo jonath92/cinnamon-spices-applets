@@ -15,11 +15,11 @@ interface Settings {
     musicDownloadDir: string
 }
 
-export const createConfig = (instanceId: number) => {
+export const createConfig = () => {
 
     // all settings are saved to this object
     const settingsObject = {} as Omit<Settings, 'initialVolume'>
-    const appletSettings = new AppletSettings(settingsObject, __meta.uuid, instanceId)
+    const appletSettings = new AppletSettings(settingsObject, __meta.uuid, __meta.instanceId)
 
     const iconTypeChangeHandler: ChangeHandler<AppletIcon>[] = []
     const colorPlayingChangeHander: ChangeHandler<string>[] = []

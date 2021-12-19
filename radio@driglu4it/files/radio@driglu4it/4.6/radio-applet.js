@@ -209,10 +209,10 @@ __webpack_require__.d(__webpack_exports__, {
 
 ;// CONCATENATED MODULE: ./src/Config.ts
 const { AppletSettings } = imports.ui.settings;
-const createConfig = (instanceId) => {
+const createConfig = () => {
     // all settings are saved to this object
     const settingsObject = {};
-    const appletSettings = new AppletSettings(settingsObject, __meta.uuid, instanceId);
+    const appletSettings = new AppletSettings(settingsObject, __meta.uuid, __meta.instanceId);
     const iconTypeChangeHandler = [];
     const colorPlayingChangeHander = [];
     const colorPausedHandler = [];
@@ -871,139 +871,6 @@ function createVolumeSlider(args) {
         actor: container,
         setVolume
     };
-}
-
-// EXTERNAL MODULE: ./node_modules/cinnamonpopup/index.js
-var cinnamonpopup = __webpack_require__(447);
-;// CONCATENATED MODULE: ./src/functions/downloadFromYoutube.ts
-const { spawnCommandLineAsyncIO } = imports.misc.util;
-const { get_home_dir: downloadFromYoutube_get_home_dir } = imports.gi.GLib;
-function downloadSongFromYoutube(args) {
-    const { title, downloadDir, onDownloadFinished, onDownloadFailed } = args;
-    let hasBeenCancelled = false;
-    // When using the default value of the settings, the dir starts with ~ what can't be understand when executing command. 
-    // After changing the value in the configs dialogue, the value starts with file:// what youtube-dl can't handle. Saving to network directories (e.g. ftp) doesn't work 
-    const music_dir_absolut = downloadDir.replace('~', downloadFromYoutube_get_home_dir()).replace('file://', '');
-    // ytsearch option found here https://askubuntu.com/a/731511/1013434 (not given in the youtube-dl docs ...)
-    const downloadCommand = `youtube-dl --output "${music_dir_absolut}/%(title)s.%(ext)s" --extract-audio --audio-format mp3 ytsearch1:"${title.replaceAll('"', '\\\"')}" --add-metadata --embed-thumbnail`;
-    const process = spawnCommandLineAsyncIO(downloadCommand, (stdout, stderr) => {
-        try {
-            if (hasBeenCancelled) {
-                hasBeenCancelled = false;
-                return;
-            }
-            if (stderr)
-                throw new Error(stderr);
-            if (stdout) {
-                const downloadPath = getDownloadPath(stdout);
-                if (!downloadPath)
-                    throw new Error('File not saved');
-                onDownloadFinished(downloadPath);
-            }
-        }
-        catch (error) {
-            global.logError(`The following error occured at youtube download attempt: ${error}. The used download Command was: ${downloadCommand}`);
-            onDownloadFailed();
-        }
-    });
-    function cancel() {
-        hasBeenCancelled = true;
-        // it seems to be no problem to call this even after the process has already finished
-        process.force_exit();
-    }
-    return { cancel };
-}
-function getDownloadPath(stdout) {
-    var _a;
-    const arrayOfLines = stdout.match(/[^\r\n]+/g);
-    // there is only one line in stdout which gives the path of the downloaded mp3. This start with [ffmpeg] Destination ...
-    const searchString = '[ffmpeg] Destination: ';
-    return (_a = arrayOfLines === null || arrayOfLines === void 0 ? void 0 : arrayOfLines.find(line => line.includes(searchString))) === null || _a === void 0 ? void 0 : _a.split(searchString)[1];
-}
-
-;// CONCATENATED MODULE: ./src/ui/Notifications/NotificationBase.ts
-const { SystemNotificationSource, Notification } = imports.ui.messageTray;
-const { messageTray } = imports.ui.main;
-const { Icon: NotificationBase_Icon, IconType: NotificationBase_IconType } = imports.gi.St;
-
-const messageSource = new SystemNotificationSource('Radio Applet');
-messageTray.add(messageSource);
-function createBasicNotification(args) {
-    const { notificationText, isMarkup = false, transient = true } = args;
-    const icon = new NotificationBase_Icon({
-        icon_type: NotificationBase_IconType.SYMBOLIC,
-        icon_name: RADIO_SYMBOLIC_ICON_NAME,
-        icon_size: 25
-    });
-    const notification = new Notification(messageSource, __meta.name, notificationText, { icon, bodyMarkup: isMarkup });
-    notification.setTransient(transient);
-    notification.notify = () => {
-        messageSource.notify(notification);
-    };
-    return notification;
-}
-
-;// CONCATENATED MODULE: ./src/ui/Notifications/YoutubeDownloadFinishedNotification.ts
-
-const { spawnCommandLine: YoutubeDownloadFinishedNotification_spawnCommandLine } = imports.misc.util;
-function notifyYoutubeDownloadFinished(args) {
-    const { downloadPath } = args;
-    const notification = createBasicNotification({
-        notificationText: `Download finished. File saved to ${downloadPath}`
-    });
-    const playBtnId = 'openBtn';
-    notification.addButton(playBtnId, 'Play');
-    notification.connect('action-invoked', (actor, id) => {
-        if (id === playBtnId) {
-            YoutubeDownloadFinishedNotification_spawnCommandLine(`xdg-open '${downloadPath}'`);
-        }
-    });
-    notification.notify();
-}
-
-;// CONCATENATED MODULE: ./src/ui/Notifications/YoutubeDownloadStartedNotification.ts
-
-function notifyYoutubeDownloadStarted(args) {
-    const { title, onCancelClicked } = args;
-    const notification = createBasicNotification({
-        notificationText: `Downloading ${title} ...`,
-    });
-    const cancelBtnId = 'cancelBtn';
-    notification.addButton(cancelBtnId, 'Cancel');
-    notification.connect('action-invoked', (actor, id) => {
-        if (id === cancelBtnId)
-            onCancelClicked();
-    });
-    notification.notify();
-}
-
-;// CONCATENATED MODULE: ./src/ui/Notifications/YoutubeDownloadFailedNotification.ts
-
-
-const { spawnCommandLine: YoutubeDownloadFailedNotification_spawnCommandLine } = imports.misc.util;
-const { get_home_dir: YoutubeDownloadFailedNotification_get_home_dir } = imports.gi.GLib;
-function notifyYoutubeDownloadFailed() {
-    const notificationText = `Couldn't download Song from Youtube due to an Error. Make Sure you have the newest version of youtube-dl installed. 
-        \n<b>Important:</b> Don't use apt for the installation but follow the installation instruction given on the Radio Applet Site in the Cinnamon Store instead
-        \nFor more information see the logs`;
-    const notification = createBasicNotification({
-        notificationText,
-        isMarkup: true,
-        transient: false
-    });
-    const viewStoreBtnId = 'viewStoreBtn';
-    const viewLogBtnId = 'viewLogBtn';
-    notification.addButton(viewStoreBtnId, 'View Installation Instruction');
-    notification.addButton(viewLogBtnId, "View Logs");
-    notification.connect('action-invoked', (actor, id) => {
-        if (id === viewStoreBtnId) {
-            YoutubeDownloadFailedNotification_spawnCommandLine(`xdg-open ${APPLET_SITE} `);
-        }
-        if (id === viewLogBtnId) {
-            YoutubeDownloadFailedNotification_spawnCommandLine(`xdg-open ${YoutubeDownloadFailedNotification_get_home_dir()}/.xsession-errors`);
-        }
-    });
-    notification.notify();
 }
 
 ;// CONCATENATED MODULE: ./src/ui/Seeker.ts
@@ -4697,6 +4564,8 @@ function createRadioAppletIcon(args) {
     return icon;
 }
 
+// EXTERNAL MODULE: ./node_modules/cinnamonpopup/index.js
+var cinnamonpopup = __webpack_require__(447);
 ;// CONCATENATED MODULE: ./src/lib/PopupSeperator.ts
 const { BoxLayout: PopupSeperator_BoxLayout, DrawingArea: PopupSeperator_DrawingArea } = imports.gi.St;
 const { LinearGradient } = imports.gi.cairo;
@@ -5066,6 +4935,137 @@ function createStopBtn(args) {
     return stopBtn.actor;
 }
 
+;// CONCATENATED MODULE: ./src/functions/downloadFromYoutube.ts
+const { spawnCommandLineAsyncIO } = imports.misc.util;
+const { get_home_dir: downloadFromYoutube_get_home_dir } = imports.gi.GLib;
+function downloadSongFromYoutube(args) {
+    const { title, downloadDir, onDownloadFinished, onDownloadFailed } = args;
+    let hasBeenCancelled = false;
+    // When using the default value of the settings, the dir starts with ~ what can't be understand when executing command. 
+    // After changing the value in the configs dialogue, the value starts with file:// what youtube-dl can't handle. Saving to network directories (e.g. ftp) doesn't work 
+    const music_dir_absolut = downloadDir.replace('~', downloadFromYoutube_get_home_dir()).replace('file://', '');
+    // ytsearch option found here https://askubuntu.com/a/731511/1013434 (not given in the youtube-dl docs ...)
+    const downloadCommand = `youtube-dl --output "${music_dir_absolut}/%(title)s.%(ext)s" --extract-audio --audio-format mp3 ytsearch1:"${title.replaceAll('"', '\\\"')}" --add-metadata --embed-thumbnail`;
+    const process = spawnCommandLineAsyncIO(downloadCommand, (stdout, stderr) => {
+        try {
+            if (hasBeenCancelled) {
+                hasBeenCancelled = false;
+                return;
+            }
+            if (stderr)
+                throw new Error(stderr);
+            if (stdout) {
+                const downloadPath = getDownloadPath(stdout);
+                if (!downloadPath)
+                    throw new Error('File not saved');
+                onDownloadFinished(downloadPath);
+            }
+        }
+        catch (error) {
+            global.logError(`The following error occured at youtube download attempt: ${error}. The used download Command was: ${downloadCommand}`);
+            onDownloadFailed();
+        }
+    });
+    function cancel() {
+        hasBeenCancelled = true;
+        // it seems to be no problem to call this even after the process has already finished
+        process.force_exit();
+    }
+    return { cancel };
+}
+function getDownloadPath(stdout) {
+    var _a;
+    const arrayOfLines = stdout.match(/[^\r\n]+/g);
+    // there is only one line in stdout which gives the path of the downloaded mp3. This start with [ffmpeg] Destination ...
+    const searchString = '[ffmpeg] Destination: ';
+    return (_a = arrayOfLines === null || arrayOfLines === void 0 ? void 0 : arrayOfLines.find(line => line.includes(searchString))) === null || _a === void 0 ? void 0 : _a.split(searchString)[1];
+}
+
+;// CONCATENATED MODULE: ./src/ui/Notifications/NotificationBase.ts
+const { SystemNotificationSource, Notification } = imports.ui.messageTray;
+const { messageTray } = imports.ui.main;
+const { Icon: NotificationBase_Icon, IconType: NotificationBase_IconType } = imports.gi.St;
+
+const messageSource = new SystemNotificationSource('Radio Applet');
+messageTray.add(messageSource);
+function createBasicNotification(args) {
+    const { notificationText, isMarkup = false, transient = true } = args;
+    const icon = new NotificationBase_Icon({
+        icon_type: NotificationBase_IconType.SYMBOLIC,
+        icon_name: RADIO_SYMBOLIC_ICON_NAME,
+        icon_size: 25
+    });
+    const notification = new Notification(messageSource, __meta.name, notificationText, { icon, bodyMarkup: isMarkup });
+    notification.setTransient(transient);
+    notification.notify = () => {
+        messageSource.notify(notification);
+    };
+    return notification;
+}
+
+;// CONCATENATED MODULE: ./src/ui/Notifications/YoutubeDownloadFailedNotification.ts
+
+
+const { spawnCommandLine: YoutubeDownloadFailedNotification_spawnCommandLine } = imports.misc.util;
+const { get_home_dir: YoutubeDownloadFailedNotification_get_home_dir } = imports.gi.GLib;
+function notifyYoutubeDownloadFailed() {
+    const notificationText = `Couldn't download Song from Youtube due to an Error. Make Sure you have the newest version of youtube-dl installed. 
+        \n<b>Important:</b> Don't use apt for the installation but follow the installation instruction given on the Radio Applet Site in the Cinnamon Store instead
+        \nFor more information see the logs`;
+    const notification = createBasicNotification({
+        notificationText,
+        isMarkup: true,
+        transient: false
+    });
+    const viewStoreBtnId = 'viewStoreBtn';
+    const viewLogBtnId = 'viewLogBtn';
+    notification.addButton(viewStoreBtnId, 'View Installation Instruction');
+    notification.addButton(viewLogBtnId, "View Logs");
+    notification.connect('action-invoked', (actor, id) => {
+        if (id === viewStoreBtnId) {
+            YoutubeDownloadFailedNotification_spawnCommandLine(`xdg-open ${APPLET_SITE} `);
+        }
+        if (id === viewLogBtnId) {
+            YoutubeDownloadFailedNotification_spawnCommandLine(`xdg-open ${YoutubeDownloadFailedNotification_get_home_dir()}/.xsession-errors`);
+        }
+    });
+    notification.notify();
+}
+
+;// CONCATENATED MODULE: ./src/ui/Notifications/YoutubeDownloadFinishedNotification.ts
+
+const { spawnCommandLine: YoutubeDownloadFinishedNotification_spawnCommandLine } = imports.misc.util;
+function notifyYoutubeDownloadFinished(args) {
+    const { downloadPath } = args;
+    const notification = createBasicNotification({
+        notificationText: `Download finished. File saved to ${downloadPath}`
+    });
+    const playBtnId = 'openBtn';
+    notification.addButton(playBtnId, 'Play');
+    notification.connect('action-invoked', (actor, id) => {
+        if (id === playBtnId) {
+            YoutubeDownloadFinishedNotification_spawnCommandLine(`xdg-open '${downloadPath}'`);
+        }
+    });
+    notification.notify();
+}
+
+;// CONCATENATED MODULE: ./src/ui/Notifications/YoutubeDownloadStartedNotification.ts
+
+function notifyYoutubeDownloadStarted(args) {
+    const { title, onCancelClicked } = args;
+    const notification = createBasicNotification({
+        notificationText: `Downloading ${title} ...`,
+    });
+    const cancelBtnId = 'cancelBtn';
+    notification.addButton(cancelBtnId, 'Cancel');
+    notification.connect('action-invoked', (actor, id) => {
+        if (id === cancelBtnId)
+            onCancelClicked();
+    });
+    notification.notify();
+}
+
 ;// CONCATENATED MODULE: ./src/ui/RadioPopupMenu/MediaControlToolbar/DownloadButton.ts
 
 
@@ -5295,19 +5295,11 @@ function createRadioAppletContainer(props) {
 
 
 
-
-
-
-
-
-function main(args) {
-    const { orientation, instanceId } = args;
+function main() {
     initPolyfills();
     // this is a workaround for now. Optimally the lastVolume should be saved persistently each time the volume is changed but this lead to significant performance issue on scrolling at the moment. However this shouldn't be the case as it is no problem to log the volume each time the volume changes (so it is a problem in the config implementation). As a workaround the volume is only saved persistently when the radio stops but the volume obviously can't be received anymore from dbus when the player has been already stopped ... 
     let lastVolume;
-    let installationInProgress = false;
-    const configs = createConfig(instanceId);
-    const { settingsObject: configNew, addStationsListChangeHandler: setStationsHandler, } = configs;
+    const configs = createConfig();
     const mpvHandler = createMpvHandler({
         onLengthChanged: hanldeLengthChanged,
         onPositionChanged: handlePositionChanged,
@@ -5315,37 +5307,12 @@ function main(args) {
         configs
     });
     const appletContainer = createRadioAppletContainer({ configs, mpvHandler });
-    const initialPlaybackStatus = mpvHandler.getPlaybackStatus();
-    const popupMenu = (0,cinnamonpopup/* createPopupMenu */.S)({ launcher: appletContainer.actor });
     const volumeSlider = createVolumeSlider({
         onVolumeChanged: (volume) => mpvHandler === null || mpvHandler === void 0 ? void 0 : mpvHandler.setVolume(volume)
     });
-    //toolbar
-    // const stopBtn = createStopBtn({
-    //     onClick: () => mpvHandler.stop()
-    // })
-    // const downloadBtn = createDownloadButton({
-    //     onClick: handleDownloadBtnClicked
-    // })
-    // const mediaControlToolbar = createMediaControlToolbar({
-    //     controlBtns: [ downloadBtn.actor, copyBtn.actor, stopBtn.actor]
-    // })
     const seeker = createSeeker({
         onPositionChanged: (value) => mpvHandler === null || mpvHandler === void 0 ? void 0 : mpvHandler.setPosition(value)
     });
-    // const radioActiveSection = new BoxLayout({
-    //     vertical: true,
-    //     visible: initialPlaybackStatus !== 'Stopped'
-    // });
-    // [
-    //     volumeSlider.actor,
-    //     seeker.actor
-    // ].forEach(widget => {
-    //     radioActiveSection.add_child(createSeparatorMenuItem())
-    //     radioActiveSection.add_child(widget)
-    // })
-    // popupMenu.add_child(radioActiveSection)
-    // CALLBACKS
     function handleVolumeChanged(volume) {
         volumeSlider.setVolume(volume);
         lastVolume = volume;
@@ -5355,23 +5322,6 @@ function main(args) {
     }
     function handlePositionChanged(position) {
         seeker === null || seeker === void 0 ? void 0 : seeker.setPosition(position);
-    }
-    function handleDownloadBtnClicked() {
-        const title = mpvHandler.getCurrentTitle();
-        if (!title)
-            return;
-        const downloadProcess = downloadSongFromYoutube({
-            downloadDir: configNew.musicDownloadDir,
-            title,
-            onDownloadFinished: (path) => notifyYoutubeDownloadFinished({
-                downloadPath: path
-            }),
-            onDownloadFailed: notifyYoutubeDownloadFailed
-        });
-        notifyYoutubeDownloadStarted({
-            title,
-            onCancelClicked: () => downloadProcess.cancel()
-        });
     }
     return appletContainer;
 }

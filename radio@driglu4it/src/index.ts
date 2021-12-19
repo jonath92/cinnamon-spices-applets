@@ -13,19 +13,8 @@ import { createSeeker } from './ui/Seeker';
 import { initPolyfills } from './polyfill';
 import { createRadioAppletContainer } from './ui/RadioApplet/RadioAppletContainer';
 
-// TODO: remove the args fully
-interface Arguments {
-    orientation: imports.gi.St.Side,
-    panelHeight: number,
-    instanceId: number
-}
 
-export function main(args: Arguments): imports.ui.applet.Applet {
-    const {
-        orientation,
-        instanceId
-    } = args
-
+export function main(): imports.ui.applet.Applet {
 
 
     initPolyfills()
@@ -33,14 +22,7 @@ export function main(args: Arguments): imports.ui.applet.Applet {
     // this is a workaround for now. Optimally the lastVolume should be saved persistently each time the volume is changed but this lead to significant performance issue on scrolling at the moment. However this shouldn't be the case as it is no problem to log the volume each time the volume changes (so it is a problem in the config implementation). As a workaround the volume is only saved persistently when the radio stops but the volume obviously can't be received anymore from dbus when the player has been already stopped ... 
     let lastVolume: number
 
-    let installationInProgress = false
-
-    const configs = createConfig(instanceId)
-
-    const {
-        settingsObject: configNew,
-        addStationsListChangeHandler: setStationsHandler,
-    } = configs
+    const configs = createConfig()
 
     const mpvHandler = createMpvHandler({
         onLengthChanged: hanldeLengthChanged,
@@ -51,51 +33,15 @@ export function main(args: Arguments): imports.ui.applet.Applet {
 
     const appletContainer = createRadioAppletContainer({configs, mpvHandler})
 
-    const initialPlaybackStatus = mpvHandler.getPlaybackStatus()
-
-    const popupMenu = createPopupMenu({ launcher: appletContainer.actor })
 
     const volumeSlider = createVolumeSlider({
         onVolumeChanged: (volume) => mpvHandler?.setVolume(volume)
     })
 
-    //toolbar
-
-    // const stopBtn = createStopBtn({
-    //     onClick: () => mpvHandler.stop()
-    // })
-
-    // const downloadBtn = createDownloadButton({
-    //     onClick: handleDownloadBtnClicked
-    // })
-
-
-    // const mediaControlToolbar = createMediaControlToolbar({
-    //     controlBtns: [ downloadBtn.actor, copyBtn.actor, stopBtn.actor]
-    // })
-
     const seeker = createSeeker({
         onPositionChanged: (value) => mpvHandler?.setPosition(value)
     })
 
-    // const radioActiveSection = new BoxLayout({
-    //     vertical: true,
-    //     visible: initialPlaybackStatus !== 'Stopped'
-    // });
-
-    // [
-    //     volumeSlider.actor,
-    //     seeker.actor
-    // ].forEach(widget => {
-    //     radioActiveSection.add_child(createSeparatorMenuItem())
-    //     radioActiveSection.add_child(widget)
-    // })
-
-    // popupMenu.add_child(radioActiveSection)
-
-
-
-    // CALLBACKS
 
     function handleVolumeChanged(volume: number) {
         volumeSlider.setVolume(volume)
@@ -110,27 +56,6 @@ export function main(args: Arguments): imports.ui.applet.Applet {
 
     function handlePositionChanged(position: number) {
         seeker?.setPosition(position)
-    }
-
-    function handleDownloadBtnClicked() {
-
-        const title = mpvHandler.getCurrentTitle()
-
-        if (!title) return
-
-        const downloadProcess = downloadSongFromYoutube({
-            downloadDir: configNew.musicDownloadDir,
-            title,
-            onDownloadFinished: (path) => notifyYoutubeDownloadFinished({
-                downloadPath: path
-            }),
-            onDownloadFailed: notifyYoutubeDownloadFailed
-        })
-
-        notifyYoutubeDownloadStarted({
-            title,
-            onCancelClicked: () => downloadProcess.cancel()
-        })
     }
 
     return appletContainer
