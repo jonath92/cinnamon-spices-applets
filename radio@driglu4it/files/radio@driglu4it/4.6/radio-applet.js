@@ -385,10 +385,12 @@ function createMpvHandler() {
             pauseAllOtherMediaPlayers();
         }
         if (oldOwner) {
+            global.log('mpv stopped');
             handleMpvStopped();
         }
     });
     function handleMpvStopped() {
+        isLoading = false;
         currentLength = 0;
         stopPositionTimer();
         mediaPropsListenerId && mediaProps.disconnectSignal(mediaPropsListenerId);
@@ -637,7 +639,8 @@ function createMpvHandler() {
         deactivateAllListener,
         getPlaybackStatus,
         getVolume,
-        // getCurrentUrl: () => currentUrl,
+        getLength,
+        getPosition,
         getCurrentChannelName,
         addPlaybackStatusChangeHandler: (changeHandler) => {
             playbackStatusChangeHandler.push(changeHandler);
@@ -4269,6 +4272,8 @@ function createRadioAppletIcon() {
     }
     function setRefreshIcon() {
         const playbackStatus = getPlaybackStatus();
+        const iconName = getIconName({ isLoading: playbackStatus === 'Loading' });
+        global.log('iconName', iconName);
         icon.icon_name = getIconName({ isLoading: playbackStatus === 'Loading' });
         icon.style = getStyle({ playbackStatus });
     }
@@ -4437,6 +4442,185 @@ function createInfoSection() {
         songInfoItem.setText(newTitle || '');
     });
     return infoSection;
+}
+
+;// CONCATENATED MODULE: ./src/lib/Slider.ts
+const { DrawingArea: Slider_DrawingArea } = imports.gi.St;
+const { cairo_set_source_color, grab_pointer, ungrab_pointer } = imports.gi.Clutter;
+function createSlider(args) {
+    const style_class = 'popup-slider-menu-item';
+    const { initialValue, onValueChanged } = args;
+    let value;
+    if (initialValue)
+        value = limitToMinMax(initialValue);
+    const drawing = new Slider_DrawingArea({
+        style_class,
+        reactive: true,
+        x_expand: true
+    });
+    drawing.connect('repaint', () => {
+        const cr = drawing.get_context();
+        const themeNode = drawing.get_theme_node();
+        const [width, height] = drawing.get_surface_size();
+        const handleRadius = themeNode.get_length('-slider-handle-radius');
+        const sliderHeight = themeNode.get_length('-slider-height');
+        const sliderBorderWidth = themeNode.get_length('-slider-border-width');
+        const sliderBorderRadius = Math.min(width, sliderHeight) / 2;
+        const sliderBorderColor = themeNode.get_color('-slider-border-color');
+        const sliderColor = themeNode.get_color('-slider-background-color');
+        const sliderActiveBorderColor = themeNode.get_color('-slider-active-border-color');
+        const sliderActiveColor = themeNode.get_color('-slider-active-background-color');
+        const TAU = Math.PI * 2;
+        const handleX = handleRadius + (width - 2 * handleRadius) * value;
+        cr.arc(sliderBorderRadius + sliderBorderWidth, height / 2, sliderBorderRadius, TAU * 1 / 4, TAU * 3 / 4);
+        cr.lineTo(handleX, (height - sliderHeight) / 2);
+        cr.lineTo(handleX, (height + sliderHeight) / 2);
+        cr.lineTo(sliderBorderRadius + sliderBorderWidth, (height + sliderHeight) / 2);
+        cairo_set_source_color(cr, sliderActiveColor);
+        cr.fillPreserve();
+        cairo_set_source_color(cr, sliderActiveBorderColor);
+        cr.setLineWidth(sliderBorderWidth);
+        cr.stroke();
+        cr.arc(width - sliderBorderRadius - sliderBorderWidth, height / 2, sliderBorderRadius, TAU * 3 / 4, TAU * 1 / 4);
+        cr.lineTo(handleX, (height + sliderHeight) / 2);
+        cr.lineTo(handleX, (height - sliderHeight) / 2);
+        cr.lineTo(width - sliderBorderRadius - sliderBorderWidth, (height - sliderHeight) / 2);
+        cairo_set_source_color(cr, sliderColor);
+        cr.fillPreserve();
+        cairo_set_source_color(cr, sliderBorderColor);
+        cr.setLineWidth(sliderBorderWidth);
+        cr.stroke();
+        const handleY = height / 2;
+        const color = themeNode.get_foreground_color();
+        cairo_set_source_color(cr, color);
+        cr.arc(handleX, handleY, handleRadius, 0, 2 * Math.PI);
+        cr.fill();
+        cr.$dispose();
+    });
+    drawing.connect('button-press-event', (actor, event) => {
+        grab_pointer(drawing);
+        const motionId = drawing.connect('motion-event', (actor, event) => {
+            moveHandle(event);
+            return false;
+        });
+        const buttonReleaseId = drawing.connect('button-release-event', () => {
+            drawing.disconnect(buttonReleaseId);
+            drawing.disconnect(motionId);
+            ungrab_pointer();
+            return false;
+        });
+        moveHandle(event);
+        return false;
+    });
+    function moveHandle(event) {
+        const [absX, absY] = event.get_coords();
+        const [sliderX, sliderY] = drawing.get_transformed_position();
+        const relX = absX - (sliderX || 0);
+        const width = drawing.width;
+        const handleRadius = drawing.get_theme_node().get_length('-slider-handle-radius');
+        const newValue = (relX - handleRadius) / (width - 2 * handleRadius);
+        const newValueLimitToMinMax = limitToMinMax(newValue);
+        setValue(newValueLimitToMinMax);
+    }
+    function limitToMinMax(value) {
+        return Math.max(Math.min(value, 1), 0);
+    }
+    function setValue(newValue, silent = false) {
+        const correctedValue = limitToMinMax(newValue);
+        if (correctedValue === value)
+            return;
+        value = correctedValue;
+        if (!silent)
+            onValueChanged === null || onValueChanged === void 0 ? void 0 : onValueChanged(value);
+        drawing.queue_repaint();
+    }
+    function getValue() {
+        return value;
+    }
+    return {
+        actor: drawing,
+        setValue,
+        getValue
+    };
+}
+
+;// CONCATENATED MODULE: ./src/ui/Seeker.ts
+
+
+
+
+const { BoxLayout: Seeker_BoxLayout, Label: Seeker_Label } = imports.gi.St;
+// used to ensure that the width doesn't change on some fonts
+const LABEL_STYLE = 'font-family: mono';
+function createSeeker() {
+    const { getLength, getPosition, setPosition, addLengthChangeHandler,
+    // TODO: add position changeHandler
+     } = mpvHandler;
+    const container = new Seeker_BoxLayout({
+        style_class: POPUP_MENU_ITEM_CLASS
+    });
+    createActivWidget({
+        widget: container
+    });
+    const positionLabel = new Seeker_Label({
+        style: LABEL_STYLE,
+        text: secondsToFormatedMin(getPosition())
+    });
+    const lengthLabel = new Seeker_Label({
+        style: LABEL_STYLE,
+        text: secondsToFormatedMin(getLength())
+    });
+    const slider = createSlider({
+        initialValue: getPosition() / getLength(),
+        onValueChanged: (newSliderPos) => setPosition(newSliderPos * getLength())
+    });
+    [positionLabel, slider.actor, lengthLabel].forEach(widget => {
+        container.add_child(widget);
+    });
+    function updateSeeker() {
+        positionLabel.set_text(secondsToFormatedMin(getPosition()));
+        lengthLabel.set_text(secondsToFormatedMin(getLength()));
+        slider.setValue(getPosition() / getLength(), true);
+    }
+    addLengthChangeHandler(updateSeeker);
+    // /** @param value in seconds */
+    // function setLength(value: number) {
+    //     length = value
+    //     lengthLabel.set_text(secondsToFormatedMin(value))
+    //     refreshSliderValue()
+    // }
+    // /** @param value in seconds */
+    // function setPosition(value: number) {
+    //     position = value;
+    //     positionLabel.set_text(secondsToFormatedMin(position))
+    //     refreshSliderValue()
+    // }
+    // function refreshSliderValue() {
+    //     const sliderValue = length === 0 ? 0 : Math.min(getPosition() / getLength(), 1)
+    //     slider.setValue(sliderValue, true)
+    // }
+    // function handleValueChanged(value: number) {
+    //     const newPosition = value * length
+    //     onPositionChanged(newPosition)
+    // }
+    /**
+     * converts seconds to a string in the form of: mm:ss
+     *
+     * e.g. 10 seconds = 00:10, 100 seconds = 01:40,  6000 seconds = 100:00
+     *
+     * @param seconds
+     * @returns
+     */
+    function secondsToFormatedMin(seconds) {
+        const minutes = Math.floor(seconds / 60);
+        const remainingSeconds = seconds - minutes * 60;
+        // ensures minutes and seconds are shown with at least two digits
+        return [minutes, remainingSeconds].map(value => {
+            const valueString = value.toString().padStart(2, '0');
+            return valueString;
+        }).join(":");
+    }
+    return container;
 }
 
 ;// CONCATENATED MODULE: ./src/lib/PopupSubMenu.ts
@@ -4883,6 +5067,7 @@ const createMediaControlToolbar = () => {
 
 
 
+
 const { BoxLayout: RadioPopupMenu_BoxLayout } = imports.gi.St;
 function createRadioPopupMenu(props) {
     const { launcher, } = props;
@@ -4893,13 +5078,11 @@ function createRadioPopupMenu(props) {
         vertical: true,
         visible: getPlaybackStatus() !== 'Stopped'
     });
-    const mediaControlToolbar = createMediaControlToolbar();
-    const infoSection = createInfoSection();
-    [infoSection, mediaControlToolbar].forEach(widget => {
+    [createInfoSection(), createMediaControlToolbar(), createSeeker()].forEach(widget => {
         radioActiveSection.add_child(createSeparatorMenuItem());
         radioActiveSection.add_child(widget);
     });
-    popupMenu.add_child(channelList);
+    popupMenu.add_child(createChannelList());
     popupMenu.add_child(radioActiveSection);
     addPlaybackStatusChangeHandler((newValue) => {
         radioActiveSection.visible = newValue !== 'Stopped';

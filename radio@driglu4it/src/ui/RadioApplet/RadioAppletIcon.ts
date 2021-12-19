@@ -54,6 +54,10 @@ export function createRadioAppletIcon() {
 
         const playbackStatus = getPlaybackStatus()
 
+        const iconName = getIconName({ isLoading: playbackStatus === 'Loading' })
+
+        global.log('iconName', iconName)
+
         icon.icon_name = getIconName({ isLoading: playbackStatus === 'Loading' })
         icon.style = getStyle({ playbackStatus })
     }

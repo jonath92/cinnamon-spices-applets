@@ -2,6 +2,7 @@ import { createPopupMenu } from "cinnamonpopup"
 import { createSeparatorMenuItem } from "../../lib/PopupSeperator"
 import { mpvHandler } from "../../mpv/MpvHandler"
 import { createInfoSection } from "../InfoSection"
+import { createSeeker } from "../Seeker"
 import { createChannelList } from "./ChannelList"
 import { createMediaControlToolbar } from "./MediaControlToolbar/MediaControlToolbar"
 
@@ -26,16 +27,12 @@ export function createRadioPopupMenu(props: { launcher: imports.gi.St.BoxLayout 
         visible: getPlaybackStatus() !== 'Stopped'
     });
 
-    const mediaControlToolbar = createMediaControlToolbar()
-
-    const infoSection = createInfoSection();
-
-    [infoSection, mediaControlToolbar].forEach(widget => {
+    [createInfoSection(), createMediaControlToolbar(), createSeeker()].forEach(widget => {
         radioActiveSection.add_child(createSeparatorMenuItem())
         radioActiveSection.add_child(widget)
     })
 
-    popupMenu.add_child(channelList)
+    popupMenu.add_child(createChannelList())
     popupMenu.add_child(radioActiveSection)
 
     addPlaybackStatusChangeHandler((newValue) => {

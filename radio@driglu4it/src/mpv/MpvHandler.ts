@@ -97,11 +97,13 @@ function createMpvHandler() {
         }
 
         if (oldOwner) {
+            global.log('mpv stopped')
             handleMpvStopped()
         }
     })
 
     function handleMpvStopped(): void {
+        isLoading = false
         currentLength = 0
         stopPositionTimer()
         mediaPropsListenerId && mediaProps.disconnectSignal(mediaPropsListenerId)
@@ -423,7 +425,8 @@ function createMpvHandler() {
         deactivateAllListener,
         getPlaybackStatus,
         getVolume,
-        // getCurrentUrl: () => currentUrl,
+        getLength,
+        getPosition,
         getCurrentChannelName,
 
 
