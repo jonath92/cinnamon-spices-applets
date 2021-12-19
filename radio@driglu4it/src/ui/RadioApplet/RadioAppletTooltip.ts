@@ -15,18 +15,25 @@ export function createRadioAppletTooltip(args: Arguments) {
 
     const {
         getVolume,
-        addVolumeChangeHandler
+        addVolumeChangeHandler,
+        addPlaybackStatusChangeHandler
     } = mpvHandler
 
-    function getTitle(): string {
-        const volume = getVolume()
-        if (!volume) return DEFAULT_TOOLTIP_TXT
+    const getVolumeText = (volume: number) => {
         return `Volume: ${volume.toString()} %`
     }
 
-    const tooltip = new PanelItemTooltip(appletContainer, getTitle(), __meta.orientation)
+    const initialVolume = getVolume()
+    const initialText = (initialVolume == null) ? 
+        DEFAULT_TOOLTIP_TXT : getVolumeText(initialVolume)
 
-    addVolumeChangeHandler(() => {
-        tooltip.set_text(getTitle())
+    const tooltip = new PanelItemTooltip(appletContainer, initialText, __meta.orientation)
+
+    addVolumeChangeHandler((newVolume) => {
+        tooltip.set_text(getVolumeText(newVolume))
+    })
+
+    addPlaybackStatusChangeHandler((newStatus) => {
+        if (newStatus === 'Stopped') tooltip.set_text(DEFAULT_TOOLTIP_TXT)
     })
 }

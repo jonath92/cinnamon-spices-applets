@@ -4195,16 +4195,20 @@ function createRadioAppletLabel() {
 const { PanelItemTooltip } = imports.ui.tooltips;
 function createRadioAppletTooltip(args) {
     const { appletContainer, } = args;
-    const { getVolume, addVolumeChangeHandler } = mpvHandler;
-    function getTitle() {
-        const volume = getVolume();
-        if (!volume)
-            return DEFAULT_TOOLTIP_TXT;
+    const { getVolume, addVolumeChangeHandler, addPlaybackStatusChangeHandler } = mpvHandler;
+    const getVolumeText = (volume) => {
         return `Volume: ${volume.toString()} %`;
-    }
-    const tooltip = new PanelItemTooltip(appletContainer, getTitle(), __meta.orientation);
-    addVolumeChangeHandler(() => {
-        tooltip.set_text(getTitle());
+    };
+    const initialVolume = getVolume();
+    const initialText = (initialVolume == null) ?
+        DEFAULT_TOOLTIP_TXT : getVolumeText(initialVolume);
+    const tooltip = new PanelItemTooltip(appletContainer, initialText, __meta.orientation);
+    addVolumeChangeHandler((newVolume) => {
+        tooltip.set_text(getVolumeText(newVolume));
+    });
+    addPlaybackStatusChangeHandler((newStatus) => {
+        if (newStatus === 'Stopped')
+            tooltip.set_text(DEFAULT_TOOLTIP_TXT);
     });
 }
 
@@ -4672,37 +4676,6 @@ function createVolumeSlider() {
         slider.setValue(newVolume / 100, true);
         icon.set_icon_name(getVolumeIcon({ volume: newVolume }));
     });
-    // /**
-    //  * 
-    //  * @param newVolume in percent but doesn't need to be rounded
-    //  * @param showTooltip
-    //  */
-    // function updateVolume(newVolume: number, showTooltip: boolean) {
-    //     const newVolumeRounded = Math.round(newVolume)
-    //     if (newVolumeRounded === volume) return
-    //     volume = newVolumeRounded
-    //     slider.setValue(volume / 100)
-    //     icon.set_icon_name(getVolumeIcon({ volume }))
-    //     setTooltip(volume)
-    //     showTooltip && tooltip.show()
-    //     onVolumeChanged?.(volume)
-    // }
-    // /**
-    //  * 
-    //  * @param volume in Percent and rounded!
-    //  */
-    // function setTooltip(volume: number) {
-    //     if (!tooltip)
-    //         tooltip = new Tooltip(slider.actor, ' ')
-    //     tooltip.set_text(`Volume: ${volume.toString()} %`)
-    // }
-    // /**
-    //  * 
-    //  * @param newVolume in percent (0-100)
-    //  */
-    // function setVolume(newVolume: number) {
-    //     updateVolume(newVolume, false)
-    // }
     return container;
 }
 
