@@ -5203,19 +5203,24 @@ function createRadioPopupMenu(props) {
 
 
 
+
+
 const { ScrollDirection: RadioAppletContainer_ScrollDirection } = imports.gi.Clutter;
 function createRadioAppletContainer(props) {
     const { configs, mpvHandler } = props;
+    let installationInProgress = false;
     const appletContainer = createAppletContainer({
         icon: createRadioAppletIcon({ configs, mpvHandler }),
         label: createRadioAppletLabel({ configs, mpvHandler }),
         onMiddleClick: () => mpvHandler.togglePlayPause(),
         onMoved: () => mpvHandler.deactivateAllListener(),
         onRemoved: handleAppletRemoved,
-        onClick: () => popupMenu === null || popupMenu === void 0 ? void 0 : popupMenu.toggle(),
+        onClick: handleClick,
         onRightClick: () => popupMenu === null || popupMenu === void 0 ? void 0 : popupMenu.close(),
         onScroll: handleScroll
     });
+    createRadioAppletTooltip({ mpvHandler, appletContainer });
+    const popupMenu = createRadioPopupMenu({ launcher: appletContainer.actor, mpvHandler, configs });
     function handleAppletRemoved() {
         mpvHandler === null || mpvHandler === void 0 ? void 0 : mpvHandler.deactivateAllListener();
         mpvHandler === null || mpvHandler === void 0 ? void 0 : mpvHandler.stop();
@@ -5224,8 +5229,23 @@ function createRadioAppletContainer(props) {
         const volumeChange = scrollDirection === RadioAppletContainer_ScrollDirection.UP ? VOLUME_DELTA : -VOLUME_DELTA;
         mpvHandler.increaseDecreaseVolume(volumeChange);
     }
-    createRadioAppletTooltip({ mpvHandler, appletContainer });
-    const popupMenu = createRadioPopupMenu({ launcher: appletContainer.actor, mpvHandler, configs });
+    async function handleClick() {
+        if (installationInProgress)
+            return;
+        try {
+            installationInProgress = true;
+            await installMpvWithMpris();
+            popupMenu === null || popupMenu === void 0 ? void 0 : popupMenu.toggle();
+        }
+        catch (error) {
+            const notificationText = "Couldn't start the applet. Make sure mpv is installed and the mpv mpris plugin saved in the configs folder.";
+            notify({ text: notificationText });
+            global.logError(error);
+        }
+        finally {
+            installationInProgress = false;
+        }
+    }
     return appletContainer;
 }
 

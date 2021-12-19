@@ -7,6 +7,8 @@ import { createRadioAppletTooltip } from "./RadioAppletTooltip"
 import { createRadioAppletIcon } from "./RadioAppletIcon"
 import { VOLUME_DELTA } from "../../consts"
 import { createRadioPopupMenu } from "../RadioPopupMenu/RadioPopupMenu"
+import { installMpvWithMpris } from "../../mpv/CheckInstallation"
+import { notify } from "../Notifications/GenericNotification"
 
 const { ScrollDirection } = imports.gi.Clutter;
 
@@ -19,16 +21,22 @@ export function createRadioAppletContainer(props: Props) {
 
     const { configs, mpvHandler } = props
 
+    let installationInProgress = false
+
     const appletContainer = createAppletContainer({
         icon: createRadioAppletIcon({ configs, mpvHandler }),
         label: createRadioAppletLabel({ configs, mpvHandler }),
         onMiddleClick: () => mpvHandler.togglePlayPause(),
         onMoved: () => mpvHandler.deactivateAllListener(),
         onRemoved: handleAppletRemoved,
-        onClick: () => popupMenu?.toggle(),
+        onClick: handleClick,
         onRightClick: () => popupMenu?.close(),
         onScroll: handleScroll
     })
+
+    createRadioAppletTooltip({ mpvHandler, appletContainer })
+
+    const popupMenu = createRadioPopupMenu({ launcher: appletContainer.actor, mpvHandler, configs })
 
     function handleAppletRemoved() {
         mpvHandler?.deactivateAllListener()
@@ -41,10 +49,22 @@ export function createRadioAppletContainer(props: Props) {
         mpvHandler.increaseDecreaseVolume(volumeChange)
     }
 
-    createRadioAppletTooltip({ mpvHandler, appletContainer })
+    async function handleClick() {
+        if (installationInProgress) return
 
-    const popupMenu = createRadioPopupMenu({ launcher: appletContainer.actor, mpvHandler, configs })
+        try {
+            installationInProgress = true
+            await installMpvWithMpris()
+            popupMenu?.toggle()
+        } catch (error) {
+            const notificationText = "Couldn't start the applet. Make sure mpv is installed and the mpv mpris plugin saved in the configs folder."
+            notify({ text: notificationText })
+            global.logError(error)
+        } finally {
+            installationInProgress = false
+        }
+
+    }
 
     return appletContainer
-
 }

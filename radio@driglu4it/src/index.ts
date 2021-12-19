@@ -97,23 +97,6 @@ export function main(args: Arguments): imports.ui.applet.Applet {
 
     // CALLBACKS
 
-    async function handleAppletClicked() {
-
-        if (installationInProgress) return
-
-        try {
-            installationInProgress = true
-            await installMpvWithMpris()
-            popupMenu.toggle()
-        } catch (error) {
-            const notificationText = "Couldn't start the applet. Make sure mpv is installed and the mpv mpris plugin saved in the configs folder."
-            notify({ text: notificationText })
-            global.logError(error)
-        } finally {
-            installationInProgress = false
-        }
-    }
-
     function handleVolumeChanged(volume: number) {
         volumeSlider.setVolume(volume)
 
