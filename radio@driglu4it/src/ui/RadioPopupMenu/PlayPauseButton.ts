@@ -22,8 +22,6 @@ export function createPlayPauseButton(args: Arguments) {
     }
 
     const controlBtn = createControlBtn({
-        iconName: PAUSE_ICON_NAME, // TOOD: this is actually ignored as set correclty in initUpdateControlBtn 
-        tooltipTxt: 'Pause', // TODO: same as above
         onClick: () => togglePlayPause()
     })
 

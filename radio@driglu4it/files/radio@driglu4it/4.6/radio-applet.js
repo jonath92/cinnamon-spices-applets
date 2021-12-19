@@ -918,7 +918,7 @@ const { ActorAlign } = imports.gi.Clutter;
 const createMediaControlToolbar = (args) => {
     const { controlBtns } = args;
     const toolbar = new MediaControlToolbar_BoxLayout({
-        // style_class: "radio-applet-media-control-toolbar",
+        style_class: "radio-applet-media-control-toolbar",
         x_align: ActorAlign.CENTER
     });
     controlBtns.forEach(btn => toolbar.add_child(btn));
@@ -933,7 +933,7 @@ function createControlBtn(args) {
     const { iconName, tooltipTxt, onClick } = args;
     const icon = new ControlBtn_Icon({
         icon_type: ControlBtn_IconType.SYMBOLIC,
-        icon_name: iconName,
+        icon_name: iconName || '',
         style_class: 'popup-menu-icon' // this specifies the icon-size
     });
     const btn = new Button({
@@ -948,7 +948,7 @@ function createControlBtn(args) {
         widget: btn,
         onActivated: onClick
     });
-    const tooltip = new ControlBtn_Tooltip(btn, tooltipTxt);
+    const tooltip = new ControlBtn_Tooltip(btn, tooltipTxt || '');
     return {
         actor: btn,
         icon,
@@ -5152,8 +5152,6 @@ function createPlayPauseButton(args) {
         return getPlaybackStatus() === 'Playing' || getPlaybackStatus() === 'Loading';
     };
     const controlBtn = createControlBtn({
-        iconName: PAUSE_ICON_NAME,
-        tooltipTxt: 'Pause',
         onClick: () => togglePlayPause()
     });
     function initUpdateControlBtn() {
