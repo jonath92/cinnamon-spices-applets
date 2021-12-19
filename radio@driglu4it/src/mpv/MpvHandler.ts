@@ -44,7 +44,7 @@ function createMpvHandler() {
     const playbackStatusChangeHandler: ChangeHandler<AdvancedPlaybackStatus>[] = []
     // also executed when set to a falsy value due to radio stopped
     const channelNameChangeHandler: ChangeHandler<string | undefined>[] = []
-    const volumeChangeHandler: ChangeHandler<number | undefined>[] = [] //
+    const volumeChangeHandler: ChangeHandler<number>[] = [] //
     const titleChangeHandler: ChangeHandler<string | undefined>[] = []
     const lengthChangeHandler: ChangeHandler<number | undefined>[] = []
     const positionChangeHandler: ChangeHandler<number | undefined>[] = []
@@ -111,7 +111,6 @@ function createMpvHandler() {
         mediaPropsListenerId = seekListenerId = currentUrl = null
         playbackStatusChangeHandler.forEach(handler => handler('Stopped'))
         channelNameChangeHandler.forEach(handler => handler(undefined))
-        volumeChangeHandler.forEach(handler => handler(undefined))
         titleChangeHandler.forEach(handler => handler(undefined))
         settingsObject.lastVolume = lastVolume
     }
@@ -443,7 +442,7 @@ function createMpvHandler() {
             channelNameChangeHandler.push(changeHandler)
         },
 
-        addVolumeChangeHandler: (changeHandler: ChangeHandler<number | undefined>) => {
+        addVolumeChangeHandler: (changeHandler: ChangeHandler<number>) => {
             volumeChangeHandler.push(changeHandler)
         },
 

@@ -7,11 +7,12 @@ const { BoxLayout, Icon, IconType } = imports.gi.St
 const { Tooltip } = imports.ui.tooltips
 const { KEY_Right, KEY_Left, ScrollDirection } = imports.gi.Clutter
 
-
 export function createVolumeSlider() {
 
     const {
-        getVolume
+        getVolume,
+        setVolume,
+        addVolumeChangeHandler
     } = mpvHandler
 
     const container = new BoxLayout({
@@ -26,17 +27,21 @@ export function createVolumeSlider() {
     // let volume: number
 
     const slider = createSlider({
-        initialValue: mpvHandler.getVolume({dimension: 'fraction'}) || 0,
-        onValueChanged: handleSliderValueChanged
+        initialValue: getVolume({ dimension: 'fraction' }) || 0,
+        onValueChanged: (newValue) => setVolume(newValue * 100)
     })
 
-    const tooltip = new Tooltip(slider.actor, `Volume: ${getVolume()?.toString()} %`)
-    tooltip.show()
+    const getTooltipTxt = () => {
+        return `Volume: ${getVolume()?.toString()} %`
+    }
 
+    const tooltip = new Tooltip(slider.actor, getTooltipTxt())
+    tooltip.show()
 
     const icon = new Icon({
         icon_type: IconType.SYMBOLIC,
         style_class: POPUP_ICON_CLASS,
+        icon_name: getVolumeIcon({ volume: getVolume() || 0 }),
         reactive: true
     });
 
@@ -44,13 +49,12 @@ export function createVolumeSlider() {
         container.add_child(widget)
     })
 
-
     container.connect('key-press-event', (actor, event) => {
         const key = event.get_key_symbol();
 
         if (key === KEY_Right || key === KEY_Left) {
             const direction = (key === KEY_Right) ? 'increase' : 'decrease'
-            deltaChange(direction)
+            handleDeltaChange(direction)
         }
 
         return false
@@ -59,7 +63,7 @@ export function createVolumeSlider() {
     container.connect('scroll-event', (actor, event) => {
         const scrollDirection = event.get_scroll_direction()
         const direction = (scrollDirection === ScrollDirection.UP) ? 'increase' : 'decrease'
-        deltaChange(direction)
+        handleDeltaChange(direction)
 
         return false
     })
@@ -70,59 +74,18 @@ export function createVolumeSlider() {
         return false
     })
 
-    /**
-     * 
-     * @param newValue between 0 and 1
-     */
-    function handleSliderValueChanged(newValue: number) {
-        // updateVolume(newValue * 100, true)
-    }
-
-    function deltaChange(direction: 'increase' | 'decrease') {
+    function handleDeltaChange(direction: 'increase' | 'decrease') {
         const delta = (direction === 'increase') ? VOLUME_DELTA : -VOLUME_DELTA
         const newValue = slider.getValue() + delta / 100
         slider.setValue(newValue)
     }
 
-    // /**
-    //  * 
-    //  * @param newVolume in percent but doesn't need to be rounded
-    //  * @param showTooltip
-    //  */
-    // function updateVolume(newVolume: number, showTooltip: boolean) {
-    //     const newVolumeRounded = Math.round(newVolume)
+    addVolumeChangeHandler((newVolume) => {
 
-    //     if (newVolumeRounded === volume) return
-
-    //     volume = newVolumeRounded
-
-    //     slider.setValue(volume / 100)
-    //     icon.set_icon_name(getVolumeIcon({ volume }))
-    //     setTooltip(volume)
-
-    //     showTooltip && tooltip.show()
-    //     onVolumeChanged?.(volume)
-    // }
-
-    // /**
-    //  * 
-    //  * @param volume in Percent and rounded!
-    //  */
-    // function setTooltip(volume: number) {
-
-    //     if (!tooltip)
-    //         tooltip = new Tooltip(slider.actor, ' ')
-
-    //     tooltip.set_text(`Volume: ${volume.toString()} %`)
-    // }
-
-    // /**
-    //  * 
-    //  * @param newVolume in percent (0-100)
-    //  */
-    // function setVolume(newVolume: number) {
-    //     updateVolume(newVolume, false)
-    // }
+        tooltip.set_text(getTooltipTxt())
+        slider.setValue(newVolume / 100 , true)
+        icon.set_icon_name(getVolumeIcon({ volume: newVolume }))
+    })
 
     return container
 }

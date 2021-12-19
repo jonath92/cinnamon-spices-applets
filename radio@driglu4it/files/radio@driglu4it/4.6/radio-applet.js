@@ -398,7 +398,6 @@ function createMpvHandler() {
         mediaPropsListenerId = seekListenerId = currentUrl = null;
         playbackStatusChangeHandler.forEach(handler => handler('Stopped'));
         channelNameChangeHandler.forEach(handler => handler(undefined));
-        volumeChangeHandler.forEach(handler => handler(undefined));
         titleChangeHandler.forEach(handler => handler(undefined));
         settingsObject.lastVolume = lastVolume;
     }
@@ -4617,8 +4616,7 @@ const { BoxLayout: VolumeSlider_BoxLayout, Icon: VolumeSlider_Icon, IconType: Vo
 const { Tooltip } = imports.ui.tooltips;
 const { KEY_Right, KEY_Left, ScrollDirection } = imports.gi.Clutter;
 function createVolumeSlider() {
-    var _a;
-    const { getVolume } = mpvHandler;
+    const { getVolume, setVolume, addVolumeChangeHandler } = mpvHandler;
     const container = new VolumeSlider_BoxLayout({
         style_class: POPUP_MENU_ITEM_CLASS,
     });
@@ -4628,14 +4626,19 @@ function createVolumeSlider() {
     /** in Percent and rounded! */
     // let volume: number
     const slider = createSlider({
-        initialValue: mpvHandler.getVolume({ dimension: 'fraction' }) || 0,
-        onValueChanged: handleSliderValueChanged
+        initialValue: getVolume({ dimension: 'fraction' }) || 0,
+        onValueChanged: (newValue) => setVolume(newValue * 100)
     });
-    const tooltip = new Tooltip(slider.actor, `Volume: ${(_a = getVolume()) === null || _a === void 0 ? void 0 : _a.toString()} %`);
+    const getTooltipTxt = () => {
+        var _a;
+        return `Volume: ${(_a = getVolume()) === null || _a === void 0 ? void 0 : _a.toString()} %`;
+    };
+    const tooltip = new Tooltip(slider.actor, getTooltipTxt());
     tooltip.show();
     const icon = new VolumeSlider_Icon({
         icon_type: VolumeSlider_IconType.SYMBOLIC,
         style_class: POPUP_ICON_CLASS,
+        icon_name: getVolumeIcon({ volume: getVolume() || 0 }),
         reactive: true
     });
     [icon, slider.actor].forEach(widget => {
@@ -4645,32 +4648,30 @@ function createVolumeSlider() {
         const key = event.get_key_symbol();
         if (key === KEY_Right || key === KEY_Left) {
             const direction = (key === KEY_Right) ? 'increase' : 'decrease';
-            deltaChange(direction);
+            handleDeltaChange(direction);
         }
         return false;
     });
     container.connect('scroll-event', (actor, event) => {
         const scrollDirection = event.get_scroll_direction();
         const direction = (scrollDirection === ScrollDirection.UP) ? 'increase' : 'decrease';
-        deltaChange(direction);
+        handleDeltaChange(direction);
         return false;
     });
     icon.connect('button-press-event', () => {
         slider.setValue(0);
         return false;
     });
-    /**
-     *
-     * @param newValue between 0 and 1
-     */
-    function handleSliderValueChanged(newValue) {
-        // updateVolume(newValue * 100, true)
-    }
-    function deltaChange(direction) {
+    function handleDeltaChange(direction) {
         const delta = (direction === 'increase') ? VOLUME_DELTA : -VOLUME_DELTA;
         const newValue = slider.getValue() + delta / 100;
         slider.setValue(newValue);
     }
+    addVolumeChangeHandler((newVolume) => {
+        tooltip.set_text(getTooltipTxt());
+        slider.setValue(newVolume / 100, true);
+        icon.set_icon_name(getVolumeIcon({ volume: newVolume }));
+    });
     // /**
     //  * 
     //  * @param newVolume in percent but doesn't need to be rounded
