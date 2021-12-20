@@ -35,35 +35,42 @@ const createConfig = () => {
     const channelOnPanelHandler: ChangeHandler<boolean>[] = []
     const stationsHandler: ChangeHandler<Channel[]>[] = []
 
-
-
-
-    appletSettings.bind<AppletIcon>('icon-type', 'iconType',
-        (...arg) => iconTypeChangeHandler.forEach(changeHandler => changeHandler(...arg))
-    )
+    appletSettings.bind<AppletIcon>('icon-type', 'iconType', (newVal) => {
+        if (isEqual(previousIconType, newVal)) return
+        iconTypeChangeHandler.forEach(changeHandler => changeHandler(newVal))
+        previousIconType = newVal
+    })
 
     appletSettings.bind<string>('color-on', 'symbolicIconColorWhenPlaying',
-        (...arg) => colorPlayingChangeHander.forEach(changeHandler => changeHandler(...arg)))
+        (newVal) => {
+            if (isEqual(newVal, previousColorPlaying)) return
+            colorPlayingChangeHander.forEach(changeHandler => changeHandler(newVal))
+            previousColorPlaying = newVal
+        })
 
     appletSettings.bind<string>('color-paused', 'symbolicIconColorWhenPaused',
-        (...arg) => colorPausedHandler.forEach(changeHandler => changeHandler(...arg)))
+        (newVal) => {
+            if (isEqual(previousColorPaused, newVal)) return
+            colorPausedHandler.forEach(changeHandler => changeHandler(newVal))
+            previousColorPaused = newVal
+        })
 
     appletSettings.bind<boolean>('channel-on-panel', 'channelNameOnPanel',
-        (...arg) => channelOnPanelHandler.forEach(changeHandler => changeHandler(...arg)))
+        (newVal) => {
+            if (isEqual(previousChannelOnPanel, newVal)) return
+            channelOnPanelHandler.forEach(changeHandler => changeHandler(newVal))
+            previousChannelOnPanel = newVal
+        })
 
     appletSettings.bind<boolean>('keep-volume-between-sessions', 'keepVolume')
     appletSettings.bind<number>('initial-volume', 'customInitVolume')
     appletSettings.bind<number>('last-volume', 'lastVolume')
 
     appletSettings.bind<Channel[]>('tree', 'userStations',
-        (newStations) => {
-            // global.log('before isEqual')
-            // if (isEqual(previousUserStations, newStations)) return
-            // global.log('this is called')
-            // global.log(`newStations:`, newStations)
-            // global.log('previous', previousUserStations)
-            stationsHandler.forEach(changeHandler => changeHandler(newStations))
-            previousUserStations = newStations
+        (newVal) => {
+            if (isEqual(previousUserStations, newVal)) return
+            stationsHandler.forEach(changeHandler => changeHandler(newVal))
+            previousUserStations = newVal
         })
 
     appletSettings.bind('last-url', 'lastUrl')
@@ -71,6 +78,10 @@ const createConfig = () => {
 
     // The callbacks are for some reason called each time any setting is changed which makes debugging much more difficult. Therefore we are always saving the previous settings to ensure the callbacks are only called when the values have really changed ... 
     let previousUserStations = settingsObject.userStations
+    let previousIconType = settingsObject.iconType
+    let previousColorPlaying = settingsObject.symbolicIconColorWhenPlaying
+    let previousColorPaused = settingsObject.symbolicIconColorWhenPaused
+    let previousChannelOnPanel = settingsObject.channelNameOnPanel
 
     function getInitialVolume() {
         const {

@@ -36,7 +36,7 @@ export function createChannelMenuItem(args: Arguments) {
     function setPlaybackStatus(playbackStatus: AdvancedPlaybackStatus) {
         const iconName = playbackIconMap.get(playbackStatus)
         playbackStatus === 'Loading' ? startResumeRotation() : stopRotation()
-
+        
         iconMenuItem.setIconName(iconName)
     }
 
