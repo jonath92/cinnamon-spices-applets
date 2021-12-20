@@ -1,5 +1,5 @@
-import { initConfig } from './Config';
-import { initMpvHandler } from './mpv/MpvHandler';
+import { initConfig } from './services/Config';
+import { initMpvHandler } from './services/mpv/MpvHandler';
 import { initPolyfills } from './polyfill';
 import { createRadioAppletContainer } from './ui/RadioApplet/RadioAppletContainer';
 

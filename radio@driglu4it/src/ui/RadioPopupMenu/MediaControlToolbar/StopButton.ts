@@ -1,5 +1,5 @@
 import { STOP_ICON_NAME } from "../../../consts";
-import { mpvHandler } from "../../../mpv/MpvHandler";
+import { mpvHandler } from "../../../services/mpv/MpvHandler";
 import { createControlBtn } from "./ControlBtn";
 
 

@@ -1,6 +1,6 @@
 import { RADIO_SYMBOLIC_ICON_NAME, MAX_STRING_LENGTH, SONG_INFO_ICON_NAME } from "../consts";
 import { createIconMenuItem } from "../lib/IconMenuItem";
-import { mpvHandler } from "../mpv/MpvHandler";
+import { mpvHandler } from "../services/mpv/MpvHandler";
 const { BoxLayout } = imports.gi.St
 
 

@@ -1,5 +1,5 @@
 import { isEqual } from "lodash";
-import { Channel, AppletIcon, ChangeHandler } from "./types";
+import { Channel, AppletIcon, ChangeHandler } from "../types";
 const { AppletSettings } = imports.ui.settings;
 
 interface Settings {

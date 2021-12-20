@@ -1,7 +1,7 @@
 import { POPUP_MENU_ITEM_CLASS } from "../consts"
 import { createActivWidget } from "../lib/ActivWidget";
 import { createSlider } from "../lib/Slider";
-import { mpvHandler } from "../mpv/MpvHandler";
+import { mpvHandler } from "../services/mpv/MpvHandler";
 
 const { BoxLayout, Label } = imports.gi.St
 

@@ -1,8 +1,8 @@
 import { createAppletIcon } from "../../lib/AppletIcon"
-import { mpvHandler } from "../../mpv/MpvHandler"
+import { mpvHandler } from "../../services/mpv/MpvHandler"
 import { RADIO_SYMBOLIC_ICON_NAME, LOADING_ICON_NAME } from "../../consts"
 import { AdvancedPlaybackStatus } from "../../types"
-import { configs } from "../../Config"
+import { configs } from "../../services/Config"
 import { createRotateAnimation } from "../../functions/tweens"
 const { IconType } = imports.gi.St
 

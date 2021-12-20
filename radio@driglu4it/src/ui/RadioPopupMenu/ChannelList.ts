@@ -1,8 +1,8 @@
 import { createSubMenu } from "../../lib/PopupSubMenu";
 import { createChannelMenuItem } from "./ChannelMenuItem";
 import { AdvancedPlaybackStatus } from "../../types";
-import { mpvHandler } from "../../mpv/MpvHandler";
-import { configs } from "../../Config";
+import { mpvHandler } from "../../services/mpv/MpvHandler";
+import { configs } from "../../services/Config";
 
 
 export function createChannelList() {

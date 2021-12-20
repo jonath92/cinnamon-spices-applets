@@ -1,11 +1,11 @@
-import { configs } from "../../../Config";
+import { configs } from "../../../services/Config";
 import { DOWNLOAD_ICON_NAME } from "../../../consts";
-import { downloadSongFromYoutube } from "../../../functions/downloadFromYoutube";
-import { mpvHandler } from "../../../mpv/MpvHandler";
+import { mpvHandler } from "../../../services/mpv/MpvHandler";
 import { notifyYoutubeDownloadFailed } from "../../Notifications/YoutubeDownloadFailedNotification";
 import { notifyYoutubeDownloadFinished } from "../../Notifications/YoutubeDownloadFinishedNotification";
 import { notifyYoutubeDownloadStarted } from "../../Notifications/YoutubeDownloadStartedNotification";
 import { createControlBtn } from "./ControlBtn";
+import { downloadSongFromYoutube } from "../../../services/YoutubeDownloadManager";
 
 
 export function createDownloadButton() {

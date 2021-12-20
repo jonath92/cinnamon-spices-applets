@@ -1,6 +1,6 @@
-import { PlayPause, AdvancedPlaybackStatus, ChangeHandler } from '../types'
-import { MPV_MPRIS_BUS_NAME, MEDIA_PLAYER_2_PATH, MPRIS_PLUGIN_PATH, MAX_VOLUME, MEDIA_PLAYER_2_NAME, MEDIA_PLAYER_2_PLAYER_NAME, MPV_CVC_NAME } from '../consts'
-import { MprisMediaPlayerDbus, MprisPropsDbus } from '../types';
+import { PlayPause, AdvancedPlaybackStatus, ChangeHandler } from '../../types'
+import { MPV_MPRIS_BUS_NAME, MEDIA_PLAYER_2_PATH, MPRIS_PLUGIN_PATH, MAX_VOLUME, MEDIA_PLAYER_2_NAME, MEDIA_PLAYER_2_PLAYER_NAME, MPV_CVC_NAME } from '../../consts'
+import { MprisMediaPlayerDbus, MprisPropsDbus } from '../../types';
 import { configs } from '../Config';
 const { getDBusProperties, getDBus, getDBusProxyWithOwner } = imports.misc.interfaces
 const { spawnCommandLine } = imports.misc.util;

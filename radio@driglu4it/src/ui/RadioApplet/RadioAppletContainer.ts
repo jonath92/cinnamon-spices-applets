@@ -1,13 +1,14 @@
 
 import { createAppletContainer } from "../../lib/AppletContainer"
-import { mpvHandler } from "../../mpv/MpvHandler"
+import { mpvHandler } from "../../services/mpv/MpvHandler"
 import { createRadioAppletLabel } from "./RadioAppletLabel"
 import { createRadioAppletTooltip } from "./RadioAppletTooltip"
 import { createRadioAppletIcon } from "./RadioAppletIcon"
 import { VOLUME_DELTA } from "../../consts"
 import { createRadioPopupMenu } from "../RadioPopupMenu/RadioPopupMenu"
-import { installMpvWithMpris } from "../../mpv/CheckInstallation"
+import { installMpvWithMpris } from "../../services/mpv/CheckInstallation"
 import { notify } from "../Notifications/GenericNotification"
+import { createYoutubeDownloadIcon } from "./YoutubeDownloadIcon"
 
 const { ScrollDirection } = imports.gi.Clutter;
 
@@ -24,7 +25,7 @@ export function createRadioAppletContainer() {
         onScroll: handleScroll
     });
 
-    [createRadioAppletIcon(), createRadioAppletLabel()].forEach(widget => {
+    [createRadioAppletIcon(), createYoutubeDownloadIcon(), createRadioAppletLabel()].forEach(widget => {
         appletContainer.actor.add_child(widget)
     })
 

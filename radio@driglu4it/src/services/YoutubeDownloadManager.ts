@@ -1,6 +1,8 @@
 const { spawnCommandLineAsyncIO } = imports.misc.util;
 const { get_home_dir } = imports.gi.GLib;
 
+const downloadSongListener: ((title: string) => void)[] = []
+
 interface Arguments {
     title: string,
     downloadDir: string,
@@ -17,6 +19,12 @@ export function downloadSongFromYoutube(args: Arguments) {
         onDownloadFailed
     } = args
 
+    global.log('downloadSongFromYoutube is called')
+
+    downloadSongListener.forEach(listener => {
+        global.log('this is called')
+        listener(title)
+    })
 
     let hasBeenCancelled = false
 
@@ -68,4 +76,8 @@ function getDownloadPath(stdout: string) {
 
     return arrayOfLines?.find(line => line.includes(searchString))
         ?.split(searchString)[1]
+}
+
+export function addDownloadSongStartedListener(callback: (title: string) => void) {
+    downloadSongListener.push(callback)
 }

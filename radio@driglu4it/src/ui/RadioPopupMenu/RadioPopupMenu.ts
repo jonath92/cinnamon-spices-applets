@@ -1,6 +1,6 @@
 import { createPopupMenu } from "cinnamonpopup"
 import { createSeparatorMenuItem } from "../../lib/PopupSeperator"
-import { mpvHandler } from "../../mpv/MpvHandler"
+import { mpvHandler } from "../../services/mpv/MpvHandler"
 import { createInfoSection } from "../InfoSection"
 import { createSeeker } from "../Seeker"
 import { createVolumeSlider } from "../VolumeSlider"

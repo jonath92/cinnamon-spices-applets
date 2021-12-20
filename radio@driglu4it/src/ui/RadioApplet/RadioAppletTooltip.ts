@@ -1,5 +1,5 @@
 import { DEFAULT_TOOLTIP_TXT } from "../../consts"
-import { mpvHandler } from "../../mpv/MpvHandler"
+import { mpvHandler } from "../../services/mpv/MpvHandler"
 
 const { PanelItemTooltip } = imports.ui.tooltips
 

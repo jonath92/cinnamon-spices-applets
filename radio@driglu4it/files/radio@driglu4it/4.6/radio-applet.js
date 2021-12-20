@@ -17431,7 +17431,7 @@ __webpack_require__.d(__webpack_exports__, {
 
 // EXTERNAL MODULE: ./node_modules/lodash/lodash.js
 var lodash = __webpack_require__(486);
-;// CONCATENATED MODULE: ./src/Config.ts
+;// CONCATENATED MODULE: ./src/services/Config.ts
 
 const { AppletSettings } = imports.ui.settings;
 // TODO: throw an error when importing without initiallized before
@@ -17576,7 +17576,7 @@ const COPY_ICON_NAME = 'edit-copy';
 const DOWNLOAD_ICON_NAME = 'south-arrow-weather-symbolic';
 const LOADING_ICON_NAME = 'view-refresh-symbolic';
 
-;// CONCATENATED MODULE: ./src/mpv/MpvHandler.ts
+;// CONCATENATED MODULE: ./src/services/mpv/MpvHandler.ts
 
 
 const { getDBusProperties, getDBus, getDBusProxyWithOwner } = imports.misc.interfaces;
@@ -17678,8 +17678,6 @@ function createMpvHandler() {
             if (volume != null)
                 handleMprisVolumeChanged(volume);
             playbackStatus && handleMprisPlaybackStatusChanged(playbackStatus);
-            if (url)
-                global.log('xesam url changed', url);
             url && newUrlValid && url !== currentUrl && handleUrlChanged(url);
             title && titleChangeHandler.forEach(changeHandler => changeHandler(title));
         });
@@ -17786,7 +17784,6 @@ function createMpvHandler() {
         return microSecondsToRoundedSeconds(positionMicroSeconds);
     }
     function setUrl(url) {
-        global.log('setUrl called');
         if (getPlaybackStatus() === 'Stopped') {
             let initialVolume = getInitialVolume();
             if (initialVolume == null) {
@@ -22024,6 +22021,7 @@ function createSubMenu(args) {
 ;// CONCATENATED MODULE: ./src/ui/RadioPopupMenu/ChannelMenuItem.ts
 
 
+
 function createChannelMenuItem(args) {
     const { channelName, onActivated, playbackStatus } = args;
     const playbackIconMap = new Map([
@@ -22036,14 +22034,13 @@ function createChannelMenuItem(args) {
         maxCharNumber: MAX_STRING_LENGTH,
         initialText: channelName,
         onActivated: () => {
-            global.log('channelITem clicked');
             onActivated(channelName);
         }
     });
-    // const { startResumeRotation, stopRotation } = createRotateAnimation(iconMenuItem.getIcon())
+    const { startResumeRotation, stopRotation } = createRotateAnimation(iconMenuItem.getIcon());
     function setPlaybackStatus(playbackStatus) {
         const iconName = playbackIconMap.get(playbackStatus);
-        // playbackStatus === 'Loading' ? startResumeRotation() : stopRotation()
+        playbackStatus === 'Loading' ? startResumeRotation() : stopRotation();
         iconMenuItem.setIconName(iconName);
     }
     playbackStatus && setPlaybackStatus(playbackStatus);
@@ -22215,52 +22212,6 @@ function createStopBtn() {
     return stopBtn.actor;
 }
 
-;// CONCATENATED MODULE: ./src/functions/downloadFromYoutube.ts
-const { spawnCommandLineAsyncIO } = imports.misc.util;
-const { get_home_dir: downloadFromYoutube_get_home_dir } = imports.gi.GLib;
-function downloadSongFromYoutube(args) {
-    const { title, downloadDir, onDownloadFinished, onDownloadFailed } = args;
-    let hasBeenCancelled = false;
-    // When using the default value of the settings, the dir starts with ~ what can't be understand when executing command. 
-    // After changing the value in the configs dialogue, the value starts with file:// what youtube-dl can't handle. Saving to network directories (e.g. ftp) doesn't work 
-    const music_dir_absolut = downloadDir.replace('~', downloadFromYoutube_get_home_dir()).replace('file://', '');
-    // ytsearch option found here https://askubuntu.com/a/731511/1013434 (not given in the youtube-dl docs ...)
-    const downloadCommand = `youtube-dl --output "${music_dir_absolut}/%(title)s.%(ext)s" --extract-audio --audio-format mp3 ytsearch1:"${title.replaceAll('"', '\\\"')}" --add-metadata --embed-thumbnail`;
-    const process = spawnCommandLineAsyncIO(downloadCommand, (stdout, stderr) => {
-        try {
-            if (hasBeenCancelled) {
-                hasBeenCancelled = false;
-                return;
-            }
-            if (stderr)
-                throw new Error(stderr);
-            if (stdout) {
-                const downloadPath = getDownloadPath(stdout);
-                if (!downloadPath)
-                    throw new Error('File not saved');
-                onDownloadFinished(downloadPath);
-            }
-        }
-        catch (error) {
-            global.logError(`The following error occured at youtube download attempt: ${error}. The used download Command was: ${downloadCommand}`);
-            onDownloadFailed();
-        }
-    });
-    function cancel() {
-        hasBeenCancelled = true;
-        // it seems to be no problem to call this even after the process has already finished
-        process.force_exit();
-    }
-    return { cancel };
-}
-function getDownloadPath(stdout) {
-    var _a;
-    const arrayOfLines = stdout.match(/[^\r\n]+/g);
-    // there is only one line in stdout which gives the path of the downloaded mp3. This start with [ffmpeg] Destination ...
-    const searchString = '[ffmpeg] Destination: ';
-    return (_a = arrayOfLines === null || arrayOfLines === void 0 ? void 0 : arrayOfLines.find(line => line.includes(searchString))) === null || _a === void 0 ? void 0 : _a.split(searchString)[1];
-}
-
 ;// CONCATENATED MODULE: ./src/ui/Notifications/NotificationBase.ts
 const { SystemNotificationSource, Notification } = imports.ui.messageTray;
 const { messageTray } = imports.ui.main;
@@ -22344,6 +22295,61 @@ function notifyYoutubeDownloadStarted(args) {
             onCancelClicked();
     });
     notification.notify();
+}
+
+;// CONCATENATED MODULE: ./src/services/YoutubeDownloadManager.ts
+const { spawnCommandLineAsyncIO } = imports.misc.util;
+const { get_home_dir: YoutubeDownloadManager_get_home_dir } = imports.gi.GLib;
+const downloadSongListener = [];
+function downloadSongFromYoutube(args) {
+    const { title, downloadDir, onDownloadFinished, onDownloadFailed } = args;
+    global.log('downloadSongFromYoutube is called');
+    downloadSongListener.forEach(listener => {
+        global.log('this is called');
+        listener(title);
+    });
+    let hasBeenCancelled = false;
+    // When using the default value of the settings, the dir starts with ~ what can't be understand when executing command. 
+    // After changing the value in the configs dialogue, the value starts with file:// what youtube-dl can't handle. Saving to network directories (e.g. ftp) doesn't work 
+    const music_dir_absolut = downloadDir.replace('~', YoutubeDownloadManager_get_home_dir()).replace('file://', '');
+    // ytsearch option found here https://askubuntu.com/a/731511/1013434 (not given in the youtube-dl docs ...)
+    const downloadCommand = `youtube-dl --output "${music_dir_absolut}/%(title)s.%(ext)s" --extract-audio --audio-format mp3 ytsearch1:"${title.replaceAll('"', '\\\"')}" --add-metadata --embed-thumbnail`;
+    const process = spawnCommandLineAsyncIO(downloadCommand, (stdout, stderr) => {
+        try {
+            if (hasBeenCancelled) {
+                hasBeenCancelled = false;
+                return;
+            }
+            if (stderr)
+                throw new Error(stderr);
+            if (stdout) {
+                const downloadPath = getDownloadPath(stdout);
+                if (!downloadPath)
+                    throw new Error('File not saved');
+                onDownloadFinished(downloadPath);
+            }
+        }
+        catch (error) {
+            global.logError(`The following error occured at youtube download attempt: ${error}. The used download Command was: ${downloadCommand}`);
+            onDownloadFailed();
+        }
+    });
+    function cancel() {
+        hasBeenCancelled = true;
+        // it seems to be no problem to call this even after the process has already finished
+        process.force_exit();
+    }
+    return { cancel };
+}
+function getDownloadPath(stdout) {
+    var _a;
+    const arrayOfLines = stdout.match(/[^\r\n]+/g);
+    // there is only one line in stdout which gives the path of the downloaded mp3. This start with [ffmpeg] Destination ...
+    const searchString = '[ffmpeg] Destination: ';
+    return (_a = arrayOfLines === null || arrayOfLines === void 0 ? void 0 : arrayOfLines.find(line => line.includes(searchString))) === null || _a === void 0 ? void 0 : _a.split(searchString)[1];
+}
+function addDownloadSongStartedListener(callback) {
+    downloadSongListener.push(callback);
 }
 
 ;// CONCATENATED MODULE: ./src/ui/RadioPopupMenu/MediaControlToolbar/DownloadButton.ts
@@ -22453,7 +22459,7 @@ function notify(args) {
     notification.notify();
 }
 
-;// CONCATENATED MODULE: ./src/mpv/CheckInstallation.ts
+;// CONCATENATED MODULE: ./src/services/mpv/CheckInstallation.ts
 
 
 
@@ -22504,7 +22510,23 @@ function downloadMrisPluginInteractive() {
     });
 }
 
+;// CONCATENATED MODULE: ./src/ui/RadioApplet/YoutubeDownloadIcon.ts
+
+
+function createYoutubeDownloadIcon() {
+    const icon = createAppletIcon({
+        icon_name: 'edit-download',
+        visible: false
+    });
+    addDownloadSongStartedListener(() => {
+        global.log('this is called');
+        icon.visible = true;
+    });
+    return icon;
+}
+
 ;// CONCATENATED MODULE: ./src/ui/RadioApplet/RadioAppletContainer.ts
+
 
 
 
@@ -22525,7 +22547,7 @@ function createRadioAppletContainer() {
         onRightClick: () => popupMenu === null || popupMenu === void 0 ? void 0 : popupMenu.close(),
         onScroll: handleScroll
     });
-    [createRadioAppletIcon(), createRadioAppletLabel()].forEach(widget => {
+    [createRadioAppletIcon(), createYoutubeDownloadIcon(), createRadioAppletLabel()].forEach(widget => {
         appletContainer.actor.add_child(widget);
     });
     createRadioAppletTooltip({ appletContainer });

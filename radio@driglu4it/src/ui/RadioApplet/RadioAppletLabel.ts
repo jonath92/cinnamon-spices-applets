@@ -1,6 +1,6 @@
-import { configs } from "../../Config"
+import { configs } from "../../services/Config"
 import { createAppletLabel } from "../../lib/AppletLabel"
-import { mpvHandler } from "../../mpv/MpvHandler"
+import { mpvHandler } from "../../services/mpv/MpvHandler"
 
 export function createRadioAppletLabel() {
 
