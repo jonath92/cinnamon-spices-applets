@@ -57,17 +57,11 @@ export function createRadioAppletIcon() {
     function setRefreshIcon(): void {
 
         const playbackStatus = getPlaybackStatus()
-        icon.icon_name = LOADING_ICON_NAME
-        // icon.rotation_angle_z = 0 
-        // icon.opacity = 255
-
+ 
         const isLoading = playbackStatus === 'Loading'
-
+        global.log('playbackS')
         icon.icon_name = getIconName({ isLoading })
-
         isLoading ? startResumeRotation() : stopRotation()
-
-        
         icon.style = getStyle({ playbackStatus })
     }
 

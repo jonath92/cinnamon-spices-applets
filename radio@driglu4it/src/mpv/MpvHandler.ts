@@ -201,6 +201,7 @@ function createMpvHandler() {
             positionChangeHandler.forEach(handler => handler(position))
 
             if (position === currentLength) {
+                isLoading = true
                 playbackStatusChangeHandler.forEach(handler => handler('Loading'))
                 bufferExceeded = true
                 stopPositionTimer()
