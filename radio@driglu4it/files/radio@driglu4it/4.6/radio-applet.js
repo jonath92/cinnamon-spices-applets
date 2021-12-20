@@ -17575,6 +17575,7 @@ const SONG_INFO_ICON_NAME = 'audio-x-generic';
 const COPY_ICON_NAME = 'edit-copy';
 const DOWNLOAD_ICON_NAME = 'south-arrow-weather-symbolic';
 const LOADING_ICON_NAME = 'view-refresh-symbolic';
+const CANCEL_ICON_NAME = 'dialog-cancel';
 
 ;// CONCATENATED MODULE: ./src/services/mpv/MpvHandler.ts
 
@@ -22306,21 +22307,21 @@ function notifyYoutubeDownloadStarted(args) {
 
 const { spawnCommandLineAsyncIO } = imports.misc.util;
 const { get_home_dir: YoutubeDownloadManager_get_home_dir } = imports.gi.GLib;
-let currentDownloadingSongs = [];
-const currentDownloadingSongsChangedListener = [];
+let downloadingSongs = [];
+const downloadingSongsChangedListener = [];
 function downloadSongFromYoutube() {
     const title = mpvHandler.getCurrentTitle();
     const downloadDir = configs.settingsObject.musicDownloadDir;
     if (!title)
         return;
-    const sameSongIsDownloading = currentDownloadingSongs.find(downloadingTitle => {
-        return downloadingTitle === title;
+    const sameSongIsDownloading = downloadingSongs.find(downloadingSong => {
+        return downloadingSong.title === title;
     });
     if (sameSongIsDownloading)
         return;
     notifyYoutubeDownloadStarted({ title, onCancelClicked: () => cancel() });
-    currentDownloadingSongs.push(title);
-    currentDownloadingSongsChangedListener.forEach(listener => listener(currentDownloadingSongs));
+    downloadingSongs.push({ title, cancelDownload: cancel });
+    downloadingSongsChangedListener.forEach(listener => listener(downloadingSongs));
     let hasBeenCancelled = false;
     // When using the default value of the settings, the dir starts with ~ what can't be understand when executing command. 
     // After changing the value in the configs dialogue, the value starts with file:// what youtube-dl can't handle. Saving to network directories (e.g. ftp) doesn't work 
@@ -22328,8 +22329,8 @@ function downloadSongFromYoutube() {
     // ytsearch option found here https://askubuntu.com/a/731511/1013434 (not given in the youtube-dl docs ...)
     const downloadCommand = `youtube-dl --output "${music_dir_absolut}/%(title)s.%(ext)s" --extract-audio --audio-format mp3 ytsearch1:"${title.replaceAll('"', '\\\"')}" --add-metadata --embed-thumbnail`;
     const process = spawnCommandLineAsyncIO(downloadCommand, (stdout, stderr) => {
-        currentDownloadingSongs = currentDownloadingSongs.filter(downloadingTitle => downloadingTitle !== title);
-        currentDownloadingSongsChangedListener.forEach(listener => listener(currentDownloadingSongs));
+        downloadingSongs = downloadingSongs.filter(downloadingSong => downloadingSong.title !== title);
+        downloadingSongsChangedListener.forEach(listener => listener(downloadingSongs));
         if (hasBeenCancelled) {
             hasBeenCancelled = false;
             return;
@@ -22360,19 +22361,39 @@ function getDownloadPath(stdout) {
     return (_a = arrayOfLines === null || arrayOfLines === void 0 ? void 0 : arrayOfLines.find(line => line.includes(searchString))) === null || _a === void 0 ? void 0 : _a.split(searchString)[1];
 }
 function addDownloadingSongsChangeListener(callback) {
-    currentDownloadingSongsChangedListener.push(callback);
+    downloadingSongsChangedListener.push(callback);
 }
 
 ;// CONCATENATED MODULE: ./src/ui/RadioPopupMenu/MediaControlToolbar/DownloadButton.ts
 
 
 
+
 function createDownloadButton() {
+    const handleBtnClicked = () => {
+        const currentTitle = mpvHandler.getCurrentTitle();
+        if (!currentTitle)
+            return;
+        const download = getDownloadOfTitle(currentTitle);
+        download ? download.cancelDownload() : downloadSongFromYoutube();
+    };
     const downloadButton = createControlBtn({
-        iconName: DOWNLOAD_ICON_NAME,
-        tooltipTxt: "Download current song from Youtube",
-        onClick: downloadSongFromYoutube
+        onClick: handleBtnClicked
     });
+    const setRefreshBtn = () => {
+        const currentTitle = mpvHandler.getCurrentTitle();
+        const currentTitleIsDownloading = !!getDownloadOfTitle(currentTitle);
+        const iconName = currentTitleIsDownloading ? CANCEL_ICON_NAME : DOWNLOAD_ICON_NAME;
+        const tooltipTxt = currentTitleIsDownloading ? `Cancel downloading ${currentTitle}` : "Download current song from Youtube";
+        global.log('iconName', iconName);
+        downloadButton.icon.set_icon_name(iconName);
+        downloadButton.tooltip.set_text(tooltipTxt);
+    };
+    addDownloadingSongsChangeListener(setRefreshBtn);
+    const getDownloadOfTitle = (title) => {
+        return downloadingSongs.find(downloadingSong => downloadingSong.title === title);
+    };
+    setRefreshBtn();
     return downloadButton.actor;
 }
 

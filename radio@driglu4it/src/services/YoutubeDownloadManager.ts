@@ -4,12 +4,17 @@ import { notifyYoutubeDownloadStarted } from "../ui/Notifications/YoutubeDownloa
 import { configs } from "./Config";
 import { mpvHandler } from "./mpv/MpvHandler";
 
+interface DownloadingSong {
+    title: string,
+    cancelDownload: () => void
+}
+
 const { spawnCommandLineAsyncIO } = imports.misc.util;
 const { get_home_dir } = imports.gi.GLib;
 
-export let currentDownloadingSongs: string[] = []
+export let downloadingSongs: DownloadingSong[] = []
 
-const currentDownloadingSongsChangedListener: ((downloadingSongs: string[]) => void)[] = []
+const downloadingSongsChangedListener: ((downloadingSongs: DownloadingSong[]) => void)[] = []
 
 export function downloadSongFromYoutube() {
 
@@ -18,16 +23,16 @@ export function downloadSongFromYoutube() {
 
     if (!title) return
 
-    const sameSongIsDownloading = currentDownloadingSongs.find(downloadingTitle => {
-        return downloadingTitle === title
+    const sameSongIsDownloading = downloadingSongs.find(downloadingSong => {
+        return downloadingSong.title === title
     })
 
     if (sameSongIsDownloading)
         return
 
     notifyYoutubeDownloadStarted({ title, onCancelClicked: () => cancel() })
-    currentDownloadingSongs.push(title)
-    currentDownloadingSongsChangedListener.forEach(listener => listener(currentDownloadingSongs))
+    downloadingSongs.push({ title, cancelDownload: cancel })
+    downloadingSongsChangedListener.forEach(listener => listener(downloadingSongs))
 
     let hasBeenCancelled = false
 
@@ -41,8 +46,8 @@ export function downloadSongFromYoutube() {
 
     const process = spawnCommandLineAsyncIO(downloadCommand, (stdout, stderr) => {
 
-        currentDownloadingSongs = currentDownloadingSongs.filter(downloadingTitle => downloadingTitle !== title)
-        currentDownloadingSongsChangedListener.forEach(listener => listener(currentDownloadingSongs))
+        downloadingSongs = downloadingSongs.filter(downloadingSong => downloadingSong.title !== title)
+        downloadingSongsChangedListener.forEach(listener => listener(downloadingSongs))
 
         if (hasBeenCancelled) {
             hasBeenCancelled = false
@@ -83,6 +88,6 @@ function getDownloadPath(stdout: string) {
         ?.split(searchString)[1]
 }
 
-export function addDownloadingSongsChangeListener(callback: (downloadingSongs: string[]) => void) {
-    currentDownloadingSongsChangedListener.push(callback)
+export function addDownloadingSongsChangeListener(callback: (downloadingSongs: DownloadingSong[]) => void) {
+    downloadingSongsChangedListener.push(callback)
 }
