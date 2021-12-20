@@ -32,13 +32,14 @@ export function createDownloadButton() {
 
     }
 
-    addDownloadingSongsChangeListener(setRefreshBtn)
-
     const getDownloadOfTitle = (title: string | undefined) => {
         return downloadingSongs.find(downloadingSong => downloadingSong.title === title)
     }
 
     setRefreshBtn()
+
+    addDownloadingSongsChangeListener(setRefreshBtn)
+    mpvHandler.addTitleChangeHandler(setRefreshBtn)
 
     return downloadButton.actor
 }

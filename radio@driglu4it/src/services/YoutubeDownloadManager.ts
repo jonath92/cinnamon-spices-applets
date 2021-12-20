@@ -46,6 +46,9 @@ export function downloadSongFromYoutube() {
 
     const process = spawnCommandLineAsyncIO(downloadCommand, (stdout, stderr) => {
 
+        global.log('stdout: ', stdout)
+        global.log('stderr: ', stderr)
+
         downloadingSongs = downloadingSongs.filter(downloadingSong => downloadingSong.title !== title)
         downloadingSongsChangedListener.forEach(listener => listener(downloadingSongs))
 
@@ -62,7 +65,12 @@ export function downloadSongFromYoutube() {
         if (stdout) {
             const downloadPath = getDownloadPath(stdout)
 
-            if (!downloadPath) throw new Error('File not saved')
+            if (!downloadPath) {
+                global.logError('downloadPath could not be determined from stdout. Most likely the download has failed')
+                notifyYoutubeDownloadFailed()
+                return
+            }
+
             notifyYoutubeDownloadFinished({ downloadPath })
 
         }

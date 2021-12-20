@@ -22329,6 +22329,8 @@ function downloadSongFromYoutube() {
     // ytsearch option found here https://askubuntu.com/a/731511/1013434 (not given in the youtube-dl docs ...)
     const downloadCommand = `youtube-dl --output "${music_dir_absolut}/%(title)s.%(ext)s" --extract-audio --audio-format mp3 ytsearch1:"${title.replaceAll('"', '\\\"')}" --add-metadata --embed-thumbnail`;
     const process = spawnCommandLineAsyncIO(downloadCommand, (stdout, stderr) => {
+        global.log('stdout: ', stdout);
+        global.log('stderr: ', stderr);
         downloadingSongs = downloadingSongs.filter(downloadingSong => downloadingSong.title !== title);
         downloadingSongsChangedListener.forEach(listener => listener(downloadingSongs));
         if (hasBeenCancelled) {
@@ -22341,8 +22343,11 @@ function downloadSongFromYoutube() {
         }
         if (stdout) {
             const downloadPath = getDownloadPath(stdout);
-            if (!downloadPath)
-                throw new Error('File not saved');
+            if (!downloadPath) {
+                global.logError('downloadPath could not be determined from stdout. Most likely the download has failed');
+                notifyYoutubeDownloadFailed();
+                return;
+            }
             notifyYoutubeDownloadFinished({ downloadPath });
         }
     });
@@ -22388,11 +22393,12 @@ function createDownloadButton() {
         downloadButton.icon.set_icon_name(iconName);
         downloadButton.tooltip.set_text(tooltipTxt);
     };
-    addDownloadingSongsChangeListener(setRefreshBtn);
     const getDownloadOfTitle = (title) => {
         return downloadingSongs.find(downloadingSong => downloadingSong.title === title);
     };
     setRefreshBtn();
+    addDownloadingSongsChangeListener(setRefreshBtn);
+    mpvHandler.addTitleChangeHandler(setRefreshBtn);
     return downloadButton.actor;
 }
 
@@ -22526,7 +22532,6 @@ function createYoutubeDownloadIcon() {
         visible: false
     });
     addDownloadingSongsChangeListener((downloadingSongs) => {
-        global.log('downloadingSong', downloadingSongs);
         downloadingSongs.length !== 0 ? icon.visible = true : icon.visible = false;
     });
     return icon;
