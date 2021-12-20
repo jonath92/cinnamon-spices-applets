@@ -140,6 +140,7 @@ function createMpvHandler() {
                 if (volume != null) handleMprisVolumeChanged(volume)
 
                 playbackStatus && handleMprisPlaybackStatusChanged(playbackStatus)
+
                 url && newUrlValid && url !== currentUrl && handleUrlChanged(url)
                 title && titleChangeHandler.forEach(changeHandler => changeHandler(title))
             }

@@ -4,8 +4,6 @@ const { panelManager } = imports.ui.main
 const { getAppletDefinition } = imports.ui.appletManager;
 
 interface Arguments {
-    icon: imports.gi.St.Icon,
-    label: imports.gi.St.Label,
     onClick: () => void,
     onScroll: (scrollDirection: imports.gi.Clutter.ScrollDirection) => void,
     onMiddleClick: () => void,
@@ -17,8 +15,6 @@ interface Arguments {
 export function createAppletContainer(args: Arguments) {
 
     const {
-        icon,
-        label,
         onClick,
         onScroll,
         onMiddleClick,
@@ -38,10 +34,6 @@ export function createAppletContainer(args: Arguments) {
     const applet = new Applet(__meta.orientation, panel.height, __meta.instanceId);
 
     let appletReloaded = false;
-
-    [icon, label].forEach(widget => {
-        applet.actor.add_child(widget)
-    })
 
     applet.on_applet_clicked = onClick
     applet.on_applet_middle_clicked = onMiddleClick

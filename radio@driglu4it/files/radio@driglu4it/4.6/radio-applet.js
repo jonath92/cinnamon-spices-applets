@@ -17678,6 +17678,8 @@ function createMpvHandler() {
             if (volume != null)
                 handleMprisVolumeChanged(volume);
             playbackStatus && handleMprisPlaybackStatusChanged(playbackStatus);
+            if (url)
+                global.log('xesam url changed', url);
             url && newUrlValid && url !== currentUrl && handleUrlChanged(url);
             title && titleChangeHandler.forEach(changeHandler => changeHandler(title));
         });
@@ -17784,6 +17786,7 @@ function createMpvHandler() {
         return microSecondsToRoundedSeconds(positionMicroSeconds);
     }
     function setUrl(url) {
+        global.log('setUrl called');
         if (getPlaybackStatus() === 'Stopped') {
             let initialVolume = getInitialVolume();
             if (initialVolume == null) {
@@ -21382,16 +21385,13 @@ const { EventType } = imports.gi.Clutter;
 const { panelManager } = imports.ui.main;
 const { getAppletDefinition } = imports.ui.appletManager;
 function createAppletContainer(args) {
-    const { icon, label, onClick, onScroll, onMiddleClick, onMoved, onRemoved, onRightClick } = args;
+    const { onClick, onScroll, onMiddleClick, onMoved, onRemoved, onRightClick } = args;
     const appletDefinition = getAppletDefinition({
         applet_id: __meta.instanceId,
     });
     const panel = panelManager.panels.find(panel => (panel === null || panel === void 0 ? void 0 : panel.panelId) === appletDefinition.panelId);
     const applet = new Applet(__meta.orientation, panel.height, __meta.instanceId);
     let appletReloaded = false;
-    [icon, label].forEach(widget => {
-        applet.actor.add_child(widget);
-    });
     applet.on_applet_clicked = onClick;
     applet.on_applet_middle_clicked = onMiddleClick;
     applet.setAllowedLayout(AllowedLayout.BOTH);
@@ -22024,7 +22024,6 @@ function createSubMenu(args) {
 ;// CONCATENATED MODULE: ./src/ui/RadioPopupMenu/ChannelMenuItem.ts
 
 
-
 function createChannelMenuItem(args) {
     const { channelName, onActivated, playbackStatus } = args;
     const playbackIconMap = new Map([
@@ -22036,12 +22035,15 @@ function createChannelMenuItem(args) {
     const iconMenuItem = createIconMenuItem({
         maxCharNumber: MAX_STRING_LENGTH,
         initialText: channelName,
-        onActivated: () => onActivated(channelName)
+        onActivated: () => {
+            global.log('channelITem clicked');
+            onActivated(channelName);
+        }
     });
-    const { startResumeRotation, stopRotation } = createRotateAnimation(iconMenuItem.getIcon());
+    // const { startResumeRotation, stopRotation } = createRotateAnimation(iconMenuItem.getIcon())
     function setPlaybackStatus(playbackStatus) {
         const iconName = playbackIconMap.get(playbackStatus);
-        playbackStatus === 'Loading' ? startResumeRotation() : stopRotation();
+        // playbackStatus === 'Loading' ? startResumeRotation() : stopRotation()
         iconMenuItem.setIconName(iconName);
     }
     playbackStatus && setPlaybackStatus(playbackStatus);
@@ -22516,14 +22518,15 @@ const { ScrollDirection: RadioAppletContainer_ScrollDirection } = imports.gi.Clu
 function createRadioAppletContainer() {
     let installationInProgress = false;
     const appletContainer = createAppletContainer({
-        icon: createRadioAppletIcon(),
-        label: createRadioAppletLabel(),
         onMiddleClick: () => mpvHandler.togglePlayPause(),
         onMoved: () => mpvHandler.deactivateAllListener(),
         onRemoved: handleAppletRemoved,
         onClick: handleClick,
         onRightClick: () => popupMenu === null || popupMenu === void 0 ? void 0 : popupMenu.close(),
         onScroll: handleScroll
+    });
+    [createRadioAppletIcon(), createRadioAppletLabel()].forEach(widget => {
+        appletContainer.actor.add_child(widget);
     });
     createRadioAppletTooltip({ appletContainer });
     const popupMenu = createRadioPopupMenu({ launcher: appletContainer.actor });

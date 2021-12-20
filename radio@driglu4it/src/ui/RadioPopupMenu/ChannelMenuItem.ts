@@ -28,7 +28,9 @@ export function createChannelMenuItem(args: Arguments) {
     const iconMenuItem = createIconMenuItem({
         maxCharNumber: consts.MAX_STRING_LENGTH,
         initialText: channelName,
-        onActivated: () => onActivated(channelName)
+        onActivated: () => {
+            onActivated(channelName)
+        }
     })
 
     const { startResumeRotation, stopRotation } = createRotateAnimation(iconMenuItem.getIcon())
@@ -36,7 +38,7 @@ export function createChannelMenuItem(args: Arguments) {
     function setPlaybackStatus(playbackStatus: AdvancedPlaybackStatus) {
         const iconName = playbackIconMap.get(playbackStatus)
         playbackStatus === 'Loading' ? startResumeRotation() : stopRotation()
-        
+
         iconMenuItem.setIconName(iconName)
     }
 

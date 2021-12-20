@@ -16,19 +16,21 @@ export function createRadioAppletContainer() {
     let installationInProgress = false
 
     const appletContainer = createAppletContainer({
-        icon: createRadioAppletIcon(),
-        label: createRadioAppletLabel(),
         onMiddleClick: () => mpvHandler.togglePlayPause(),
         onMoved: () => mpvHandler.deactivateAllListener(),
         onRemoved: handleAppletRemoved,
         onClick: handleClick,
         onRightClick: () => popupMenu?.close(),
         onScroll: handleScroll
+    });
+
+    [createRadioAppletIcon(), createRadioAppletLabel()].forEach(widget => {
+        appletContainer.actor.add_child(widget)
     })
 
     createRadioAppletTooltip({ appletContainer })
 
-    const popupMenu = createRadioPopupMenu({ launcher: appletContainer.actor})
+    const popupMenu = createRadioPopupMenu({ launcher: appletContainer.actor })
 
     function handleAppletRemoved() {
         mpvHandler?.deactivateAllListener()
