@@ -26,8 +26,8 @@ export function createRadioAppletIcon() {
             IconType.SYMBOLIC : IconType.FULLCOLOR
     }
 
-    const { actor: icon, setIconType } = createAppletIcon({
-        iconType: getIconType()
+    const icon  = createAppletIcon({
+        icon_type: getIconType()
     })
 
     const { startResumeRotation, stopRotation } = createRotateAnimation(icon)
@@ -66,7 +66,7 @@ export function createRadioAppletIcon() {
 
 
     addIconTypeChangeHandler(() => {
-        setIconType(getIconType())
+        icon.icon_type = getIconType()
         setRefreshIcon()
     })
 
