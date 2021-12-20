@@ -22385,7 +22385,6 @@ function createDownloadButton() {
         const currentTitleIsDownloading = !!getDownloadOfTitle(currentTitle);
         const iconName = currentTitleIsDownloading ? CANCEL_ICON_NAME : DOWNLOAD_ICON_NAME;
         const tooltipTxt = currentTitleIsDownloading ? `Cancel downloading ${currentTitle}` : "Download current song from Youtube";
-        global.log('iconName', iconName);
         downloadButton.icon.set_icon_name(iconName);
         downloadButton.tooltip.set_text(tooltipTxt);
     };
@@ -22527,7 +22526,8 @@ function createYoutubeDownloadIcon() {
         visible: false
     });
     addDownloadingSongsChangeListener((downloadingSongs) => {
-        downloadingSongs.length === 0 ? icon.visible = true : icon.visible = false;
+        global.log('downloadingSong', downloadingSongs);
+        downloadingSongs.length !== 0 ? icon.visible = true : icon.visible = false;
     });
     return icon;
 }

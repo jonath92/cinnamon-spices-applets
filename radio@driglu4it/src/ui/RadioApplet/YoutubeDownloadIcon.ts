@@ -9,7 +9,7 @@ export function createYoutubeDownloadIcon() {
     })
 
     addDownloadingSongsChangeListener((downloadingSongs) => {
-        downloadingSongs.length === 0 ? icon.visible = true : icon.visible = false
+        downloadingSongs.length !== 0 ? icon.visible = true : icon.visible = false
     })
 
     return icon

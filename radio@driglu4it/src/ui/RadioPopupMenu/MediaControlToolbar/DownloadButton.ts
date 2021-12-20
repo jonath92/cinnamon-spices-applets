@@ -27,9 +27,6 @@ export function createDownloadButton() {
         const iconName = currentTitleIsDownloading ? CANCEL_ICON_NAME : DOWNLOAD_ICON_NAME
         const tooltipTxt = currentTitleIsDownloading ? `Cancel downloading ${currentTitle}` : "Download current song from Youtube"
 
-
-        global.log('iconName', iconName)
-
         downloadButton.icon.set_icon_name(iconName)
         downloadButton.tooltip.set_text(tooltipTxt)
 
