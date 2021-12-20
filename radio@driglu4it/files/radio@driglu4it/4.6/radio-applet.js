@@ -315,6 +315,7 @@ const PLAYBACK_ICON_PREFIX = 'media-playback';
 const PLAY_ICON_NAME = `${PLAYBACK_ICON_PREFIX}-start`;
 const PAUSE_ICON_NAME = `${PLAYBACK_ICON_PREFIX}-pause`;
 const STOP_ICON_NAME = `${PLAYBACK_ICON_PREFIX}-stop`;
+const PREVIOUS_ICON_NAME = 'media-skip-backward';
 const SONG_INFO_ICON_NAME = 'audio-x-generic';
 const COPY_ICON_NAME = 'edit-copy';
 const DOWNLOAD_ICON_NAME = 'south-arrow-weather-symbolic';
@@ -4178,14 +4179,18 @@ function createAppletLabel(props) {
 
 
 function createRadioAppletLabel() {
-    const { getCurrentChannelName: getCurrentChannel, addChannelChangeHandler } = mpvHandler;
+    const { getCurrentChannelName: getCurrentChannel, addChannelChangeHandler, addPlaybackStatusChangeHandler } = mpvHandler;
     const { settingsObject, addChannelOnPanelChangeHandler } = configs;
     const label = createAppletLabel({
         visible: settingsObject.channelNameOnPanel,
         text: getCurrentChannel() || ''
     });
     addChannelOnPanelChangeHandler((channelOnPanel) => label.visible = channelOnPanel);
-    addChannelChangeHandler((channel) => label.set_text(channel || ''));
+    addChannelChangeHandler((channel) => label.set_text(channel));
+    addPlaybackStatusChangeHandler((newStatus) => {
+        if (newStatus === 'Stopped')
+            label.set_text('');
+    });
     return label;
 }
 
@@ -4216,6 +4221,7 @@ function createRadioAppletTooltip(args) {
 const { panelManager: AppletIcon_panelManager } = imports.ui.main;
 const { getAppletDefinition: AppletIcon_getAppletDefinition } = imports.ui.appletManager;
 const { Icon, IconType } = imports.gi.St;
+const { Point } = imports.gi.Clutter;
 function createAppletIcon(props) {
     let { iconType } = props;
     const appletDefinition = AppletIcon_getAppletDefinition({
@@ -4232,7 +4238,8 @@ function createAppletIcon(props) {
     const icon = new Icon({
         icon_type: iconType,
         style_class: getStyleClass(),
-        icon_size: getIconSize()
+        icon_size: getIconSize(),
+        pivot_point: new Point({ x: 0.5, y: 0.5 })
     });
     panel.connect('icon-size-changed', () => {
         icon.set_icon_size(getIconSize());
@@ -4246,7 +4253,29 @@ function createAppletIcon(props) {
     };
 }
 
+;// CONCATENATED MODULE: ./src/functions/tweens.ts
+const { addTween, removeTweens } = imports.ui.tweener;
+function createRotateAnimation(icon) {
+    const tweenParams = {
+        rotation_angle_z: 360,
+        transition: "linear",
+        time: 5,
+        onComplete: () => {
+            icon.rotation_angle_z = 0;
+            addTween(icon, tweenParams);
+        },
+    };
+    return {
+        stopRotation: () => {
+            removeTweens(icon);
+            icon.rotation_angle_z = 0;
+        },
+        startResumeRotation: () => addTween(icon, tweenParams)
+    };
+}
+
 ;// CONCATENATED MODULE: ./src/ui/RadioApplet/RadioAppletIcon.ts
+
 
 
 
@@ -4262,6 +4291,7 @@ function createRadioAppletIcon() {
     const { actor: icon, setIconType } = createAppletIcon({
         iconType: getIconType()
     });
+    const { startResumeRotation, stopRotation } = createRotateAnimation(icon);
     function getStyle(props) {
         const { playbackStatus: playbackstatus } = props;
         if (playbackstatus === 'Paused')
@@ -4281,9 +4311,12 @@ function createRadioAppletIcon() {
     }
     function setRefreshIcon() {
         const playbackStatus = getPlaybackStatus();
-        const iconName = getIconName({ isLoading: playbackStatus === 'Loading' });
-        global.log('iconName', iconName);
-        icon.icon_name = getIconName({ isLoading: playbackStatus === 'Loading' });
+        icon.icon_name = LOADING_ICON_NAME;
+        // icon.rotation_angle_z = 0 
+        // icon.opacity = 255
+        const isLoading = playbackStatus === 'Loading';
+        icon.icon_name = getIconName({ isLoading });
+        isLoading ? startResumeRotation() : stopRotation();
         icon.style = getStyle({ playbackStatus });
     }
     addIconTypeChangeHandler(() => {
@@ -4374,50 +4407,40 @@ function limitString(text, maxCharNumber) {
 
 
 const { Icon: IconMenuItem_Icon, IconType: IconMenuItem_IconType, Label: IconMenuItem_Label, BoxLayout: IconMenuItem_BoxLayout } = imports.gi.St;
+const { Point: IconMenuItem_Point } = imports.gi.Clutter;
 function createIconMenuItem(args) {
     const { initialText, maxCharNumber, iconName, onActivated } = args;
-    let icon;
-    let label;
+    const icon = new IconMenuItem_Icon({
+        icon_type: IconMenuItem_IconType.SYMBOLIC,
+        style_class: 'popup-menu-icon',
+        pivot_point: new IconMenuItem_Point({ x: 0.5, y: 0.5 })
+    });
+    const label = new IconMenuItem_Label({});
     const container = new IconMenuItem_BoxLayout({
         style_class: 'popup-menu-item'
     });
     iconName && setIconName(iconName);
+    container.add_child(label);
     initialText && setText(initialText);
     function setIconName(name) {
-        if (icon && !name) {
+        if (!name) {
             container.remove_child(icon);
-            icon = null;
             return;
         }
-        if (!name)
-            return;
-        initIcon();
-        if (icon)
-            icon.icon_name = name;
-        if (icon && container.get_child_at_index(0) !== icon)
+        icon.icon_name = name;
+        if (container.get_child_at_index(0) !== icon)
             container.insert_child_at_index(icon, 0);
-    }
-    function initIcon() {
-        if (!icon) {
-            icon = new IconMenuItem_Icon({
-                icon_type: IconMenuItem_IconType.SYMBOLIC,
-                style_class: 'popup-menu-icon'
-            });
-        }
     }
     function setText(text) {
         const labelText = text || ' ';
-        if (!label) {
-            label = new IconMenuItem_Label();
-            container.add_child(label);
-        }
         label.set_text(limitString(labelText, maxCharNumber));
     }
     onActivated && createActivWidget({ widget: container, onActivated });
     return {
         actor: container,
         setIconName,
-        setText
+        setText,
+        getIcon: () => icon
     };
 }
 
@@ -4682,7 +4705,7 @@ function createVolumeSlider() {
 ;// CONCATENATED MODULE: ./src/lib/PopupSubMenu.ts
 
 const { BoxLayout: PopupSubMenu_BoxLayout, Label: PopupSubMenu_Label, Icon: PopupSubMenu_Icon, ScrollView } = imports.gi.St;
-const { ActorAlign: PopupSubMenu_ActorAlign, Point } = imports.gi.Clutter;
+const { ActorAlign: PopupSubMenu_ActorAlign, Point: PopupSubMenu_Point } = imports.gi.Clutter;
 const { PolicyType } = imports.gi.Gtk;
 function createSubMenu(args) {
     const { text } = args;
@@ -4698,7 +4721,7 @@ function createSubMenu(args) {
         rotation_angle_z: 90,
         x_expand: true,
         x_align: PopupSubMenu_ActorAlign.END,
-        pivot_point: new Point({ x: 0.5, y: 0.5 }),
+        pivot_point: new PopupSubMenu_Point({ x: 0.5, y: 0.5 }),
         important: true // without this, it looks ugly on Mint-X Themes
     });
     const toggle = new PopupSubMenu_BoxLayout({
@@ -4759,6 +4782,8 @@ function createChannelMenuItem(args) {
     function setPlaybackStatus(playbackStatus) {
         const iconName = playbackIconMap.get(playbackStatus);
         iconMenuItem.setIconName(iconName);
+        if (playbackStatus === 'Loading') {
+        }
     }
     playbackStatus && setPlaybackStatus(playbackStatus);
     return {
@@ -5280,20 +5305,7 @@ function main() {
     initPolyfills();
     initConfig();
     initMpvHandler();
-    const appletContainer = createRadioAppletContainer();
-    // const volumeSlider = createVolumeSlider({
-    //     onVolumeChanged: (volume) => mpvHandler?.setVolume(volume)
-    // })
-    // const seeker = createSeeker({
-    //     onPositionChanged: (value) => mpvHandler?.setPosition(value)
-    // })
-    // function handleLengthChanged(length: number) {
-    //     seeker.setLength(length)
-    // }
-    // function handlePositionChanged(position: number) {
-    //     seeker?.setPosition(position)
-    // }
-    return appletContainer;
+    return createRadioAppletContainer();
 }
 
 })();

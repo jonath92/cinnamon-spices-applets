@@ -32,6 +32,10 @@ export function createChannelMenuItem(args: Arguments) {
     function setPlaybackStatus(playbackStatus: AdvancedPlaybackStatus) {
         const iconName = playbackIconMap.get(playbackStatus)
         iconMenuItem.setIconName(iconName)
+
+        if (playbackStatus === 'Loading'){
+
+        }
     }
 
     playbackStatus && setPlaybackStatus(playbackStatus)

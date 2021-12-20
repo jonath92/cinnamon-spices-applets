@@ -6,7 +6,8 @@ export function createRadioAppletLabel() {
 
     const {
         getCurrentChannelName: getCurrentChannel,
-        addChannelChangeHandler
+        addChannelChangeHandler,
+        addPlaybackStatusChangeHandler
     } = mpvHandler
 
     const {
@@ -20,7 +21,11 @@ export function createRadioAppletLabel() {
     })
 
     addChannelOnPanelChangeHandler((channelOnPanel) => label.visible = channelOnPanel)
-    addChannelChangeHandler((channel) => label.set_text(channel || ''))
+    addChannelChangeHandler((channel) => label.set_text(channel))
+    addPlaybackStatusChangeHandler((newStatus) => {
+        if (newStatus === 'Stopped')
+            label.set_text('')
+    })
 
     return label
 }

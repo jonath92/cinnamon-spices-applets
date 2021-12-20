@@ -3,8 +3,9 @@ import { mpvHandler } from "../../mpv/MpvHandler"
 import { RADIO_SYMBOLIC_ICON_NAME, LOADING_ICON_NAME } from "../../consts"
 import { AdvancedPlaybackStatus } from "../../types"
 import { configs } from "../../Config"
-
+import { createRotateAnimation } from "../../functions/tweens"
 const { IconType } = imports.gi.St
+
 
 export function createRadioAppletIcon() {
 
@@ -28,6 +29,9 @@ export function createRadioAppletIcon() {
     const { actor: icon, setIconType } = createAppletIcon({
         iconType: getIconType()
     })
+
+    const { startResumeRotation, stopRotation } = createRotateAnimation(icon)
+
 
     function getStyle(props: { playbackStatus: AdvancedPlaybackStatus }): string {
         const { playbackStatus: playbackstatus } = props
@@ -53,12 +57,17 @@ export function createRadioAppletIcon() {
     function setRefreshIcon(): void {
 
         const playbackStatus = getPlaybackStatus()
+        icon.icon_name = LOADING_ICON_NAME
+        // icon.rotation_angle_z = 0 
+        // icon.opacity = 255
 
-        const iconName = getIconName({ isLoading: playbackStatus === 'Loading' })
+        const isLoading = playbackStatus === 'Loading'
 
-        global.log('iconName', iconName)
+        icon.icon_name = getIconName({ isLoading })
 
-        icon.icon_name = getIconName({ isLoading: playbackStatus === 'Loading' })
+        isLoading ? startResumeRotation() : stopRotation()
+
+        
         icon.style = getStyle({ playbackStatus })
     }
 

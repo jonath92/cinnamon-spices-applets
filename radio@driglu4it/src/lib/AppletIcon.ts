@@ -2,12 +2,13 @@ const { panelManager } = imports.ui.main
 const { getAppletDefinition } = imports.ui.appletManager;
 const { Icon, IconType } = imports.gi.St
 
+const { Point } = imports.gi.Clutter
 
 interface Props {
     iconType: imports.gi.St.IconType
 }
 
-export function createAppletIcon(props: Props){
+export function createAppletIcon(props: Props) {
 
     let {
         iconType
@@ -21,21 +22,22 @@ export function createAppletIcon(props: Props){
         panel?.panelId === appletDefinition.panelId
     ) as imports.ui.panel.Panel
 
-    
+
     const locationLabel = appletDefinition.location_label
 
-    function getIconSize(){
+    function getIconSize() {
         return panel.getPanelZoneIconSize(locationLabel, iconType)
     }
 
-    function getStyleClass(){
+    function getStyleClass() {
         return iconType === IconType.SYMBOLIC ? 'system-status-icon' : 'applet-icon'
     }
 
     const icon = new Icon({
-        icon_type: iconType, 
-        style_class: getStyleClass(), 
-        icon_size: getIconSize()
+        icon_type: iconType,
+        style_class: getStyleClass(),
+        icon_size: getIconSize(),
+        pivot_point: new Point({ x: 0.5, y: 0.5 })
     })
 
     panel.connect('icon-size-changed', () => {
@@ -44,7 +46,7 @@ export function createAppletIcon(props: Props){
 
 
     return {
-        actor: icon, 
+        actor: icon,
         setIconType: (newType: imports.gi.St.IconType) => {
             iconType = newType
             icon.style_class = getStyleClass()
