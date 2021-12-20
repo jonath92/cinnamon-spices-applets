@@ -1,6 +1,8 @@
 import * as consts from '../../consts'
+import { createRotateAnimation } from '../../functions/tweens';
 import { createIconMenuItem } from '../../lib/IconMenuItem';
 import { AdvancedPlaybackStatus } from '../../types';
+
 
 export interface Arguments {
     channelName: string,
@@ -29,13 +31,13 @@ export function createChannelMenuItem(args: Arguments) {
         onActivated: () => onActivated(channelName)
     })
 
+    const { startResumeRotation, stopRotation } = createRotateAnimation(iconMenuItem.getIcon())
+    
     function setPlaybackStatus(playbackStatus: AdvancedPlaybackStatus) {
         const iconName = playbackIconMap.get(playbackStatus)
+        playbackStatus === 'Loading' ? startResumeRotation() : stopRotation()
+
         iconMenuItem.setIconName(iconName)
-
-        if (playbackStatus === 'Loading'){
-
-        }
     }
 
     playbackStatus && setPlaybackStatus(playbackStatus)

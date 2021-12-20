@@ -38,8 +38,9 @@ export function createChannelList() {
     let channelItems: ReturnType<typeof createChannelMenuItem>[] = []
 
     function setRefreshList(names: string[]) {
+        global.log('setRefreshList called')
         channelItems = []
-        subMenu.box.remove_all_children()
+        subMenu.box.destroy_all_children()
 
         names.forEach(name => {
             const channelPlaybackstatus =

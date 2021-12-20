@@ -223,17 +223,26 @@ const createConfig = () => {
     const colorPausedHandler = [];
     const channelOnPanelHandler = [];
     const stationsHandler = [];
-    let keepVolumeHandler;
     appletSettings.bind('icon-type', 'iconType', (...arg) => iconTypeChangeHandler.forEach(changeHandler => changeHandler(...arg)));
     appletSettings.bind('color-on', 'symbolicIconColorWhenPlaying', (...arg) => colorPlayingChangeHander.forEach(changeHandler => changeHandler(...arg)));
     appletSettings.bind('color-paused', 'symbolicIconColorWhenPaused', (...arg) => colorPausedHandler.forEach(changeHandler => changeHandler(...arg)));
     appletSettings.bind('channel-on-panel', 'channelNameOnPanel', (...arg) => channelOnPanelHandler.forEach(changeHandler => changeHandler(...arg)));
-    appletSettings.bind('keep-volume-between-sessions', 'keepVolume', (...arg) => keepVolumeHandler === null || keepVolumeHandler === void 0 ? void 0 : keepVolumeHandler(...arg));
+    appletSettings.bind('keep-volume-between-sessions', 'keepVolume');
     appletSettings.bind('initial-volume', 'customInitVolume');
     appletSettings.bind('last-volume', 'lastVolume');
-    appletSettings.bind('tree', 'userStations', (...arg) => stationsHandler.forEach(changeHandler => changeHandler(...arg)));
+    appletSettings.bind('tree', 'userStations', (newStations) => {
+        // global.log('before isEqual')
+        // if (isEqual(previousUserStations, newStations)) return
+        // global.log('this is called')
+        // global.log(`newStations:`, newStations)
+        // global.log('previous', previousUserStations)
+        stationsHandler.forEach(changeHandler => changeHandler(newStations));
+        previousUserStations = newStations;
+    });
     appletSettings.bind('last-url', 'lastUrl');
     appletSettings.bind('music-download-dir-select', 'musicDownloadDir');
+    // The callbacks are for some reason called each time any setting is changed which makes debugging much more difficult. Therefore we are always saving the previous settings to ensure the callbacks are only called when the values have really changed ... 
+    let previousUserStations = settingsObject.userStations;
     function getInitialVolume() {
         const { keepVolume, lastVolume, customInitVolume } = settingsObject;
         let initialVolume = keepVolume ? lastVolume : customInitVolume;
@@ -385,7 +394,6 @@ function createMpvHandler() {
             pauseAllOtherMediaPlayers();
         }
         if (oldOwner) {
-            global.log('mpv stopped');
             handleMpvStopped();
         }
     });
@@ -4058,7 +4066,6 @@ function mapValues(object, iteratee) {
 
 const { Variant } = imports.gi.GLib;
 function initPolyfills() {
-    global.log('meta instanceID:', __meta.instanceId);
     // included in LM 20.2 (cinnamon 5.0.4) but not in LM 20.0 (cinnamon 4.6.7). (20.1 not tested)
     // Copied from https://stackoverflow.com/a/17606289/11603006
     if (!String.prototype.hasOwnProperty('replaceAll')) {
@@ -4257,21 +4264,34 @@ function createAppletIcon(props) {
 ;// CONCATENATED MODULE: ./src/functions/tweens.ts
 const { addTween, removeTweens } = imports.ui.tweener;
 function createRotateAnimation(icon) {
+    let iconDestroyed = false;
+    const destroySignal = icon.connect('destroy', (actor) => {
+        iconDestroyed = true;
+        actor.disconnect(destroySignal);
+    });
     const tweenParams = {
         rotation_angle_z: 360,
         transition: "linear",
         time: 5,
         onComplete: () => {
+            if (iconDestroyed)
+                return;
             icon.rotation_angle_z = 0;
             addTween(icon, tweenParams);
         },
     };
     return {
         stopRotation: () => {
+            if (iconDestroyed)
+                return;
             removeTweens(icon);
             icon.rotation_angle_z = 0;
         },
-        startResumeRotation: () => addTween(icon, tweenParams)
+        startResumeRotation: () => {
+            if (iconDestroyed)
+                return;
+            addTween(icon, tweenParams);
+        }
     };
 }
 
@@ -4313,7 +4333,6 @@ function createRadioAppletIcon() {
     function setRefreshIcon() {
         const playbackStatus = getPlaybackStatus();
         const isLoading = playbackStatus === 'Loading';
-        global.log('playbackS');
         icon.icon_name = getIconName({ isLoading });
         isLoading ? startResumeRotation() : stopRotation();
         icon.style = getStyle({ playbackStatus });
@@ -4412,27 +4431,29 @@ function createIconMenuItem(args) {
     const icon = new IconMenuItem_Icon({
         icon_type: IconMenuItem_IconType.SYMBOLIC,
         style_class: 'popup-menu-icon',
-        pivot_point: new IconMenuItem_Point({ x: 0.5, y: 0.5 })
+        pivot_point: new IconMenuItem_Point({ x: 0.5, y: 0.5 }),
+        icon_name: iconName || '',
+        visible: !!iconName
     });
-    const label = new IconMenuItem_Label({});
+    const label = new IconMenuItem_Label({
+        text: limitString(initialText || '', maxCharNumber)
+    });
     const container = new IconMenuItem_BoxLayout({
         style_class: 'popup-menu-item'
     });
-    iconName && setIconName(iconName);
+    container.add_child(icon);
     container.add_child(label);
     initialText && setText(initialText);
     function setIconName(name) {
         if (!name) {
-            container.remove_child(icon);
+            icon.visible = false;
             return;
         }
         icon.icon_name = name;
-        if (container.get_child_at_index(0) !== icon)
-            container.insert_child_at_index(icon, 0);
+        icon.visible = true;
     }
     function setText(text) {
-        const labelText = text || ' ';
-        label.set_text(limitString(labelText, maxCharNumber));
+        label.set_text(limitString(text || ' ', maxCharNumber));
     }
     onActivated && createActivWidget({ widget: container, onActivated });
     return {
@@ -4765,6 +4786,7 @@ function createSubMenu(args) {
 ;// CONCATENATED MODULE: ./src/ui/RadioPopupMenu/ChannelMenuItem.ts
 
 
+
 function createChannelMenuItem(args) {
     const { channelName, onActivated, playbackStatus } = args;
     const playbackIconMap = new Map([
@@ -4778,11 +4800,11 @@ function createChannelMenuItem(args) {
         initialText: channelName,
         onActivated: () => onActivated(channelName)
     });
+    const { startResumeRotation, stopRotation } = createRotateAnimation(iconMenuItem.getIcon());
     function setPlaybackStatus(playbackStatus) {
         const iconName = playbackIconMap.get(playbackStatus);
+        playbackStatus === 'Loading' ? startResumeRotation() : stopRotation();
         iconMenuItem.setIconName(iconName);
-        if (playbackStatus === 'Loading') {
-        }
     }
     playbackStatus && setPlaybackStatus(playbackStatus);
     return {
@@ -4813,8 +4835,9 @@ function createChannelList() {
     // the channelItems are saved here to the map as well as to the container as on the container only the reduced name are shown. Theoretically it therefore couldn't be differentiated between two long channel names with the same first 30 (or so) characters   
     let channelItems = [];
     function setRefreshList(names) {
+        global.log('setRefreshList called');
         channelItems = [];
-        subMenu.box.remove_all_children();
+        subMenu.box.destroy_all_children();
         names.forEach(name => {
             const channelPlaybackstatus = (name === getCurrentChannel()) ? getPlaybackStatus() : 'Stopped';
             const channelItem = createChannelMenuItem({

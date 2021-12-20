@@ -1,3 +1,4 @@
+import { isEqual } from "lodash";
 import { Channel, AppletIcon, ChangeHandler } from "./types";
 const { AppletSettings } = imports.ui.settings;
 
@@ -35,7 +36,7 @@ const createConfig = () => {
     const stationsHandler: ChangeHandler<Channel[]>[] = []
 
 
-    let keepVolumeHandler: ChangeHandler<boolean> | undefined
+
 
     appletSettings.bind<AppletIcon>('icon-type', 'iconType',
         (...arg) => iconTypeChangeHandler.forEach(changeHandler => changeHandler(...arg))
@@ -50,16 +51,26 @@ const createConfig = () => {
     appletSettings.bind<boolean>('channel-on-panel', 'channelNameOnPanel',
         (...arg) => channelOnPanelHandler.forEach(changeHandler => changeHandler(...arg)))
 
-    appletSettings.bind<boolean>('keep-volume-between-sessions', 'keepVolume',
-        (...arg) => keepVolumeHandler?.(...arg))
+    appletSettings.bind<boolean>('keep-volume-between-sessions', 'keepVolume')
+    appletSettings.bind<number>('initial-volume', 'customInitVolume')
+    appletSettings.bind<number>('last-volume', 'lastVolume')
 
-    appletSettings.bind('initial-volume', 'customInitVolume')
-    appletSettings.bind('last-volume', 'lastVolume')
     appletSettings.bind<Channel[]>('tree', 'userStations',
-        (...arg) => stationsHandler.forEach(changeHandler => changeHandler(...arg)))
+        (newStations) => {
+            // global.log('before isEqual')
+            // if (isEqual(previousUserStations, newStations)) return
+            // global.log('this is called')
+            // global.log(`newStations:`, newStations)
+            // global.log('previous', previousUserStations)
+            stationsHandler.forEach(changeHandler => changeHandler(newStations))
+            previousUserStations = newStations
+        })
+
     appletSettings.bind('last-url', 'lastUrl')
     appletSettings.bind('music-download-dir-select', 'musicDownloadDir')
 
+    // The callbacks are for some reason called each time any setting is changed which makes debugging much more difficult. Therefore we are always saving the previous settings to ensure the callbacks are only called when the values have really changed ... 
+    let previousUserStations = settingsObject.userStations
 
     function getInitialVolume() {
         const {

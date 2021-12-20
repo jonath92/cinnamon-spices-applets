@@ -97,7 +97,6 @@ function createMpvHandler() {
         }
 
         if (oldOwner) {
-            global.log('mpv stopped')
             handleMpvStopped()
         }
     })

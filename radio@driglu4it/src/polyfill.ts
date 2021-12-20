@@ -34,10 +34,6 @@ declare global {
 
 export function initPolyfills() {
 
-
-
-  global.log('meta instanceID:', __meta.instanceId)
-
   // included in LM 20.2 (cinnamon 5.0.4) but not in LM 20.0 (cinnamon 4.6.7). (20.1 not tested)
   // Copied from https://stackoverflow.com/a/17606289/11603006
   if (!String.prototype.hasOwnProperty('replaceAll')) {

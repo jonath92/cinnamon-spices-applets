@@ -23,37 +23,37 @@ export function createIconMenuItem(args: Arguments) {
     const icon = new Icon({
         icon_type: IconType.SYMBOLIC,
         style_class: 'popup-menu-icon',
-        pivot_point: new Point({ x: 0.5, y: 0.5 })
-        
+        pivot_point: new Point({ x: 0.5, y: 0.5 }), 
+        icon_name: iconName || '', 
+        visible: !!iconName
     })
 
-    const label = new Label({})
+    const label = new Label({
+        text: limitString(initialText || '', maxCharNumber) 
+    })
 
     const container = new BoxLayout({
         style_class: 'popup-menu-item'
     })
 
-    iconName && setIconName(iconName)
+    container.add_child(icon)
     container.add_child(label)
     initialText && setText(initialText)
 
     function setIconName(name: string | null | undefined) {
 
         if (!name) {
-            container.remove_child(icon)
+            icon.visible = false
             return
         }
 
         icon.icon_name = name
-
-        if (container.get_child_at_index(0) !== icon)
-            container.insert_child_at_index(icon, 0)
+        icon.visible = true
+ 
     }
 
-
     function setText(text: string) {
-        const labelText = text || ' '
-        label.set_text(limitString(labelText, maxCharNumber))
+        label.set_text(limitString(text || ' ', maxCharNumber))
     }
 
     onActivated && createActivWidget({ widget: container, onActivated });
@@ -61,7 +61,7 @@ export function createIconMenuItem(args: Arguments) {
     return {
         actor: container,
         setIconName,
-        setText, 
+        setText,
         getIcon: () => icon
     }
 
