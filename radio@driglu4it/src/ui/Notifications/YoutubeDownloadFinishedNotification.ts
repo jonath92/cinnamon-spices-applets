@@ -12,9 +12,9 @@ export function notifyYoutubeDownloadFinished(args: Arguments) {
         downloadPath
     } = args
 
-
     const notification = createBasicNotification({
-        notificationText: `Download finished. File saved to ${downloadPath}`
+        notificationText: `Download finished. File saved to ${downloadPath}`, 
+        transient: false
     })
 
     const playBtnId = 'openBtn'

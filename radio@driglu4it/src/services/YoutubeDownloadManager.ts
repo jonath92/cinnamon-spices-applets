@@ -1,30 +1,33 @@
+import { notifyYoutubeDownloadFailed } from "../ui/Notifications/YoutubeDownloadFailedNotification";
+import { notifyYoutubeDownloadFinished } from "../ui/Notifications/YoutubeDownloadFinishedNotification";
+import { notifyYoutubeDownloadStarted } from "../ui/Notifications/YoutubeDownloadStartedNotification";
+import { configs } from "./Config";
+import { mpvHandler } from "./mpv/MpvHandler";
+
 const { spawnCommandLineAsyncIO } = imports.misc.util;
 const { get_home_dir } = imports.gi.GLib;
 
-const downloadSongListener: ((title: string) => void)[] = []
+export let currentDownloadingSongs: string[] = []
 
-interface Arguments {
-    title: string,
-    downloadDir: string,
-    onDownloadFinished: (path: string) => void,
-    onDownloadFailed: () => void
-}
+const currentDownloadingSongsChangedListener: ((downloadingSongs: string[]) => void)[] = []
 
-export function downloadSongFromYoutube(args: Arguments) {
+export function downloadSongFromYoutube() {
 
-    const {
-        title,
-        downloadDir,
-        onDownloadFinished,
-        onDownloadFailed
-    } = args
+    const title = mpvHandler.getCurrentTitle()
+    const downloadDir = configs.settingsObject.musicDownloadDir
 
-    global.log('downloadSongFromYoutube is called')
+    if (!title) return
 
-    downloadSongListener.forEach(listener => {
-        global.log('this is called')
-        listener(title)
+    const sameSongIsDownloading = currentDownloadingSongs.find(downloadingTitle => {
+        return downloadingTitle === title
     })
+
+    if (sameSongIsDownloading)
+        return
+
+    notifyYoutubeDownloadStarted({ title, onCancelClicked: () => cancel() })
+    currentDownloadingSongs.push(title)
+    currentDownloadingSongsChangedListener.forEach(listener => listener(currentDownloadingSongs))
 
     let hasBeenCancelled = false
 
@@ -38,26 +41,28 @@ export function downloadSongFromYoutube(args: Arguments) {
 
     const process = spawnCommandLineAsyncIO(downloadCommand, (stdout, stderr) => {
 
-        try {
+        currentDownloadingSongs = currentDownloadingSongs.filter(downloadingTitle => downloadingTitle !== title)
+        currentDownloadingSongsChangedListener.forEach(listener => listener(currentDownloadingSongs))
 
-            if (hasBeenCancelled) {
-                hasBeenCancelled = false
-                return
-            }
+        if (hasBeenCancelled) {
+            hasBeenCancelled = false
+            return
+        }
 
-            if (stderr) throw new Error(stderr)
+        if (stderr) {
+            global.logError(`The following error occured at youtube download attempt: ${stderr}. The used download Command was: ${downloadCommand}`)
+            notifyYoutubeDownloadFailed()
+        }
 
-            if (stdout) {
-                const downloadPath = getDownloadPath(stdout)
-                if (!downloadPath) throw new Error('File not saved')
+        if (stdout) {
+            const downloadPath = getDownloadPath(stdout)
 
-                onDownloadFinished(downloadPath)
-            }
-        } catch (error) {
-            global.logError(`The following error occured at youtube download attempt: ${error}. The used download Command was: ${downloadCommand}`)
-            onDownloadFailed()
+            if (!downloadPath) throw new Error('File not saved')
+            notifyYoutubeDownloadFinished({ downloadPath })
+
         }
     })
+
 
     function cancel() {
         hasBeenCancelled = true
@@ -78,6 +83,6 @@ function getDownloadPath(stdout: string) {
         ?.split(searchString)[1]
 }
 
-export function addDownloadSongStartedListener(callback: (title: string) => void) {
-    downloadSongListener.push(callback)
+export function addDownloadingSongsChangeListener(callback: (downloadingSongs: string[]) => void) {
+    currentDownloadingSongsChangedListener.push(callback)
 }

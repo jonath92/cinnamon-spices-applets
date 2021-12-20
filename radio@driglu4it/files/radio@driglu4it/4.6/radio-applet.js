@@ -22269,7 +22269,8 @@ const { spawnCommandLine: YoutubeDownloadFinishedNotification_spawnCommandLine }
 function notifyYoutubeDownloadFinished(args) {
     const { downloadPath } = args;
     const notification = createBasicNotification({
-        notificationText: `Download finished. File saved to ${downloadPath}`
+        notificationText: `Download finished. File saved to ${downloadPath}`,
+        transient: false
     });
     const playBtnId = 'openBtn';
     notification.addButton(playBtnId, 'Play');
@@ -22298,16 +22299,28 @@ function notifyYoutubeDownloadStarted(args) {
 }
 
 ;// CONCATENATED MODULE: ./src/services/YoutubeDownloadManager.ts
+
+
+
+
+
 const { spawnCommandLineAsyncIO } = imports.misc.util;
 const { get_home_dir: YoutubeDownloadManager_get_home_dir } = imports.gi.GLib;
-const downloadSongListener = [];
-function downloadSongFromYoutube(args) {
-    const { title, downloadDir, onDownloadFinished, onDownloadFailed } = args;
-    global.log('downloadSongFromYoutube is called');
-    downloadSongListener.forEach(listener => {
-        global.log('this is called');
-        listener(title);
+let currentDownloadingSongs = [];
+const currentDownloadingSongsChangedListener = [];
+function downloadSongFromYoutube() {
+    const title = mpvHandler.getCurrentTitle();
+    const downloadDir = configs.settingsObject.musicDownloadDir;
+    if (!title)
+        return;
+    const sameSongIsDownloading = currentDownloadingSongs.find(downloadingTitle => {
+        return downloadingTitle === title;
     });
+    if (sameSongIsDownloading)
+        return;
+    notifyYoutubeDownloadStarted({ title, onCancelClicked: () => cancel() });
+    currentDownloadingSongs.push(title);
+    currentDownloadingSongsChangedListener.forEach(listener => listener(currentDownloadingSongs));
     let hasBeenCancelled = false;
     // When using the default value of the settings, the dir starts with ~ what can't be understand when executing command. 
     // After changing the value in the configs dialogue, the value starts with file:// what youtube-dl can't handle. Saving to network directories (e.g. ftp) doesn't work 
@@ -22315,23 +22328,21 @@ function downloadSongFromYoutube(args) {
     // ytsearch option found here https://askubuntu.com/a/731511/1013434 (not given in the youtube-dl docs ...)
     const downloadCommand = `youtube-dl --output "${music_dir_absolut}/%(title)s.%(ext)s" --extract-audio --audio-format mp3 ytsearch1:"${title.replaceAll('"', '\\\"')}" --add-metadata --embed-thumbnail`;
     const process = spawnCommandLineAsyncIO(downloadCommand, (stdout, stderr) => {
-        try {
-            if (hasBeenCancelled) {
-                hasBeenCancelled = false;
-                return;
-            }
-            if (stderr)
-                throw new Error(stderr);
-            if (stdout) {
-                const downloadPath = getDownloadPath(stdout);
-                if (!downloadPath)
-                    throw new Error('File not saved');
-                onDownloadFinished(downloadPath);
-            }
+        currentDownloadingSongs = currentDownloadingSongs.filter(downloadingTitle => downloadingTitle !== title);
+        currentDownloadingSongsChangedListener.forEach(listener => listener(currentDownloadingSongs));
+        if (hasBeenCancelled) {
+            hasBeenCancelled = false;
+            return;
         }
-        catch (error) {
-            global.logError(`The following error occured at youtube download attempt: ${error}. The used download Command was: ${downloadCommand}`);
-            onDownloadFailed();
+        if (stderr) {
+            global.logError(`The following error occured at youtube download attempt: ${stderr}. The used download Command was: ${downloadCommand}`);
+            notifyYoutubeDownloadFailed();
+        }
+        if (stdout) {
+            const downloadPath = getDownloadPath(stdout);
+            if (!downloadPath)
+                throw new Error('File not saved');
+            notifyYoutubeDownloadFinished({ downloadPath });
         }
     });
     function cancel() {
@@ -22348,44 +22359,20 @@ function getDownloadPath(stdout) {
     const searchString = '[ffmpeg] Destination: ';
     return (_a = arrayOfLines === null || arrayOfLines === void 0 ? void 0 : arrayOfLines.find(line => line.includes(searchString))) === null || _a === void 0 ? void 0 : _a.split(searchString)[1];
 }
-function addDownloadSongStartedListener(callback) {
-    downloadSongListener.push(callback);
+function addDownloadingSongsChangeListener(callback) {
+    currentDownloadingSongsChangedListener.push(callback);
 }
 
 ;// CONCATENATED MODULE: ./src/ui/RadioPopupMenu/MediaControlToolbar/DownloadButton.ts
 
 
 
-
-
-
-
-
 function createDownloadButton() {
-    const { getCurrentTitle } = mpvHandler;
-    const { settingsObject } = configs;
     const downloadButton = createControlBtn({
         iconName: DOWNLOAD_ICON_NAME,
         tooltipTxt: "Download current song from Youtube",
-        onClick: handleClick
+        onClick: downloadSongFromYoutube
     });
-    function handleClick() {
-        const title = getCurrentTitle();
-        if (!title)
-            return;
-        const downloadProcess = downloadSongFromYoutube({
-            downloadDir: settingsObject.musicDownloadDir,
-            title,
-            onDownloadFinished: (path) => notifyYoutubeDownloadFinished({
-                downloadPath: path
-            }),
-            onDownloadFailed: notifyYoutubeDownloadFailed
-        });
-        notifyYoutubeDownloadStarted({
-            title,
-            onCancelClicked: () => downloadProcess.cancel()
-        });
-    }
     return downloadButton.actor;
 }
 
@@ -22518,9 +22505,8 @@ function createYoutubeDownloadIcon() {
         icon_name: 'edit-download',
         visible: false
     });
-    addDownloadSongStartedListener(() => {
-        global.log('this is called');
-        icon.visible = true;
+    addDownloadingSongsChangeListener((downloadingSongs) => {
+        downloadingSongs.length === 0 ? icon.visible = true : icon.visible = false;
     });
     return icon;
 }

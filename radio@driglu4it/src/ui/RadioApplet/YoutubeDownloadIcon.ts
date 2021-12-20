@@ -1,5 +1,5 @@
 import { createAppletIcon } from "../../lib/AppletIcon";
-import { addDownloadSongStartedListener } from "../../services/YoutubeDownloadManager";
+import { addDownloadingSongsChangeListener } from "../../services/YoutubeDownloadManager";
 
 export function createYoutubeDownloadIcon() {
 
@@ -8,9 +8,8 @@ export function createYoutubeDownloadIcon() {
         visible: false
     })
 
-    addDownloadSongStartedListener(() => {
-        global.log('this is called')
-        icon.visible = true
+    addDownloadingSongsChangeListener((downloadingSongs) => {
+        downloadingSongs.length === 0 ? icon.visible = true : icon.visible = false
     })
 
     return icon
