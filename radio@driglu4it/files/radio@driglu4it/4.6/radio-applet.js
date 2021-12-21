@@ -17616,9 +17616,11 @@ function createMpvHandler() {
             handleCvcVolumeChanged();
         });
     });
+    let currentUrl = lastUrl;
     // When no last Url is passed and mpv is running, it is assumed that mpv is not used for the radio applet (and therefore the playbackstatus is Stopped)
-    const initialPlaybackStatus = !lastUrl ? 'Stopped' : getPlaybackStatus();
-    let currentUrl = initialPlaybackStatus !== "Stopped" ? lastUrl : null;
+    const initialPlaybackStatus = getPlaybackStatus();
+    if (initialPlaybackStatus === 'Stopped')
+        currentUrl = null;
     let currentLength = getLength(); // in seconds
     let positionTimerId = null;
     let bufferExceeded = false;
@@ -17678,8 +17680,8 @@ function createMpvHandler() {
                 handleLengthChanged(length);
             if (volume != null)
                 handleMprisVolumeChanged(volume);
-            playbackStatus && handleMprisPlaybackStatusChanged(playbackStatus);
             url && newUrlValid && url !== currentUrl && handleUrlChanged(url);
+            playbackStatus && handleMprisPlaybackStatusChanged(playbackStatus);
             title && titleChangeHandler.forEach(changeHandler => changeHandler(title));
         });
     }
@@ -17852,6 +17854,8 @@ function createMpvHandler() {
         });
     }
     function getPlaybackStatus() {
+        if (!currentUrl)
+            return 'Stopped';
         if (isLoading)
             return 'Loading';
         // this is necessary because when a user stops mpv and afterwards start vlc (or maybe also an other media player), mediaServerPlayer.PlaybackStatus wrongly returns "Playing"  
@@ -17877,6 +17881,8 @@ function createMpvHandler() {
         mediaServerPlayer === null || mediaServerPlayer === void 0 ? void 0 : mediaServerPlayer.SetPositionRemote(trackId, positioninMicroSeconds);
     }
     function getCurrentChannelName() {
+        if (getPlaybackStatus() === 'Stopped')
+            return;
         const currentChannel = currentUrl ? settingsObject.userStations.find(cnl => cnl.url === currentUrl) : undefined;
         return currentChannel === null || currentChannel === void 0 ? void 0 : currentChannel.name;
     }

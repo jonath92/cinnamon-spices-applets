@@ -42,7 +42,6 @@ function createMpvHandler() {
     let isLoading: boolean = false
 
     const playbackStatusChangeHandler: ChangeHandler<AdvancedPlaybackStatus>[] = []
-
     const channelNameChangeHandler: ChangeHandler<string >[] = []
     const volumeChangeHandler: ChangeHandler<number>[] = [] //
     const titleChangeHandler: ChangeHandler<string>[] = []
@@ -64,10 +63,12 @@ function createMpvHandler() {
         })
     })
 
-    // When no last Url is passed and mpv is running, it is assumed that mpv is not used for the radio applet (and therefore the playbackstatus is Stopped)
-    const initialPlaybackStatus = !lastUrl ? 'Stopped' : getPlaybackStatus()
+    let currentUrl: string | null = lastUrl
 
-    let currentUrl = initialPlaybackStatus !== "Stopped" ? lastUrl : null
+    // When no last Url is passed and mpv is running, it is assumed that mpv is not used for the radio applet (and therefore the playbackstatus is Stopped)
+    const initialPlaybackStatus =  getPlaybackStatus()
+    if (initialPlaybackStatus === 'Stopped') currentUrl = null
+    
     let currentLength: number = getLength() // in seconds
     let positionTimerId: ReturnType<typeof setInterval> | null = null
 
@@ -139,9 +140,9 @@ function createMpvHandler() {
                 if (length != null) handleLengthChanged(length)
                 if (volume != null) handleMprisVolumeChanged(volume)
 
+                url && newUrlValid && url !== currentUrl && handleUrlChanged(url)
                 playbackStatus && handleMprisPlaybackStatusChanged(playbackStatus)
 
-                url && newUrlValid && url !== currentUrl && handleUrlChanged(url)
                 title && titleChangeHandler.forEach(changeHandler => changeHandler(title))
             }
         )
@@ -372,6 +373,8 @@ function createMpvHandler() {
 
     function getPlaybackStatus(): AdvancedPlaybackStatus {
 
+        if (!currentUrl) return 'Stopped'
+
         if (isLoading) return 'Loading'
 
         // this is necessary because when a user stops mpv and afterwards start vlc (or maybe also an other media player), mediaServerPlayer.PlaybackStatus wrongly returns "Playing"  
@@ -406,6 +409,9 @@ function createMpvHandler() {
     }
 
     function getCurrentChannelName(): string | undefined {
+
+        if (getPlaybackStatus() === 'Stopped') return 
+
         const currentChannel = currentUrl ? settingsObject.userStations.find(cnl => cnl.url === currentUrl) : undefined
 
         return currentChannel?.name
