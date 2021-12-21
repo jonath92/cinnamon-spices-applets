@@ -14,6 +14,7 @@ interface Settings {
     userStations: Channel[]
     lastUrl: string | null,
     musicDownloadDir: string
+    youtubeCli: 'youtube-dl' | 'yt-dlp'
 }
 
 // TODO: throw an error when importing without initiallized before
@@ -75,6 +76,7 @@ const createConfig = () => {
 
     appletSettings.bind('last-url', 'lastUrl')
     appletSettings.bind('music-download-dir-select', 'musicDownloadDir')
+    appletSettings.bind('youtube-download-cli', 'youtubeCli')
 
     // The callbacks are for some reason called each time any setting is changed which makes debugging much more difficult. Therefore we are always saving the previous settings to ensure the callbacks are only called when the values have really changed ... 
     let previousUserStations = settingsObject.userStations

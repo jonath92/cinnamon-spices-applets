@@ -1,13 +1,9 @@
-import { notifyYoutubeDownloadFailed } from "../../ui/Notifications/YoutubeDownloadFailedNotification";
-import { notifyYoutubeDownloadFinished } from "../../ui/Notifications/YoutubeDownloadFinishedNotification";
-import { configs } from "../Config";
-import { downloadingSongs, YoutubeDownloadServiceProps } from "./YoutubeDownloadManager";
-const { get_home_dir } = imports.gi.GLib;
+import {  YoutubeDownloadServiceProps, YoutubeDownloadServiceReturnType } from "./YoutubeDownloadManager";
 const { spawnCommandLineAsyncIO } = imports.misc.util;
 
 
-export function downloadWithYoutubeDl(props: YoutubeDownloadServiceProps) {
-    const { downloadDir, title, onFinished, onSuccess } = props
+export function downloadWithYoutubeDl(props: YoutubeDownloadServiceProps): YoutubeDownloadServiceReturnType {
+    const { downloadDir, title, onFinished, onSuccess, onError } = props
 
     let hasBeenCancelled = false
 
@@ -24,24 +20,21 @@ export function downloadWithYoutubeDl(props: YoutubeDownloadServiceProps) {
             return
         }
 
-        if (stderr) {
-            global.logError(`The following error occured at youtube download attempt: ${stderr}. The used download Command was: ${downloadCommand}`)
-            notifyYoutubeDownloadFailed()
-            return
-        }
-
         if (stdout) {
             const downloadPath = getDownloadPath(stdout)
 
             if (!downloadPath) {
-                global.logError('downloadPath could not be determined from stdout. Most likely the download has failed')
-                notifyYoutubeDownloadFailed()
+                onError('downloadPath could not be determined from stdout. Most likely the download has failed', downloadCommand)
                 return
             }
 
             onSuccess(downloadPath)
-            notifyYoutubeDownloadFinished({ downloadPath })
+            return
+        }
 
+        if (stderr) {
+            onError(stderr, downloadCommand)
+            return
         }
     })
 

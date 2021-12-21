@@ -4,7 +4,6 @@ export type AdvancedPlaybackStatus = PlaybackStatus | 'Loading'
 
 export type ChangeHandler<T> = (newValue: T) => void
 
-
 export interface Channel {
     name: string,
     url: string,
@@ -12,6 +11,7 @@ export interface Channel {
 }
 
 export type AppletIcon = 'SYMBOLIC' | 'FULLCOLOR' | 'BICOLOR'
+
 
 // MPRIS
 type LoopStatus = 'None' | 'Track' | 'Playlist'

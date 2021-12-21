@@ -17483,6 +17483,7 @@ const createConfig = () => {
     });
     appletSettings.bind('last-url', 'lastUrl');
     appletSettings.bind('music-download-dir-select', 'musicDownloadDir');
+    appletSettings.bind('youtube-download-cli', 'youtubeCli');
     // The callbacks are for some reason called each time any setting is changed which makes debugging much more difficult. Therefore we are always saving the previous settings to ensure the callbacks are only called when the values have really changed ... 
     let previousUserStations = settingsObject.userStations;
     let previousIconType = settingsObject.iconType;
@@ -21474,22 +21475,6 @@ function createBasicNotification(args) {
     return notification;
 }
 
-;// CONCATENATED MODULE: ./src/ui/Notifications/YoutubeDownloadStartedNotification.ts
-
-function notifyYoutubeDownloadStarted(args) {
-    const { title, onCancelClicked } = args;
-    const notification = createBasicNotification({
-        notificationText: `Downloading ${title} ...`,
-    });
-    const cancelBtnId = 'cancelBtn';
-    notification.addButton(cancelBtnId, 'Cancel');
-    notification.connect('action-invoked', (actor, id) => {
-        if (id === cancelBtnId)
-            onCancelClicked();
-    });
-    notification.notify();
-}
-
 ;// CONCATENATED MODULE: ./src/ui/Notifications/YoutubeDownloadFailedNotification.ts
 
 
@@ -21538,13 +21523,26 @@ function notifyYoutubeDownloadFinished(args) {
     notification.notify();
 }
 
-;// CONCATENATED MODULE: ./src/services/youtubeDownload/youtubeDl.ts
+;// CONCATENATED MODULE: ./src/ui/Notifications/YoutubeDownloadStartedNotification.ts
 
+function notifyYoutubeDownloadStarted(args) {
+    const { title, onCancelClicked } = args;
+    const notification = createBasicNotification({
+        notificationText: `Downloading ${title} ...`,
+    });
+    const cancelBtnId = 'cancelBtn';
+    notification.addButton(cancelBtnId, 'Cancel');
+    notification.connect('action-invoked', (actor, id) => {
+        if (id === cancelBtnId)
+            onCancelClicked();
+    });
+    notification.notify();
+}
 
-const { get_home_dir: youtubeDl_get_home_dir } = imports.gi.GLib;
+;// CONCATENATED MODULE: ./src/services/youtubeDownload/YoutubeDl.ts
 const { spawnCommandLineAsyncIO } = imports.misc.util;
 function downloadWithYoutubeDl(props) {
-    const { downloadDir, title, onFinished, onSuccess } = props;
+    const { downloadDir, title, onFinished, onSuccess, onError } = props;
     let hasBeenCancelled = false;
     // ytsearch option found here https://askubuntu.com/a/731511/1013434 (not given in the youtube-dl docs ...)
     const downloadCommand = `youtube-dl --output "${downloadDir}/%(title)s.%(ext)s" --extract-audio --audio-format mp3 ytsearch1:"${title.replaceAll('"', '\\\"')}" --add-metadata --embed-thumbnail`;
@@ -21554,20 +21552,18 @@ function downloadWithYoutubeDl(props) {
             hasBeenCancelled = false;
             return;
         }
-        if (stderr) {
-            global.logError(`The following error occured at youtube download attempt: ${stderr}. The used download Command was: ${downloadCommand}`);
-            notifyYoutubeDownloadFailed();
-            return;
-        }
         if (stdout) {
             const downloadPath = getDownloadPath(stdout);
             if (!downloadPath) {
-                global.logError('downloadPath could not be determined from stdout. Most likely the download has failed');
-                notifyYoutubeDownloadFailed();
+                onError('downloadPath could not be determined from stdout. Most likely the download has failed', downloadCommand);
                 return;
             }
             onSuccess(downloadPath);
-            notifyYoutubeDownloadFinished({ downloadPath });
+            return;
+        }
+        if (stderr) {
+            onError(stderr, downloadCommand);
+            return;
         }
     });
     function cancel() {
@@ -21585,12 +21581,54 @@ function getDownloadPath(stdout) {
     return (_a = arrayOfLines === null || arrayOfLines === void 0 ? void 0 : arrayOfLines.find(line => line.includes(searchString))) === null || _a === void 0 ? void 0 : _a.split(searchString)[1];
 }
 
+;// CONCATENATED MODULE: ./src/services/youtubeDownload/YtDlp.ts
+const { spawnCommandLineAsyncIO: YtDlp_spawnCommandLineAsyncIO } = imports.misc.util;
+function downloadWithYtDlp(props) {
+    const { downloadDir, title, onFinished, onSuccess, onError } = props;
+    let hasBeenCancelled = false;
+    const downloadCommand = `yt-dlp --output "${downloadDir}/%(title)s.%(ext)s" --extract-audio --audio-format mp3 ytsearch1:"${title.replaceAll('"', '\\\"')}" --add-metadata --embed-thumbnail`;
+    const process = YtDlp_spawnCommandLineAsyncIO(downloadCommand, (stdout, stderr) => {
+        onFinished();
+        if (hasBeenCancelled) {
+            hasBeenCancelled = false;
+            return;
+        }
+        if (stdout) {
+            const downloadPath = YtDlp_getDownloadPath(stdout);
+            if (!downloadPath) {
+                onError('downloadPath could not be determined from stdout. Most likely the download has failed', downloadCommand);
+                return;
+            }
+            onSuccess(downloadPath);
+            return;
+        }
+        if (stderr) {
+            onError(stderr, downloadCommand);
+            return;
+        }
+    });
+    function cancel() {
+        hasBeenCancelled = true;
+        process.force_exit();
+    }
+    return { cancel };
+}
+function YtDlp_getDownloadPath(stdout) {
+    var _a;
+    const arrayOfLines = stdout.match(/[^\r\n]+/g);
+    const searchString = '[ExtractAudio] Destination: ';
+    return (_a = arrayOfLines === null || arrayOfLines === void 0 ? void 0 : arrayOfLines.find(line => line.includes(searchString))) === null || _a === void 0 ? void 0 : _a.split(searchString)[1];
+}
+
 ;// CONCATENATED MODULE: ./src/services/youtubeDownload/YoutubeDownloadManager.ts
 
 
 
 
-const { get_tmp_dir, get_home_dir: YoutubeDownloadManager_get_home_dir, build_filenamev } = imports.gi.GLib;
+
+
+
+const { get_tmp_dir, get_home_dir: YoutubeDownloadManager_get_home_dir } = imports.gi.GLib;
 const { File, FileCopyFlags } = imports.gi.Gio;
 let downloadingSongs = [];
 const downloadingSongsChangedListener = [];
@@ -21608,9 +21646,13 @@ function downloadSongFromYoutube() {
     });
     if (sameSongIsDownloading)
         return;
-    const { cancel } = downloadWithYoutubeDl({
+    const downloadProps = {
         title,
         downloadDir: get_tmp_dir(),
+        onError: (errorMessage, downloadCommand) => {
+            global.logError(`The following error occured at youtube download attempt: ${errorMessage}. The used download Command was: ${downloadCommand}`);
+            notifyYoutubeDownloadFailed();
+        },
         onFinished: () => {
             downloadingSongs = downloadingSongs.filter(downloadingSong => downloadingSong.title !== title);
             downloadingSongsChangedListener.forEach(listener => listener(downloadingSongs));
@@ -21618,10 +21660,11 @@ function downloadSongFromYoutube() {
         onSuccess: (downloadPath) => {
             const tmpFile = File.new_for_path(downloadPath);
             const fileName = tmpFile.get_basename();
-            global.log(`fileName`, fileName);
+            const targetPath = `${music_dir_absolut}/${fileName}`;
             try {
                 // @ts-ignore
-                tmpFile.move(File.parse_name(`${music_dir_absolut}/${fileName}`), FileCopyFlags.BACKUP, null, null);
+                tmpFile.move(File.parse_name(`${targetPath}`), FileCopyFlags.BACKUP, null, null);
+                notifyYoutubeDownloadFinished({ downloadPath: targetPath });
             }
             catch (error) {
                 global.log(error);
@@ -21630,7 +21673,10 @@ function downloadSongFromYoutube() {
             }
             global.log(downloadPath);
         }
-    });
+    };
+    const { cancel } = configs.settingsObject.youtubeCli === 'youtube-dl' ?
+        downloadWithYoutubeDl(downloadProps) :
+        downloadWithYtDlp(downloadProps);
     notifyYoutubeDownloadStarted({ title, onCancelClicked: () => cancel() });
     downloadingSongs.push({ title, cancelDownload: cancel });
     downloadingSongsChangedListener.forEach(listener => listener(downloadingSongs));

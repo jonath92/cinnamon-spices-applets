@@ -67,7 +67,7 @@
 			"type": "section",
 			"title": "Youtube Download",
 			"keys": [
-				"youtube-download-cli-select",
+				"youtube-download-cli",
 				"music-download-dir-select"
 			]
 		}
@@ -163,11 +163,11 @@
 		"value": null,
 		"default": null
 	},
-	"youtube-download-cli-select": {
+	"youtube-download-cli": {
 		"type": "combobox", 
 		"description": "Youtube Download CLI tool", 
 		"tooltip": "The CLI tool used to download songs from Youtube", 
-		"default": "youtube-dl (deprecated)",
+		"default": "youtube-dl",
 		"options": {
 			"yt-dlp": "yt-dlp", 
 			"youtube-dl (deprecated)": "youtube-dl"

@@ -3,22 +3,29 @@ import { notifyYoutubeDownloadFinished } from "../../ui/Notifications/YoutubeDow
 import { notifyYoutubeDownloadStarted } from "../../ui/Notifications/YoutubeDownloadStartedNotification";
 import { configs } from "../Config";
 import { mpvHandler } from "../mpv/MpvHandler";
-import { downloadWithYoutubeDl } from "./youtubeDl";
+import { downloadWithYoutubeDl } from "./YoutubeDl";
+import { downloadWithYtDlp } from "./YtDlp";
 
-const { get_tmp_dir, get_home_dir, build_filenamev } = imports.gi.GLib
+const { get_tmp_dir, get_home_dir } = imports.gi.GLib
 const { File, FileCopyFlags } = imports.gi.Gio
 
 export interface YoutubeDownloadServiceProps {
     downloadDir: string
     title: string
-    onFinished: () => void, 
-    onSuccess: (downloadPath: string) => void
+    onFinished: () => void,
+    onSuccess: (downloadPath: string) => void, 
+    onError: (errorMessage: string, downloadCommand: string) => void
+}
+
+export interface YoutubeDownloadServiceReturnType {
+    cancel: () => void
 }
 
 interface DownloadingSong {
     title: string,
     cancelDownload: () => void
 }
+
 export let downloadingSongs: DownloadingSong[] = []
 
 const downloadingSongsChangedListener: ((downloadingSongs: DownloadingSong[]) => void)[] = []
@@ -36,7 +43,6 @@ export function downloadSongFromYoutube() {
 
     if (!title) return
 
-
     const sameSongIsDownloading = downloadingSongs.find(downloadingSong => {
         return downloadingSong.title === title
     })
@@ -44,9 +50,13 @@ export function downloadSongFromYoutube() {
     if (sameSongIsDownloading)
         return
 
-    const { cancel } = downloadWithYoutubeDl({
+    const downloadProps: YoutubeDownloadServiceProps = {
         title,
         downloadDir: get_tmp_dir(),
+        onError: (errorMessage, downloadCommand: string, ) => {
+            global.logError(`The following error occured at youtube download attempt: ${errorMessage}. The used download Command was: ${downloadCommand}`)
+            notifyYoutubeDownloadFailed()
+        },
         onFinished: () => {
             downloadingSongs = downloadingSongs.filter(downloadingSong => downloadingSong.title !== title)
             downloadingSongsChangedListener.forEach(listener => listener(downloadingSongs))
@@ -54,11 +64,13 @@ export function downloadSongFromYoutube() {
         onSuccess: (downloadPath) => {
             const tmpFile = File.new_for_path(downloadPath)
             const fileName = tmpFile.get_basename()
-            global.log(`fileName`, fileName)
+            const targetPath = `${music_dir_absolut}/${fileName}`
 
             try {
                 // @ts-ignore
-                tmpFile.move(File.parse_name(`${music_dir_absolut}/${fileName}`), FileCopyFlags.BACKUP, null, null)
+                tmpFile.move(File.parse_name(`${targetPath}`), FileCopyFlags.BACKUP, null, null)
+
+                notifyYoutubeDownloadFinished({ downloadPath: targetPath })
 
             } catch (error) {
                 global.log(error)
@@ -68,7 +80,11 @@ export function downloadSongFromYoutube() {
 
             global.log(downloadPath)
         }
-    })
+    }
+
+    const { cancel } = configs.settingsObject.youtubeCli === 'youtube-dl' ? 
+        downloadWithYoutubeDl(downloadProps) : 
+        downloadWithYtDlp(downloadProps)
 
     notifyYoutubeDownloadStarted({ title, onCancelClicked: () => cancel() })
     downloadingSongs.push({ title, cancelDownload: cancel })
