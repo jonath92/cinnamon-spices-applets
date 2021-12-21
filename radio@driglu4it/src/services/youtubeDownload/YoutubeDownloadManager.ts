@@ -20,7 +20,12 @@ export function downloadSongFromYoutube() {
 
     const title = mpvHandler.getCurrentTitle()
     const downloadDir = configs.settingsObject.musicDownloadDir
-    const music_dir_absolut = downloadDir.replace('~', get_home_dir()).replace('file://', '')
+
+    let music_dir_absolut = downloadDir
+
+    if (music_dir_absolut.charAt(0) === '~'){
+        music_dir_absolut = downloadDir.replace('~', get_home_dir()).replace('file://', '')
+    }
 
     if (!title) return
 
