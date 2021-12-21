@@ -5,7 +5,7 @@ import { mpvHandler } from "../../services/mpv/MpvHandler"
 export function createRadioAppletLabel() {
 
     const {
-        getCurrentChannelName: getCurrentChannel,
+        getCurrentChannelName,
         addChannelChangeHandler,
         addPlaybackStatusChangeHandler
     } = mpvHandler
@@ -17,7 +17,7 @@ export function createRadioAppletLabel() {
 
     const label = createAppletLabel({
         visible: settingsObject.channelNameOnPanel,
-        text: getCurrentChannel() || ''
+        text: getCurrentChannelName() || ''
     })
 
     addChannelOnPanelChangeHandler((channelOnPanel) => label.visible = channelOnPanel)

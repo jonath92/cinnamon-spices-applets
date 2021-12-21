@@ -1,7 +1,9 @@
 import { DEFAULT_TOOLTIP_TXT } from "../../consts"
 import { mpvHandler } from "../../services/mpv/MpvHandler"
+import { addDownloadingSongsChangeListener, downloadingSongs } from "../../services/YoutubeDownloadManager"
 
 const { PanelItemTooltip } = imports.ui.tooltips
+const { markup_escape_text } = imports.gi.GLib
 
 interface Arguments {
     appletContainer: imports.ui.applet.Applet
@@ -13,27 +15,48 @@ export function createRadioAppletTooltip(args: Arguments) {
         appletContainer,
     } = args
 
-    const {
-        getVolume,
-        addVolumeChangeHandler,
-        addPlaybackStatusChangeHandler
-    } = mpvHandler
 
-    const getVolumeText = (volume: number) => {
-        return `Volume: ${volume.toString()} %`
-    }
+    const tooltip = new PanelItemTooltip(appletContainer, undefined, __meta.orientation)
+    tooltip['_tooltip'].set_style("text-align: left;")
 
-    const initialVolume = getVolume()
-    const initialText = (initialVolume == null) ? 
-        DEFAULT_TOOLTIP_TXT : getVolumeText(initialVolume)
+    const setRefreshTooltip = () => {
 
-    const tooltip = new PanelItemTooltip(appletContainer, initialText, __meta.orientation)
+        if (mpvHandler.getPlaybackStatus() === 'Stopped') {
+            tooltip.set_markup(DEFAULT_TOOLTIP_TXT)
+            return
+        }
 
-    addVolumeChangeHandler((newVolume) => {
-        tooltip.set_text(getVolumeText(newVolume))
-    })
+        const lines = [
+            [`<b>Volume</b>`],
+            [`${mpvHandler.getVolume()?.toString()} %`],
+            [],
+            ['<b>Songtitle</b>'],
+            [`${markup_escape_text(mpvHandler.getCurrentTitle() || '', -1)}`],
+            [],
+            ['<b>Station</b>'],
+            [`${markup_escape_text(mpvHandler.getCurrentChannelName() || '', -1)} `],
+        ];
 
-    addPlaybackStatusChangeHandler((newStatus) => {
-        if (newStatus === 'Stopped') tooltip.set_text(DEFAULT_TOOLTIP_TXT)
-    })
+        if (downloadingSongs.length !== 0) {
+            [
+                [],
+                ['<b>Songs downloading:</b>'],
+                ...downloadingSongs.map(downloadingSong => [markup_escape_text(downloadingSong.title, -1)])
+            ].forEach(line => lines.push(line))
+        }
+
+        const markupTxt = lines.join(`\n`)
+
+        tooltip.set_markup(markupTxt)
+    };
+
+    [
+        mpvHandler.addVolumeChangeHandler,
+        mpvHandler.addPlaybackStatusChangeHandler,
+        mpvHandler.addTitleChangeHandler,
+        mpvHandler.addChannelChangeHandler,
+        addDownloadingSongsChangeListener
+    ].forEach(cb => cb(setRefreshTooltip))
+
+    setRefreshTooltip()
 }
