@@ -1,19 +1,12 @@
 import { notifyYoutubeDownloadFailed } from "../../ui/Notifications/YoutubeDownloadFailedNotification";
 import { notifyYoutubeDownloadFinished } from "../../ui/Notifications/YoutubeDownloadFinishedNotification";
 import { configs } from "../Config";
-import { downloadingSongs } from "./YoutubeDownloadManager";
+import { downloadingSongs, YoutubeDownloadServiceProps } from "./YoutubeDownloadManager";
 const { get_home_dir } = imports.gi.GLib;
 const { spawnCommandLineAsyncIO } = imports.misc.util;
 
-interface Props {
-    downloadDir: string
-    title: string
-    // on Finished called independently of success or failure
-    onFinished: () => void, 
-    onSuccess: (downloadPath: string) => void
-}
 
-export function downloadWithYoutubeDl(props: Props) {
+export function downloadWithYoutubeDl(props: YoutubeDownloadServiceProps) {
     const { downloadDir, title, onFinished, onSuccess } = props
 
     let hasBeenCancelled = false

@@ -8,6 +8,13 @@ import { downloadWithYoutubeDl } from "./youtubeDl";
 const { get_tmp_dir, get_home_dir, build_filenamev } = imports.gi.GLib
 const { File, FileCopyFlags } = imports.gi.Gio
 
+export interface YoutubeDownloadServiceProps {
+    downloadDir: string
+    title: string
+    onFinished: () => void, 
+    onSuccess: (downloadPath: string) => void
+}
+
 interface DownloadingSong {
     title: string,
     cancelDownload: () => void
