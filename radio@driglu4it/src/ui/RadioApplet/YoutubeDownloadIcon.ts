@@ -1,5 +1,5 @@
 import { createAppletIcon } from "../../lib/AppletIcon";
-import { addDownloadingSongsChangeListener } from "../../services/YoutubeDownloadManager";
+import { addDownloadingSongsChangeListener } from "../../services/youtubeDownload/YoutubeDownloadManager";
 
 export function createYoutubeDownloadIcon() {
 

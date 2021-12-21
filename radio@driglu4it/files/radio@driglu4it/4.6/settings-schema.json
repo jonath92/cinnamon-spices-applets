@@ -167,7 +167,7 @@
 		"type": "combobox", 
 		"description": "Youtube Download CLI tool", 
 		"tooltip": "The CLI tool used to download songs from Youtube", 
-		"default": "youtube-dl",
+		"default": "youtube-dl (deprecated)",
 		"options": {
 			"yt-dlp": "yt-dlp", 
 			"youtube-dl (deprecated)": "youtube-dl"

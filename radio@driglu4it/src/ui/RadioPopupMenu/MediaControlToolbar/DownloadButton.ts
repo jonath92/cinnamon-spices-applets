@@ -1,6 +1,6 @@
 import { CANCEL_ICON_NAME, COPY_ICON_NAME, DOWNLOAD_ICON_NAME } from "../../../consts";
 import { createControlBtn } from "./ControlBtn";
-import { addDownloadingSongsChangeListener, downloadingSongs, downloadSongFromYoutube } from "../../../services/YoutubeDownloadManager";
+import { addDownloadingSongsChangeListener, downloadingSongs, downloadSongFromYoutube } from "../../../services/youtubeDownload/YoutubeDownloadManager";
 import { mpvHandler } from "../../../services/mpv/MpvHandler";
 
 

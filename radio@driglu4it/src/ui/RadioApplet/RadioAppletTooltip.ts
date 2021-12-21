@@ -1,6 +1,6 @@
 import { DEFAULT_TOOLTIP_TXT } from "../../consts"
 import { mpvHandler } from "../../services/mpv/MpvHandler"
-import { addDownloadingSongsChangeListener, downloadingSongs } from "../../services/YoutubeDownloadManager"
+import { addDownloadingSongsChangeListener, downloadingSongs } from "../../services/youtubeDownload/YoutubeDownloadManager"
 
 const { PanelItemTooltip } = imports.ui.tooltips
 const { markup_escape_text } = imports.gi.GLib

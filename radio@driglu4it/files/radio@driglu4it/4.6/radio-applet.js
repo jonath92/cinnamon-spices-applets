@@ -21474,6 +21474,22 @@ function createBasicNotification(args) {
     return notification;
 }
 
+;// CONCATENATED MODULE: ./src/ui/Notifications/YoutubeDownloadStartedNotification.ts
+
+function notifyYoutubeDownloadStarted(args) {
+    const { title, onCancelClicked } = args;
+    const notification = createBasicNotification({
+        notificationText: `Downloading ${title} ...`,
+    });
+    const cancelBtnId = 'cancelBtn';
+    notification.addButton(cancelBtnId, 'Cancel');
+    notification.connect('action-invoked', (actor, id) => {
+        if (id === cancelBtnId)
+            onCancelClicked();
+    });
+    notification.notify();
+}
+
 ;// CONCATENATED MODULE: ./src/ui/Notifications/YoutubeDownloadFailedNotification.ts
 
 
@@ -21522,56 +21538,22 @@ function notifyYoutubeDownloadFinished(args) {
     notification.notify();
 }
 
-;// CONCATENATED MODULE: ./src/ui/Notifications/YoutubeDownloadStartedNotification.ts
-
-function notifyYoutubeDownloadStarted(args) {
-    const { title, onCancelClicked } = args;
-    const notification = createBasicNotification({
-        notificationText: `Downloading ${title} ...`,
-    });
-    const cancelBtnId = 'cancelBtn';
-    notification.addButton(cancelBtnId, 'Cancel');
-    notification.connect('action-invoked', (actor, id) => {
-        if (id === cancelBtnId)
-            onCancelClicked();
-    });
-    notification.notify();
-}
-
-;// CONCATENATED MODULE: ./src/services/YoutubeDownloadManager.ts
+;// CONCATENATED MODULE: ./src/services/youtubeDownload/youtubeDl.ts
 
 
-
-
-
+const { get_home_dir: youtubeDl_get_home_dir } = imports.gi.GLib;
 const { spawnCommandLineAsyncIO } = imports.misc.util;
-const { get_home_dir: YoutubeDownloadManager_get_home_dir } = imports.gi.GLib;
-let downloadingSongs = [];
-const downloadingSongsChangedListener = [];
-function downloadSongFromYoutube() {
-    const title = mpvHandler.getCurrentTitle();
-    const downloadDir = configs.settingsObject.musicDownloadDir;
-    if (!title)
-        return;
-    const sameSongIsDownloading = downloadingSongs.find(downloadingSong => {
-        return downloadingSong.title === title;
-    });
-    if (sameSongIsDownloading)
-        return;
-    notifyYoutubeDownloadStarted({ title, onCancelClicked: () => cancel() });
-    downloadingSongs.push({ title, cancelDownload: cancel });
-    downloadingSongsChangedListener.forEach(listener => listener(downloadingSongs));
+function downloadWithYoutubeDl(props) {
+    const { downloadDir, title, onFinished, onSuccess } = props;
+    // const downloadDir = configs.settingsObject.musicDownloadDir
     let hasBeenCancelled = false;
     // When using the default value of the settings, the dir starts with ~ what can't be understand when executing command. 
     // After changing the value in the configs dialogue, the value starts with file:// what youtube-dl can't handle. Saving to network directories (e.g. ftp) doesn't work 
-    const music_dir_absolut = downloadDir.replace('~', YoutubeDownloadManager_get_home_dir()).replace('file://', '');
+    const music_dir_absolut = downloadDir.replace('~', youtubeDl_get_home_dir()).replace('file://', '');
     // ytsearch option found here https://askubuntu.com/a/731511/1013434 (not given in the youtube-dl docs ...)
-    const downloadCommand = `youtube-dl --output "${music_dir_absolut}/%(title)s.%(ext)s" --extract-audio --audio-format mp3 ytsearch1:"${title.replaceAll('"', '\\\"')}" --add-metadata --embed-thumbnail`;
+    const downloadCommand = `youtube-dl --output "${downloadDir}/%(title)s.%(ext)s" --extract-audio --audio-format mp3 ytsearch1:"${title.replaceAll('"', '\\\"')}" --add-metadata --embed-thumbnail`;
     const process = spawnCommandLineAsyncIO(downloadCommand, (stdout, stderr) => {
-        global.log('stdout: ', stdout);
-        global.log('stderr: ', stderr);
-        downloadingSongs = downloadingSongs.filter(downloadingSong => downloadingSong.title !== title);
-        downloadingSongsChangedListener.forEach(listener => listener(downloadingSongs));
+        onFinished();
         if (hasBeenCancelled) {
             hasBeenCancelled = false;
             return;
@@ -21587,6 +21569,7 @@ function downloadSongFromYoutube() {
                 notifyYoutubeDownloadFailed();
                 return;
             }
+            onSuccess(downloadPath);
             notifyYoutubeDownloadFinished({ downloadPath });
         }
     });
@@ -21603,6 +21586,46 @@ function getDownloadPath(stdout) {
     // there is only one line in stdout which gives the path of the downloaded mp3. This start with [ffmpeg] Destination ...
     const searchString = '[ffmpeg] Destination: ';
     return (_a = arrayOfLines === null || arrayOfLines === void 0 ? void 0 : arrayOfLines.find(line => line.includes(searchString))) === null || _a === void 0 ? void 0 : _a.split(searchString)[1];
+}
+
+;// CONCATENATED MODULE: ./src/services/youtubeDownload/YoutubeDownloadManager.ts
+
+
+
+
+const { get_tmp_dir, get_home_dir: YoutubeDownloadManager_get_home_dir } = imports.gi.GLib;
+const { File, FileCopyFlags } = imports.gi.Gio;
+let downloadingSongs = [];
+const downloadingSongsChangedListener = [];
+function downloadSongFromYoutube() {
+    const title = mpvHandler.getCurrentTitle();
+    const downloadDir = configs.settingsObject.musicDownloadDir;
+    const music_dir_absolut = downloadDir.replace('~', YoutubeDownloadManager_get_home_dir()).replace('file://', '');
+    if (!title)
+        return;
+    const sameSongIsDownloading = downloadingSongs.find(downloadingSong => {
+        return downloadingSong.title === title;
+    });
+    if (sameSongIsDownloading)
+        return;
+    const { cancel } = downloadWithYoutubeDl({
+        title,
+        downloadDir: get_tmp_dir(),
+        onFinished: () => {
+            downloadingSongs = downloadingSongs.filter(downloadingSong => downloadingSong.title !== title);
+            downloadingSongsChangedListener.forEach(listener => listener(downloadingSongs));
+        },
+        onSuccess: (downloadPath) => {
+            const tmpFile = File.new_for_path(downloadPath);
+            const fileName = tmpFile.get_basename();
+            global.log(`fileName`, fileName);
+            tmpFile.move(File.new_for_path(`${music_dir_absolut}/${fileName}`), FileCopyFlags.BACKUP, null, null, null);
+            global.log(downloadPath);
+        }
+    });
+    notifyYoutubeDownloadStarted({ title, onCancelClicked: () => cancel() });
+    downloadingSongs.push({ title, cancelDownload: cancel });
+    downloadingSongsChangedListener.forEach(listener => listener(downloadingSongs));
 }
 function addDownloadingSongsChangeListener(callback) {
     downloadingSongsChangedListener.push(callback);
