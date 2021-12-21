@@ -21545,11 +21545,7 @@ const { get_home_dir: youtubeDl_get_home_dir } = imports.gi.GLib;
 const { spawnCommandLineAsyncIO } = imports.misc.util;
 function downloadWithYoutubeDl(props) {
     const { downloadDir, title, onFinished, onSuccess } = props;
-    // const downloadDir = configs.settingsObject.musicDownloadDir
     let hasBeenCancelled = false;
-    // When using the default value of the settings, the dir starts with ~ what can't be understand when executing command. 
-    // After changing the value in the configs dialogue, the value starts with file:// what youtube-dl can't handle. Saving to network directories (e.g. ftp) doesn't work 
-    const music_dir_absolut = downloadDir.replace('~', youtubeDl_get_home_dir()).replace('file://', '');
     // ytsearch option found here https://askubuntu.com/a/731511/1013434 (not given in the youtube-dl docs ...)
     const downloadCommand = `youtube-dl --output "${downloadDir}/%(title)s.%(ext)s" --extract-audio --audio-format mp3 ytsearch1:"${title.replaceAll('"', '\\\"')}" --add-metadata --embed-thumbnail`;
     const process = spawnCommandLineAsyncIO(downloadCommand, (stdout, stderr) => {
@@ -21561,6 +21557,7 @@ function downloadWithYoutubeDl(props) {
         if (stderr) {
             global.logError(`The following error occured at youtube download attempt: ${stderr}. The used download Command was: ${downloadCommand}`);
             notifyYoutubeDownloadFailed();
+            return;
         }
         if (stdout) {
             const downloadPath = getDownloadPath(stdout);
@@ -21593,14 +21590,17 @@ function getDownloadPath(stdout) {
 
 
 
-const { get_tmp_dir, get_home_dir: YoutubeDownloadManager_get_home_dir } = imports.gi.GLib;
+const { get_tmp_dir, get_home_dir: YoutubeDownloadManager_get_home_dir, build_filenamev } = imports.gi.GLib;
 const { File, FileCopyFlags } = imports.gi.Gio;
 let downloadingSongs = [];
 const downloadingSongsChangedListener = [];
 function downloadSongFromYoutube() {
     const title = mpvHandler.getCurrentTitle();
     const downloadDir = configs.settingsObject.musicDownloadDir;
-    const music_dir_absolut = downloadDir.replace('~', YoutubeDownloadManager_get_home_dir()).replace('file://', '');
+    let music_dir_absolut = downloadDir;
+    if (music_dir_absolut.charAt(0) === '~') {
+        music_dir_absolut = downloadDir.replace('~', YoutubeDownloadManager_get_home_dir());
+    }
     if (!title)
         return;
     const sameSongIsDownloading = downloadingSongs.find(downloadingSong => {
@@ -21619,7 +21619,15 @@ function downloadSongFromYoutube() {
             const tmpFile = File.new_for_path(downloadPath);
             const fileName = tmpFile.get_basename();
             global.log(`fileName`, fileName);
-            tmpFile.move(File.new_for_path(`${music_dir_absolut}/${fileName}`), FileCopyFlags.BACKUP, null, null, null);
+            try {
+                // @ts-ignore
+                tmpFile.move(File.parse_name(`${music_dir_absolut}/${fileName}`), FileCopyFlags.BACKUP, null, null);
+            }
+            catch (error) {
+                global.log(error);
+                // TODO handle this one
+                // JS ERROR: Gio.IOErrorEnum: Error moving file /tmp/Elton John, Dua Lipa - Cold Heart (PNAU Remix) (Official Video).mp3: File exists
+            }
             global.log(downloadPath);
         }
     });
