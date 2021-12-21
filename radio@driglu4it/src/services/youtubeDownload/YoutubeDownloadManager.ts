@@ -34,6 +34,7 @@ export function downloadSongFromYoutube() {
 
     const title = mpvHandler.getCurrentTitle()
     const downloadDir = configs.settingsObject.musicDownloadDir
+    const youtubeCli = configs.settingsObject.youtubeCli
 
     let music_dir_absolut = downloadDir
 
@@ -55,7 +56,7 @@ export function downloadSongFromYoutube() {
         downloadDir: get_tmp_dir(),
         onError: (errorMessage, downloadCommand: string,) => {
             global.logError(`The following error occured at youtube download attempt: ${errorMessage}. The used download Command was: ${downloadCommand}`)
-            notifyYoutubeDownloadFailed()
+            notifyYoutubeDownloadFailed({ youtubeCli })
         },
         onFinished: () => {
             downloadingSongs = downloadingSongs.filter(downloadingSong => downloadingSong.title !== title)
@@ -66,33 +67,27 @@ export function downloadSongFromYoutube() {
             const fileName = tmpFile.get_basename()
             const targetPath = `${music_dir_absolut}/${fileName}`
             const targetFile = File.parse_name(targetPath)
-            
-            if (targetFile.query_exists(null)){
+
+            if (targetFile.query_exists(null)) {
                 notifyYoutubeDownloadFinished({ downloadPath: targetPath, fileAlreadExist: true })
                 return
             }
 
-            // @ts-ignore
-            tmpFile.move(File.parse_name(targetPath), FileCopyFlags.BACKUP, null, null)
+            try {
+                // @ts-ignore
+                tmpFile.move(File.parse_name(targetPath), FileCopyFlags.BACKUP, null, null)
 
-            notifyYoutubeDownloadFinished({ downloadPath: targetPath })
+                notifyYoutubeDownloadFinished({ downloadPath: targetPath })
 
-            // try {
-
-
-            // } catch (error) {
-
-            //     // if ((error as string).startsWith('Error moving file')){
-            //     //     global.log('file exist')
-            //     // }
-            //     // TODO handle this one
-            //     // JS ERROR: Gio.IOErrorEnum: Error moving file /tmp/Elton John, Dua Lipa - Cold Heart (PNAU Remix) (Official Video).mp3: File exists
-            // }
+            } catch (error) {
+                notifyYoutubeDownloadFailed({youtubeCli})
+                global.logError('failed to copy from tmp dir. The following error occured', error as imports.gi.GLib.Error)
+            }
 
         }
     }
 
-    const { cancel } = configs.settingsObject.youtubeCli === 'youtube-dl' ?
+    const { cancel } = youtubeCli === 'youtube-dl' ?
         downloadWithYoutubeDl(downloadProps) :
         downloadWithYtDlp(downloadProps)
 

@@ -1,5 +1,5 @@
 import { isEqual } from "lodash";
-import { Channel, AppletIcon, ChangeHandler } from "../types";
+import { Channel, AppletIcon, ChangeHandler, YoutubeClis } from "../types";
 const { AppletSettings } = imports.ui.settings;
 
 interface Settings {
@@ -14,7 +14,7 @@ interface Settings {
     userStations: Channel[]
     lastUrl: string | null,
     musicDownloadDir: string
-    youtubeCli: 'youtube-dl' | 'yt-dlp'
+    youtubeCli: YoutubeClis
 }
 
 // TODO: throw an error when importing without initiallized before

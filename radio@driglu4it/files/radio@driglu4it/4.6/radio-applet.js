@@ -21480,8 +21480,9 @@ function createBasicNotification(args) {
 
 const { spawnCommandLine: YoutubeDownloadFailedNotification_spawnCommandLine } = imports.misc.util;
 const { get_home_dir: YoutubeDownloadFailedNotification_get_home_dir } = imports.gi.GLib;
-function notifyYoutubeDownloadFailed() {
-    const notificationText = `Couldn't download Song from Youtube due to an Error. Make Sure you have the newest version of youtube-dl installed. 
+function notifyYoutubeDownloadFailed(props) {
+    const { youtubeCli } = props;
+    const notificationText = `Couldn't download Song from Youtube due to an Error. Make Sure you have the newest version of ${youtubeCli} installed. 
         \n<b>Important:</b> Don't use apt for the installation but follow the installation instruction given on the Radio Applet Site in the Cinnamon Store instead
         \nFor more information see the logs`;
     const notification = createBasicNotification({
@@ -21517,6 +21518,7 @@ function notifyYoutubeDownloadFinished(args) {
         isMarkup: false,
         transient: false
     });
+    // workaround to remove the underline of the downloadPath
     notification["_bodyUrlHighlighter"].actor.clutter_text.set_markup(notificationText);
     const playBtnId = 'openBtn';
     notification.addButton(playBtnId, 'Play');
@@ -21640,6 +21642,7 @@ const downloadingSongsChangedListener = [];
 function downloadSongFromYoutube() {
     const title = mpvHandler.getCurrentTitle();
     const downloadDir = configs.settingsObject.musicDownloadDir;
+    const youtubeCli = configs.settingsObject.youtubeCli;
     let music_dir_absolut = downloadDir;
     if (music_dir_absolut.charAt(0) === '~') {
         music_dir_absolut = downloadDir.replace('~', YoutubeDownloadManager_get_home_dir());
@@ -21656,7 +21659,7 @@ function downloadSongFromYoutube() {
         downloadDir: get_tmp_dir(),
         onError: (errorMessage, downloadCommand) => {
             global.logError(`The following error occured at youtube download attempt: ${errorMessage}. The used download Command was: ${downloadCommand}`);
-            notifyYoutubeDownloadFailed();
+            notifyYoutubeDownloadFailed({ youtubeCli });
         },
         onFinished: () => {
             downloadingSongs = downloadingSongs.filter(downloadingSong => downloadingSong.title !== title);
@@ -21671,20 +21674,18 @@ function downloadSongFromYoutube() {
                 notifyYoutubeDownloadFinished({ downloadPath: targetPath, fileAlreadExist: true });
                 return;
             }
-            // @ts-ignore
-            tmpFile.move(File.parse_name(targetPath), FileCopyFlags.BACKUP, null, null);
-            notifyYoutubeDownloadFinished({ downloadPath: targetPath });
-            // try {
-            // } catch (error) {
-            //     // if ((error as string).startsWith('Error moving file')){
-            //     //     global.log('file exist')
-            //     // }
-            //     // TODO handle this one
-            //     // JS ERROR: Gio.IOErrorEnum: Error moving file /tmp/Elton John, Dua Lipa - Cold Heart (PNAU Remix) (Official Video).mp3: File exists
-            // }
+            try {
+                // @ts-ignore
+                tmpFile.move(File.parse_name(targetPath), FileCopyFlags.BACKUP, null, null);
+                notifyYoutubeDownloadFinished({ downloadPath: targetPath });
+            }
+            catch (error) {
+                notifyYoutubeDownloadFailed({ youtubeCli });
+                global.logError('failed to copy from tmp dir. The following error occured', error);
+            }
         }
     };
-    const { cancel } = configs.settingsObject.youtubeCli === 'youtube-dl' ?
+    const { cancel } = youtubeCli === 'youtube-dl' ?
         downloadWithYoutubeDl(downloadProps) :
         downloadWithYtDlp(downloadProps);
     notifyYoutubeDownloadStarted({ title, onCancelClicked: () => cancel() });

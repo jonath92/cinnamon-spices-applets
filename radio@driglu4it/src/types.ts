@@ -11,6 +11,7 @@ export interface Channel {
 }
 
 export type AppletIcon = 'SYMBOLIC' | 'FULLCOLOR' | 'BICOLOR'
+export type YoutubeClis = 'youtube-dl' | 'yt-dlp'
 
 
 // MPRIS
