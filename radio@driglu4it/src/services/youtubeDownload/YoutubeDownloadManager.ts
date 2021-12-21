@@ -13,7 +13,7 @@ export interface YoutubeDownloadServiceProps {
     downloadDir: string
     title: string
     onFinished: () => void,
-    onSuccess: (downloadPath: string) => void, 
+    onSuccess: (downloadPath: string) => void,
     onError: (errorMessage: string, downloadCommand: string) => void
 }
 
@@ -53,7 +53,7 @@ export function downloadSongFromYoutube() {
     const downloadProps: YoutubeDownloadServiceProps = {
         title,
         downloadDir: get_tmp_dir(),
-        onError: (errorMessage, downloadCommand: string, ) => {
+        onError: (errorMessage, downloadCommand: string,) => {
             global.logError(`The following error occured at youtube download attempt: ${errorMessage}. The used download Command was: ${downloadCommand}`)
             notifyYoutubeDownloadFailed()
         },
@@ -65,25 +65,35 @@ export function downloadSongFromYoutube() {
             const tmpFile = File.new_for_path(downloadPath)
             const fileName = tmpFile.get_basename()
             const targetPath = `${music_dir_absolut}/${fileName}`
-
-            try {
-                // @ts-ignore
-                tmpFile.move(File.parse_name(`${targetPath}`), FileCopyFlags.BACKUP, null, null)
-
-                notifyYoutubeDownloadFinished({ downloadPath: targetPath })
-
-            } catch (error) {
-                global.log(error)
-                // TODO handle this one
-                // JS ERROR: Gio.IOErrorEnum: Error moving file /tmp/Elton John, Dua Lipa - Cold Heart (PNAU Remix) (Official Video).mp3: File exists
+            const targetFile = File.parse_name(targetPath)
+            
+            if (targetFile.query_exists(null)){
+                notifyYoutubeDownloadFinished({ downloadPath: targetPath, fileAlreadExist: true })
+                return
             }
 
-            global.log(downloadPath)
+            // @ts-ignore
+            tmpFile.move(File.parse_name(targetPath), FileCopyFlags.BACKUP, null, null)
+
+            notifyYoutubeDownloadFinished({ downloadPath: targetPath })
+
+            // try {
+
+
+            // } catch (error) {
+
+            //     // if ((error as string).startsWith('Error moving file')){
+            //     //     global.log('file exist')
+            //     // }
+            //     // TODO handle this one
+            //     // JS ERROR: Gio.IOErrorEnum: Error moving file /tmp/Elton John, Dua Lipa - Cold Heart (PNAU Remix) (Official Video).mp3: File exists
+            // }
+
         }
     }
 
-    const { cancel } = configs.settingsObject.youtubeCli === 'youtube-dl' ? 
-        downloadWithYoutubeDl(downloadProps) : 
+    const { cancel } = configs.settingsObject.youtubeCli === 'youtube-dl' ?
+        downloadWithYoutubeDl(downloadProps) :
         downloadWithYtDlp(downloadProps)
 
     notifyYoutubeDownloadStarted({ title, onCancelClicked: () => cancel() })

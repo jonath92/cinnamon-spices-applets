@@ -170,7 +170,7 @@
 		"default": "youtube-dl",
 		"options": {
 			"yt-dlp": "yt-dlp", 
-			"youtube-dl (deprecated)": "youtube-dl"
+			"youtube-dl": "youtube-dl"
 		}
 	},
 	"music-download-dir-select": {
