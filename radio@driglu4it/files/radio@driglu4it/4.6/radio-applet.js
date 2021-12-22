@@ -22346,7 +22346,6 @@ function createChannelList() {
     // the channelItems are saved here to the map as well as to the container as on the container only the reduced name are shown. Theoretically it therefore couldn't be differentiated between two long channel names with the same first 30 (or so) characters   
     let channelItems = [];
     function setRefreshList(names) {
-        global.log('setRefreshList called');
         channelItems = [];
         subMenu.box.destroy_all_children();
         names.forEach(name => {
