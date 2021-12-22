@@ -38,7 +38,6 @@ export function createChannelList() {
     let channelItems: ReturnType<typeof createChannelMenuItem>[] = []
 
     function setRefreshList(names: string[]) {
-        global.log('setRefreshList called')
         channelItems = []
         subMenu.box.destroy_all_children()
 
