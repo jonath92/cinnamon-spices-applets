@@ -12,6 +12,7 @@ A simple radio applet for Cinnamon. The radio-applet has been totally rewritten 
 - The volume can be controlled by using the mouse wheel while the cursor is placed on the icon in the panel. Also it is possible to toggle the play/pause status by middleclicking on the icon
 - The title of the radio channel can be shown in the panel
 - The icon color changes when a radio channel is playing
+- Seek backward/forward
 
 ## Dependencies
 
