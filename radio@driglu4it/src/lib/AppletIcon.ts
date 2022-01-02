@@ -7,20 +7,10 @@ const { Point } = imports.gi.Clutter
 export function createAppletIcon(props?: ConstructorParameters<typeof Icon>[0]) {
 
     const icon_type = props?.icon_type || IconType.SYMBOLIC
-
-    const appletDefinition = getAppletDefinition({
-        applet_id: __meta.instanceId,
-    })
-
-    const panel = panelManager.panels.find(panel =>
-        panel?.panelId === appletDefinition.panelId
-    ) as imports.ui.panel.Panel
-
-
-    const locationLabel = appletDefinition.location_label
+    const panel = __meta.panel
 
     function getIconSize() {
-        return panel.getPanelZoneIconSize(locationLabel, icon_type)
+        return panel.getPanelZoneIconSize(__meta.locationLabel, icon_type)
     }
 
     function getStyleClass() {
