@@ -26,7 +26,7 @@ export function createRadioPopupMenu(props: { launcher: imports.gi.St.BoxLayout 
         visible: getPlaybackStatus() !== 'Stopped'
     });
 
-    [createInfoSection(), createMediaControlToolbar(), createVolumeSlider(), createSeeker()].forEach(widget => {
+    [createInfoSection(), createMediaControlToolbar(), createVolumeSlider()].forEach(widget => {
         radioActiveSection.add_child(createSeparatorMenuItem())
         radioActiveSection.add_child(widget)
     })

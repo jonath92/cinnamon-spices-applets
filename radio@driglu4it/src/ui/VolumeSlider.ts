@@ -2,9 +2,10 @@ import { createActivWidget } from "../lib/ActivWidget";
 import { createSlider } from "../lib/Slider";
 import { getVolumeIcon, POPUP_ICON_CLASS, POPUP_MENU_ITEM_CLASS, VOLUME_DELTA } from '../consts'
 import { mpvHandler } from "../services/mpv/MpvHandler";
+import { Tooltip } from "../lib/Tooltip";
+import { checkActorTrulyVisible } from "../lib/utils";
 
 const { BoxLayout, Icon, IconType } = imports.gi.St
-const { Tooltip } = imports.ui.tooltips
 const { KEY_Right, KEY_Left, ScrollDirection } = imports.gi.Clutter
 
 export function createVolumeSlider() {
@@ -28,7 +29,10 @@ export function createVolumeSlider() {
         onValueChanged: (newValue) => setVolume(newValue * 100)
     })
 
-    const tooltip = new Tooltip(slider.actor, null)
+    const tooltip = new Tooltip({
+        // TODO: hier weitermachen
+        visible: false
+    })
 
     const icon = new Icon({
         icon_type: IconType.SYMBOLIC,
@@ -75,8 +79,15 @@ export function createVolumeSlider() {
     const setRefreshVolumeSlider = () => {
         const volume = getVolume()
 
+        //tooltip.visible = checkActorTrulyVisible(slider.actor)
+
+
         if (volume != null) {
             tooltip.set_text(`Volume: ${volume.toString()} %`)
+            global.log('abs indicator', slider.getAbsolutePositionIndicator())
+            tooltip.set_position(slider.getAbsolutePositionIndicator(), 100)
+            
+
             slider.setValue(volume / 100, true)
             icon.set_icon_name(getVolumeIcon({ volume }))
         }

@@ -4249,8 +4249,8 @@ function getAppletTooltipPosition(props) {
     const tooltipWidth = appletTooltip.width;
     const tooltipHeight = appletTooltip.height;
     // withour Math.floor, the tooltip text gets sometimes blur
-    const xHoricontalPanels = Math.floor(Math.max(monitorLeft, Math.min(pointerX - tooltipWidth / 2, monitorRight - tooltipWidth)));
-    const yVertcialPanels = Math.floor(Math.max(monitorTop, Math.min(pointerY - tooltipHeight / 2, monitorBottom)));
+    const xHoricontalPanels = pointerX - tooltipWidth / 2;
+    const yVertcialPanels = pointerY - tooltipHeight / 2;
     const panelLocTooltipPos = {
         [PanelLoc.top]: [xHoricontalPanels, monitorTop + panelHeight],
         [PanelLoc.bottom]: [xHoricontalPanels, monitorBottom - panelHeight - tooltipHeight],
@@ -4299,7 +4299,6 @@ const { registerClass } = imports.gi.GObject;
 function createTooltip(props) {
     const tooltip = new Tooltip_Label(Object.assign({ name: 'Tooltip', visible: false }, props));
     uiGroup.add_child(tooltip);
-    uiGroup.connect('actor-added', () => uiGroup.set_child_above_sibling(tooltip, null));
     return tooltip;
 }
 const Tooltip = registerClass({
@@ -4309,13 +4308,26 @@ const Tooltip = registerClass({
         // @ts-ignore
         super._init(Object.assign({ name: 'Tooltip', visible: false }, constructProperties));
         uiGroup.add_child(this);
-        // TODO: hide tooltip on panel edit mode
+        uiGroup.connect('actor-added', () => uiGroup.set_child_above_sibling(this, null));
+        global.settings.connect('changed::panel-edit-mode', () => this.visible = false);
+    }
+    get visible() {
+        return super.visible;
+    }
+    set visible(value) {
+        super.visible = global.settings.get_boolean('panel-edit-mode') ? false : value;
+    }
+    get x() {
+        return super.x;
     }
     set x(value) {
         const { x: monitorLeft, width: monitorWidth } = __meta.monitor;
         const valueLimited = Math.max(monitorLeft, Math.min(monitorLeft + monitorWidth - this.width, value));
         // withour Math.floor, the tooltip text gets sometimes blur
         super.x = Math.floor(valueLimited);
+    }
+    get y() {
+        return super.y;
     }
     set y(value) {
         const { y: monitorTop, height: monitorHeight } = __meta.monitor;
@@ -4585,11 +4597,10 @@ function addDownloadingSongsChangeListener(callback) {
 const { PanelItemTooltip } = imports.ui.tooltips;
 const { markup_escape_text } = imports.gi.GLib;
 const { Text } = imports.gi.Clutter;
-function createRadioAppletTooltip(args) {
-    const { appletContainer, } = args;
+function createRadioAppletTooltip() {
     // const tooltip = new PanelItemTooltip(appletContainer, undefined, __meta.orientation)
     // tooltip['_tooltip'].set_style("text-align: left;")
-    const tooltip = createTooltip({
+    const tooltip = new Tooltip({
         style: 'text-align: left;'
     });
     const setRefreshTooltip = () => {
@@ -4617,7 +4628,6 @@ function createRadioAppletTooltip(args) {
         }
         const markupTxt = lines.join(`\n`);
         tooltip.clutter_text.set_markup(markupTxt);
-        // tooltip.set_text(markupTxt)
     };
     [
         mpvHandler.addVolumeChangeHandler,
@@ -4891,11 +4901,11 @@ function createInfoSection() {
 const { DrawingArea: Slider_DrawingArea } = imports.gi.St;
 const { cairo_set_source_color, grab_pointer, ungrab_pointer } = imports.gi.Clutter;
 function createSlider(args) {
-    const style_class = 'popup-slider-menu-item';
     const { initialValue, onValueChanged } = args;
     let value = initialValue != null ? limitToMinMax(initialValue) : 0;
+    let absolutePositionIndicator = 0;
     const drawing = new Slider_DrawingArea({
-        style_class,
+        style_class: 'popup-slider-menu-item',
         reactive: true,
         x_expand: true
     });
@@ -4912,30 +4922,36 @@ function createSlider(args) {
         const sliderActiveBorderColor = themeNode.get_color('-slider-active-border-color');
         const sliderActiveColor = themeNode.get_color('-slider-active-background-color');
         const TAU = Math.PI * 2;
-        const handleX = handleRadius + (width - 2 * handleRadius) * value;
+        const xPosition = handleRadius + (width - 2 * handleRadius) * value;
+        absolutePositionIndicator = (drawing.get_transformed_position()[0] || 0) + xPosition;
+        global.log('absolutePositionIndicator', absolutePositionIndicator);
+        // global.log('drawing position', drawing.get_position())
+        // global.log('drawing width', drawing.get_width())
+        global.log('xPos', xPosition);
+        global.log('drawing absolut Position', drawing.get_transformed_position());
         cr.arc(sliderBorderRadius + sliderBorderWidth, height / 2, sliderBorderRadius, TAU * 1 / 4, TAU * 3 / 4);
-        cr.lineTo(handleX, (height - sliderHeight) / 2);
-        cr.lineTo(handleX, (height + sliderHeight) / 2);
+        cr.lineTo(xPosition, (height - sliderHeight) / 2);
+        cr.lineTo(xPosition, (height + sliderHeight) / 2);
         cr.lineTo(sliderBorderRadius + sliderBorderWidth, (height + sliderHeight) / 2);
-        cairo_set_source_color(cr, sliderActiveColor);
-        cr.fillPreserve();
-        cairo_set_source_color(cr, sliderActiveBorderColor);
-        cr.setLineWidth(sliderBorderWidth);
+        // cairo_set_source_color(cr, sliderActiveColor);
+        // cr.fillPreserve();
+        // cairo_set_source_color(cr, sliderActiveBorderColor);
+        // cr.setLineWidth(sliderBorderWidth);
+        // cr.stroke();
+        // cr.arc(width - sliderBorderRadius - sliderBorderWidth, height / 2, sliderBorderRadius, TAU * 3 / 4, TAU * 1 / 4);
+        // cr.lineTo(handleX, (height + sliderHeight) / 2);
+        // cr.lineTo(handleX, (height - sliderHeight) / 2);
+        // cr.lineTo(width - sliderBorderRadius - sliderBorderWidth, (height - sliderHeight) / 2);
+        // cairo_set_source_color(cr, sliderColor);
+        // cr.fillPreserve();
+        // cairo_set_source_color(cr, sliderBorderColor);
+        // cr.setLineWidth(sliderBorderWidth);
         cr.stroke();
-        cr.arc(width - sliderBorderRadius - sliderBorderWidth, height / 2, sliderBorderRadius, TAU * 3 / 4, TAU * 1 / 4);
-        cr.lineTo(handleX, (height + sliderHeight) / 2);
-        cr.lineTo(handleX, (height - sliderHeight) / 2);
-        cr.lineTo(width - sliderBorderRadius - sliderBorderWidth, (height - sliderHeight) / 2);
-        cairo_set_source_color(cr, sliderColor);
-        cr.fillPreserve();
-        cairo_set_source_color(cr, sliderBorderColor);
-        cr.setLineWidth(sliderBorderWidth);
-        cr.stroke();
-        const handleY = height / 2;
-        const color = themeNode.get_foreground_color();
-        cairo_set_source_color(cr, color);
-        cr.arc(handleX, handleY, handleRadius, 0, 2 * Math.PI);
-        cr.fill();
+        // const handleY = height / 2;
+        // const color = themeNode.get_foreground_color();
+        // cairo_set_source_color(cr, color);
+        // cr.arc(handleX, handleY, handleRadius, 0, 2 * Math.PI);
+        // cr.fill();
         cr.$dispose();
     });
     drawing.connect('button-press-event', (actor, event) => {
@@ -4981,66 +4997,9 @@ function createSlider(args) {
     return {
         actor: drawing,
         setValue,
-        getValue
+        getValue,
+        getAbsolutePositionIndicator: () => absolutePositionIndicator
     };
-}
-
-;// CONCATENATED MODULE: ./src/ui/Seeker.ts
-
-
-
-
-const { BoxLayout: Seeker_BoxLayout, Label: Seeker_Label } = imports.gi.St;
-// used to ensure that the width doesn't change on some fonts
-const LABEL_STYLE = 'font-family: mono';
-function createSeeker() {
-    const { getLength, getPosition, setPosition, addLengthChangeHandler, addPositionChangeHandler } = mpvHandler;
-    const container = new Seeker_BoxLayout({
-        style_class: POPUP_MENU_ITEM_CLASS
-    });
-    createActivWidget({
-        widget: container
-    });
-    const positionLabel = new Seeker_Label({
-        style: LABEL_STYLE,
-        text: secondsToFormatedMin(getPosition())
-    });
-    const lengthLabel = new Seeker_Label({
-        style: LABEL_STYLE,
-        text: secondsToFormatedMin(getLength())
-    });
-    const slider = createSlider({
-        initialValue: getPosition() / getLength(),
-        onValueChanged: (newSliderPos) => setPosition(newSliderPos * getLength())
-    });
-    [positionLabel, slider.actor, lengthLabel].forEach(widget => {
-        container.add_child(widget);
-    });
-    function updateSeeker() {
-        positionLabel.set_text(secondsToFormatedMin(getPosition()));
-        lengthLabel.set_text(secondsToFormatedMin(getLength()));
-        slider.setValue(getPosition() / getLength(), true);
-    }
-    /**
-     * converts seconds to a string in the form of: mm:ss
-     *
-     * e.g. 10 seconds = 00:10, 100 seconds = 01:40,  6000 seconds = 100:00
-     *
-     * @param seconds
-     * @returns
-     */
-    function secondsToFormatedMin(seconds) {
-        const minutes = Math.floor(seconds / 60);
-        const remainingSeconds = seconds - minutes * 60;
-        // ensures minutes and seconds are shown with at least two digits
-        return [minutes, remainingSeconds].map(value => {
-            const valueString = value.toString().padStart(2, '0');
-            return valueString;
-        }).join(":");
-    }
-    addLengthChangeHandler(updateSeeker);
-    addPositionChangeHandler(updateSeeker);
-    return container;
 }
 
 ;// CONCATENATED MODULE: ./src/ui/VolumeSlider.ts
@@ -5048,8 +5007,8 @@ function createSeeker() {
 
 
 
+
 const { BoxLayout: VolumeSlider_BoxLayout, Icon: VolumeSlider_Icon, IconType: VolumeSlider_IconType } = imports.gi.St;
-const { Tooltip: VolumeSlider_Tooltip } = imports.ui.tooltips;
 const { KEY_Right, KEY_Left, ScrollDirection } = imports.gi.Clutter;
 function createVolumeSlider() {
     const { getVolume, setVolume, addVolumeChangeHandler, addPlaybackStatusChangeHandler } = mpvHandler;
@@ -5062,7 +5021,10 @@ function createVolumeSlider() {
     const slider = createSlider({
         onValueChanged: (newValue) => setVolume(newValue * 100)
     });
-    const tooltip = new VolumeSlider_Tooltip(slider.actor, null);
+    const tooltip = new Tooltip({
+        // TODO: hier weitermachen
+        visible: false
+    });
     const icon = new VolumeSlider_Icon({
         icon_type: VolumeSlider_IconType.SYMBOLIC,
         style_class: POPUP_ICON_CLASS,
@@ -5096,8 +5058,11 @@ function createVolumeSlider() {
     }
     const setRefreshVolumeSlider = () => {
         const volume = getVolume();
+        //tooltip.visible = checkActorTrulyVisible(slider.actor)
         if (volume != null) {
             tooltip.set_text(`Volume: ${volume.toString()} %`);
+            global.log('abs indicator', slider.getAbsolutePositionIndicator());
+            tooltip.set_position(slider.getAbsolutePositionIndicator(), 100);
             slider.setValue(volume / 100, true);
             icon.set_icon_name(getVolumeIcon({ volume }));
         }
@@ -5257,6 +5222,7 @@ function createChannelList() {
 
 
 const { Button, Icon: ControlBtn_Icon, IconType: ControlBtn_IconType } = imports.gi.St;
+const { Settings } = imports.gi.Gio;
 function createControlBtn(args) {
     const { iconName, tooltipTxt, onClick } = args;
     const icon = new ControlBtn_Icon({
@@ -5272,6 +5238,9 @@ function createControlBtn(args) {
         style: "width:20px; padding:10px!important",
         child: icon
     });
+    const desktopSettings = new Settings({
+        schema_id: 'org.cinnamon.desktop.interface'
+    });
     createActivWidget({
         widget: btn,
         onActivated: onClick
@@ -5279,15 +5248,14 @@ function createControlBtn(args) {
     const tooltip = new Tooltip({
         text: tooltipTxt || ''
     });
-    // const tooltip = createTooltip({
-    //     text: tooltipTxt || ''
-    // })
     btn.connect('notify::hover', () => {
         tooltip.visible = btn.hover;
         const [xPos, yPos, modifier] = global.get_pointer();
-        tooltip.set_position(xPos, yPos);
+        const cursorSize = desktopSettings.get_int('cursor-size');
+        const tooltipLeft = xPos + cursorSize / 2;
+        const tooltipTop = yPos + cursorSize / 1.5;
+        tooltip.set_position(tooltipLeft, tooltipTop);
     });
-    // const tooltip = new Tooltip(btn, tooltipTxt || '')
     return {
         actor: btn,
         icon,
@@ -5433,7 +5401,6 @@ const createMediaControlToolbar = () => {
 
 
 
-
 const { BoxLayout: RadioPopupMenu_BoxLayout } = imports.gi.St;
 function createRadioPopupMenu(props) {
     const { launcher, } = props;
@@ -5443,7 +5410,7 @@ function createRadioPopupMenu(props) {
         vertical: true,
         visible: getPlaybackStatus() !== 'Stopped'
     });
-    [createInfoSection(), createMediaControlToolbar(), createVolumeSlider(), createSeeker()].forEach(widget => {
+    [createInfoSection(), createMediaControlToolbar(), createVolumeSlider()].forEach(widget => {
         radioActiveSection.add_child(createSeparatorMenuItem());
         radioActiveSection.add_child(widget);
     });
@@ -5565,7 +5532,7 @@ function createRadioAppletContainer() {
     [createRadioAppletIcon(), createYoutubeDownloadIcon(), createRadioAppletLabel()].forEach(widget => {
         appletContainer.actor.add_child(widget);
     });
-    const appletTooltip = createRadioAppletTooltip({ appletContainer });
+    const appletTooltip = createRadioAppletTooltip();
     const popupMenu = createRadioPopupMenu({ launcher: appletContainer.actor });
     popupMenu.connect('notify::visible', () => {
         popupMenu.visible && appletTooltip.hide();
@@ -5599,9 +5566,10 @@ function createRadioAppletContainer() {
         appletTooltip.visible = appletContainer.actor.hover && !popupMenu.visible;
         if (!appletTooltip.visible)
             return;
-        appletTooltip.set_position(...getAppletTooltipPosition({
+        const newPos = getAppletTooltipPosition({
             appletTooltip
-        }));
+        });
+        appletTooltip.set_position(...newPos);
     });
     return appletContainer;
 }

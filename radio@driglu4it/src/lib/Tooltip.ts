@@ -13,11 +13,9 @@ export function createTooltip(props?: ConstructorParameters<typeof Label>[0]) {
 
     uiGroup.add_child(tooltip)
 
-    uiGroup.connect('actor-added', () => uiGroup.set_child_above_sibling(tooltip, null))
 
     return tooltip
 }
-
 
 export const Tooltip = registerClass({
     GTypeName: 'Tooltip',
@@ -31,14 +29,29 @@ export const Tooltip = registerClass({
         })
         uiGroup.add_child(this)
 
-        // TODO: hide tooltip on panel edit mode
+        uiGroup.connect('actor-added', () => uiGroup.set_child_above_sibling(this, null))
 
+        global.settings.connect('changed::panel-edit-mode', () => this.visible = false)
+
+    }
+
+
+    get visible(){
+        return super.visible
+    }
+
+    set visible (value: boolean) {
+        super.visible = global.settings.get_boolean('panel-edit-mode') ? false : value
+    }
+
+    get x(){
+        return super.x
     }
 
     set x(value: number) {
 
         const { x: monitorLeft, width: monitorWidth } = __meta.monitor
-        
+
         const valueLimited = Math.max(
             monitorLeft,
             Math.min(
@@ -51,11 +64,15 @@ export const Tooltip = registerClass({
         super.x = Math.floor(valueLimited)
     }
 
-    set y(value:number) {
+    get y(){
+        return super.y
+    }
+
+    set y(value: number) {
         const { y: monitorTop, height: monitorHeight } = __meta.monitor
 
         const valueLimited = Math.max(
-            monitorTop, 
+            monitorTop,
             Math.min(
                 monitorTop + monitorHeight - this.height,
                 value
@@ -67,7 +84,6 @@ export const Tooltip = registerClass({
     }
 
     set_x(value: number) {
-
         this.x = value
     }
 

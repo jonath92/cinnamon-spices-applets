@@ -29,7 +29,7 @@ export function createRadioAppletContainer() {
         appletContainer.actor.add_child(widget)
     })
 
-    const appletTooltip = createRadioAppletTooltip({ appletContainer })
+    const appletTooltip = createRadioAppletTooltip()
 
     const popupMenu = createRadioPopupMenu({ launcher: appletContainer.actor })
 
@@ -65,13 +65,17 @@ export function createRadioAppletContainer() {
     }
 
     appletContainer.actor.connect('notify::hover', () => {
+
         appletTooltip.visible = appletContainer.actor.hover && !popupMenu.visible
 
         if (!appletTooltip.visible) return
 
-        appletTooltip.set_position(...getAppletTooltipPosition({
+        const newPos = getAppletTooltipPosition({
             appletTooltip
-        }))
+        })
+
+        appletTooltip.set_position(...newPos)
+
     })
 
 

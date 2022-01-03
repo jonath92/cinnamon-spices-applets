@@ -2,6 +2,8 @@ import { createActivWidget } from "../../../lib/ActivWidget";
 import { createTooltip, Tooltip } from "../../../lib/Tooltip";
 
 const { Button, Icon, IconType } = imports.gi.St;
+const { Settings } = imports.gi.Gio
+
 
 interface Arguments {
     iconName?: string,
@@ -32,6 +34,10 @@ export function createControlBtn(args: Arguments) {
         child: icon
     })
 
+    const desktopSettings = new Settings({
+        schema_id: 'org.cinnamon.desktop.interface'
+    })
+
     createActivWidget({
         widget: btn,
         onActivated: onClick
@@ -41,19 +47,18 @@ export function createControlBtn(args: Arguments) {
         text: tooltipTxt || ''
     })
 
-    // const tooltip = createTooltip({
-    //     text: tooltipTxt || ''
-    // })
-
     btn.connect('notify::hover', () => {
         tooltip.visible = btn.hover
 
         const [xPos, yPos, modifier] = global.get_pointer()
 
-        tooltip.set_position(xPos, yPos)
-    })
+        const cursorSize = desktopSettings.get_int('cursor-size')
 
-    // const tooltip = new Tooltip(btn, tooltipTxt || '')
+        const tooltipLeft = xPos + cursorSize / 2
+        const tooltipTop = yPos + cursorSize / 1.5
+
+        tooltip.set_position(tooltipLeft, tooltipTop)
+    })
 
     return {
         actor: btn,

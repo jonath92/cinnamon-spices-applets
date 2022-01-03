@@ -12,17 +12,16 @@ interface SliderArguments {
 
 export function createSlider(args: SliderArguments) {
 
-    const style_class = 'popup-slider-menu-item'
-
     const {
         initialValue,
         onValueChanged
     } = args
 
     let value = initialValue != null ? limitToMinMax(initialValue) : 0
+    let absolutePositionIndicator: number = 0  
 
     const drawing = new DrawingArea({
-        style_class,
+        style_class: 'popup-slider-menu-item',
         reactive: true,
         x_expand: true
     })
@@ -33,10 +32,9 @@ export function createSlider(args: SliderArguments) {
         const themeNode = drawing.get_theme_node();
         const [width, height] = drawing.get_surface_size()
 
+
         const handleRadius = themeNode.get_length('-slider-handle-radius');
-
         const sliderHeight = themeNode.get_length('-slider-height');
-
         const sliderBorderWidth = themeNode.get_length('-slider-border-width');
         const sliderBorderRadius = Math.min(width, sliderHeight) / 2;
 
@@ -48,34 +46,43 @@ export function createSlider(args: SliderArguments) {
 
         const TAU = Math.PI * 2;
 
-        const handleX = handleRadius + (width - 2 * handleRadius) * value;
+        const xPosition = handleRadius + (width - 2 * handleRadius) * value;
+        absolutePositionIndicator = (drawing.get_transformed_position()[0] || 0) + xPosition
+
+        global.log('absolutePositionIndicator', absolutePositionIndicator)
+
+
+        // global.log('drawing position', drawing.get_position())
+        // global.log('drawing width', drawing.get_width())
+        global.log('xPos', xPosition)
+        global.log('drawing absolut Position', drawing.get_transformed_position())
 
         cr.arc(sliderBorderRadius + sliderBorderWidth, height / 2, sliderBorderRadius, TAU * 1 / 4, TAU * 3 / 4);
-        cr.lineTo(handleX, (height - sliderHeight) / 2);
-        cr.lineTo(handleX, (height + sliderHeight) / 2);
+        cr.lineTo(xPosition, (height - sliderHeight) / 2);
+        cr.lineTo(xPosition, (height + sliderHeight) / 2);
         cr.lineTo(sliderBorderRadius + sliderBorderWidth, (height + sliderHeight) / 2);
-        cairo_set_source_color(cr, sliderActiveColor);
-        cr.fillPreserve();
-        cairo_set_source_color(cr, sliderActiveBorderColor);
-        cr.setLineWidth(sliderBorderWidth);
+        // cairo_set_source_color(cr, sliderActiveColor);
+        // cr.fillPreserve();
+        // cairo_set_source_color(cr, sliderActiveBorderColor);
+        // cr.setLineWidth(sliderBorderWidth);
+        // cr.stroke();
+
+        // cr.arc(width - sliderBorderRadius - sliderBorderWidth, height / 2, sliderBorderRadius, TAU * 3 / 4, TAU * 1 / 4);
+        // cr.lineTo(handleX, (height + sliderHeight) / 2);
+        // cr.lineTo(handleX, (height - sliderHeight) / 2);
+        // cr.lineTo(width - sliderBorderRadius - sliderBorderWidth, (height - sliderHeight) / 2);
+        // cairo_set_source_color(cr, sliderColor);
+        // cr.fillPreserve();
+        // cairo_set_source_color(cr, sliderBorderColor);
+        // cr.setLineWidth(sliderBorderWidth);
         cr.stroke();
 
-        cr.arc(width - sliderBorderRadius - sliderBorderWidth, height / 2, sliderBorderRadius, TAU * 3 / 4, TAU * 1 / 4);
-        cr.lineTo(handleX, (height + sliderHeight) / 2);
-        cr.lineTo(handleX, (height - sliderHeight) / 2);
-        cr.lineTo(width - sliderBorderRadius - sliderBorderWidth, (height - sliderHeight) / 2);
-        cairo_set_source_color(cr, sliderColor);
-        cr.fillPreserve();
-        cairo_set_source_color(cr, sliderBorderColor);
-        cr.setLineWidth(sliderBorderWidth);
-        cr.stroke();
+        // const handleY = height / 2;
 
-        const handleY = height / 2;
-
-        const color = themeNode.get_foreground_color();
-        cairo_set_source_color(cr, color);
-        cr.arc(handleX, handleY, handleRadius, 0, 2 * Math.PI);
-        cr.fill();
+        // const color = themeNode.get_foreground_color();
+        // cairo_set_source_color(cr, color);
+        // cr.arc(handleX, handleY, handleRadius, 0, 2 * Math.PI);
+        // cr.fill();
 
         cr.$dispose();
     })
@@ -137,6 +144,7 @@ export function createSlider(args: SliderArguments) {
     return {
         actor: drawing,
         setValue,
-        getValue
+        getValue,
+        getAbsolutePositionIndicator: () => absolutePositionIndicator
     }
 }

@@ -1,5 +1,5 @@
 import { DEFAULT_TOOLTIP_TXT } from "../../consts"
-import { createTooltip } from "../../lib/Tooltip"
+import { Tooltip } from "../../lib/Tooltip"
 import { mpvHandler } from "../../services/mpv/MpvHandler"
 import { addDownloadingSongsChangeListener, downloadingSongs } from "../../services/youtubeDownload/YoutubeDownloadManager"
 
@@ -7,20 +7,13 @@ const { PanelItemTooltip } = imports.ui.tooltips
 const { markup_escape_text } = imports.gi.GLib
 const { Text } = imports.gi.Clutter
 
-interface Arguments {
-    appletContainer: imports.ui.applet.Applet
-}
 
-export function createRadioAppletTooltip(args: Arguments) {
-
-    const {
-        appletContainer,
-    } = args
+export function createRadioAppletTooltip() {
 
     // const tooltip = new PanelItemTooltip(appletContainer, undefined, __meta.orientation)
     // tooltip['_tooltip'].set_style("text-align: left;")
 
-    const tooltip = createTooltip({
+    const tooltip = new Tooltip({
         style: 'text-align: left;'
     })
 
@@ -54,7 +47,6 @@ export function createRadioAppletTooltip(args: Arguments) {
 
         tooltip.clutter_text.set_markup(markupTxt)
 
-        // tooltip.set_text(markupTxt)
     };
 
     [
