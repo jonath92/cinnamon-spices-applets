@@ -74,5 +74,6 @@ export function createRadioAppletContainer() {
         }))
     })
 
+
     return appletContainer
 }

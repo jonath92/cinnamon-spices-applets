@@ -4294,12 +4294,45 @@ function createRadioAppletLabel() {
 ;// CONCATENATED MODULE: ./src/lib/Tooltip.ts
 const { Label: Tooltip_Label } = imports.gi.St;
 const { uiGroup } = imports.ui.main;
+// @ts-ignore
+const { registerClass } = imports.gi.GObject;
 function createTooltip(props) {
     const tooltip = new Tooltip_Label(Object.assign({ name: 'Tooltip', visible: false }, props));
     uiGroup.add_child(tooltip);
     uiGroup.connect('actor-added', () => uiGroup.set_child_above_sibling(tooltip, null));
     return tooltip;
 }
+const Tooltip = registerClass({
+    GTypeName: 'Tooltip',
+}, class extends Tooltip_Label {
+    _init(constructProperties = {}) {
+        // @ts-ignore
+        super._init(Object.assign({ name: 'Tooltip', visible: false }, constructProperties));
+        uiGroup.add_child(this);
+        // TODO: hide tooltip on panel edit mode
+    }
+    set x(value) {
+        const { x: monitorLeft, width: monitorWidth } = __meta.monitor;
+        const valueLimited = Math.max(monitorLeft, Math.min(monitorLeft + monitorWidth - this.width, value));
+        // withour Math.floor, the tooltip text gets sometimes blur
+        super.x = Math.floor(valueLimited);
+    }
+    set y(value) {
+        const { y: monitorTop, height: monitorHeight } = __meta.monitor;
+        const valueLimited = Math.max(monitorTop, Math.min(monitorTop + monitorHeight - this.height, value));
+        super.y = Math.floor(valueLimited);
+    }
+    set_x(value) {
+        this.x = value;
+    }
+    set_y(value) {
+        this.y = value;
+    }
+    set_position(x, y) {
+        this.x = x;
+        this.y = y;
+    }
+});
 
 ;// CONCATENATED MODULE: ./src/ui/Notifications/NotificationBase.ts
 const { SystemNotificationSource, Notification } = imports.ui.messageTray;
@@ -5016,7 +5049,7 @@ function createSeeker() {
 
 
 const { BoxLayout: VolumeSlider_BoxLayout, Icon: VolumeSlider_Icon, IconType: VolumeSlider_IconType } = imports.gi.St;
-const { Tooltip } = imports.ui.tooltips;
+const { Tooltip: VolumeSlider_Tooltip } = imports.ui.tooltips;
 const { KEY_Right, KEY_Left, ScrollDirection } = imports.gi.Clutter;
 function createVolumeSlider() {
     const { getVolume, setVolume, addVolumeChangeHandler, addPlaybackStatusChangeHandler } = mpvHandler;
@@ -5029,7 +5062,7 @@ function createVolumeSlider() {
     const slider = createSlider({
         onValueChanged: (newValue) => setVolume(newValue * 100)
     });
-    const tooltip = new Tooltip(slider.actor, null);
+    const tooltip = new VolumeSlider_Tooltip(slider.actor, null);
     const icon = new VolumeSlider_Icon({
         icon_type: VolumeSlider_IconType.SYMBOLIC,
         style_class: POPUP_ICON_CLASS,
@@ -5224,7 +5257,6 @@ function createChannelList() {
 
 
 const { Button, Icon: ControlBtn_Icon, IconType: ControlBtn_IconType } = imports.gi.St;
-const { Tooltip: ControlBtn_Tooltip } = imports.ui.tooltips;
 function createControlBtn(args) {
     const { iconName, tooltipTxt, onClick } = args;
     const icon = new ControlBtn_Icon({
@@ -5244,9 +5276,12 @@ function createControlBtn(args) {
         widget: btn,
         onActivated: onClick
     });
-    const tooltip = createTooltip({
+    const tooltip = new Tooltip({
         text: tooltipTxt || ''
     });
+    // const tooltip = createTooltip({
+    //     text: tooltipTxt || ''
+    // })
     btn.connect('notify::hover', () => {
         tooltip.visible = btn.hover;
         const [xPos, yPos, modifier] = global.get_pointer();

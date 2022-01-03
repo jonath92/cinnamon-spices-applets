@@ -1,8 +1,7 @@
 import { createActivWidget } from "../../../lib/ActivWidget";
-import { createTooltip } from "../../../lib/Tooltip";
+import { createTooltip, Tooltip } from "../../../lib/Tooltip";
 
 const { Button, Icon, IconType } = imports.gi.St;
-const { Tooltip } = imports.ui.tooltips;
 
 interface Arguments {
     iconName?: string,
@@ -38,9 +37,13 @@ export function createControlBtn(args: Arguments) {
         onActivated: onClick
     })
 
-    const tooltip = createTooltip({
+    const tooltip = new Tooltip({
         text: tooltipTxt || ''
     })
+
+    // const tooltip = createTooltip({
+    //     text: tooltipTxt || ''
+    // })
 
     btn.connect('notify::hover', () => {
         tooltip.visible = btn.hover
