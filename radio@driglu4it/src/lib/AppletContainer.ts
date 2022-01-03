@@ -2,8 +2,6 @@ const { Applet, AllowedLayout } = imports.ui.applet
 const { EventType } = imports.gi.Clutter
 const { PanelLoc } = imports.ui.panel
 
-const { layoutManager } = imports.ui.main
-
 interface Arguments {
     onClick: () => void,
     onScroll: (scrollDirection: imports.gi.Clutter.ScrollDirection) => void,
@@ -86,7 +84,7 @@ export function getAppletTooltipPosition(props: { appletTooltip: imports.gi.St.L
         width: monitorWidth,
         y: monitorTop,
         height: monitorHeight
-    } = layoutManager.findMonitorForActor(__meta.panel.actor)
+    } = __meta.monitor
 
     const { height: panelHeight } = __meta.panel
 

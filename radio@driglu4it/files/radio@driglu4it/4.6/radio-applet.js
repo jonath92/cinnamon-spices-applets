@@ -4201,7 +4201,6 @@ function initPolyfills() {
 const { Applet, AllowedLayout } = imports.ui.applet;
 const { EventType } = imports.gi.Clutter;
 const { PanelLoc } = imports.ui.panel;
-const { layoutManager } = imports.ui.main;
 function createAppletContainer(args) {
     const { onClick, onScroll, onMiddleClick, onMoved, onRemoved, onRightClick } = args;
     const applet = new Applet(__meta.orientation, __meta.panel.height, __meta.instanceId);
@@ -4243,12 +4242,13 @@ function createAppletContainer(args) {
 function getAppletTooltipPosition(props) {
     const { appletTooltip } = props;
     const [pointerX, pointerY] = global.get_pointer();
-    const { x: monitorLeft, width: monitorWidth, y: monitorTop, height: monitorHeight } = layoutManager.findMonitorForActor(__meta.panel.actor);
+    const { x: monitorLeft, width: monitorWidth, y: monitorTop, height: monitorHeight } = __meta.monitor;
     const { height: panelHeight } = __meta.panel;
     const monitorRight = monitorLeft + monitorWidth;
     const monitorBottom = monitorTop + monitorHeight;
     const tooltipWidth = appletTooltip.width;
     const tooltipHeight = appletTooltip.height;
+    // withour Math.floor, the tooltip text gets sometimes blur
     const xHoricontalPanels = Math.floor(Math.max(monitorLeft, Math.min(pointerX - tooltipWidth / 2, monitorRight - tooltipWidth)));
     const yVertcialPanels = Math.floor(Math.max(monitorTop, Math.min(pointerY - tooltipHeight / 2, monitorBottom)));
     const panelLocTooltipPos = {

@@ -7,5 +7,6 @@ declare global {
         orientation: imports.gi.St.Side
         panel: imports.ui.panel.Panel
         locationLabel: imports.ui.appletManager.LocationLabel
+        monitor: imports.ui.layout.Monitor
     }
 }
