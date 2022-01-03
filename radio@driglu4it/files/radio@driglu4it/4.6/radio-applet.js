@@ -5222,6 +5222,7 @@ function createChannelList() {
 
 ;// CONCATENATED MODULE: ./src/ui/RadioPopupMenu/MediaControlToolbar/ControlBtn.ts
 
+
 const { Button, Icon: ControlBtn_Icon, IconType: ControlBtn_IconType } = imports.gi.St;
 const { Tooltip: ControlBtn_Tooltip } = imports.ui.tooltips;
 function createControlBtn(args) {
@@ -5243,7 +5244,15 @@ function createControlBtn(args) {
         widget: btn,
         onActivated: onClick
     });
-    const tooltip = new ControlBtn_Tooltip(btn, tooltipTxt || '');
+    const tooltip = createTooltip({
+        text: tooltipTxt || ''
+    });
+    btn.connect('notify::hover', () => {
+        tooltip.visible = btn.hover;
+        const [xPos, yPos, modifier] = global.get_pointer();
+        tooltip.set_position(xPos, yPos);
+    });
+    // const tooltip = new Tooltip(btn, tooltipTxt || '')
     return {
         actor: btn,
         icon,
@@ -5299,7 +5308,7 @@ function createCopyButton() {
         if (!currentTitle)
             return;
         Clipboard.get_default().set_text(ClipboardType.CLIPBOARD, currentTitle);
-        //showCopyInTooltip()
+        showCopyInTooltip();
     }
     // For some reasons I don't understand, this function has stopped working after refactoring the popup Menu. No idea how to debug this. Therefore deactivating this for now :-(. It is thrown an  warning when clicking on the button but this has nothing to do with the tooltip
     function showCopyInTooltip() {
