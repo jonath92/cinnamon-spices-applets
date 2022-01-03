@@ -4860,9 +4860,7 @@ const { cairo_set_source_color, grab_pointer, ungrab_pointer } = imports.gi.Clut
 function createSlider(args) {
     const style_class = 'popup-slider-menu-item';
     const { initialValue, onValueChanged } = args;
-    let value;
-    if (initialValue != null)
-        value = limitToMinMax(initialValue);
+    let value = initialValue != null ? limitToMinMax(initialValue) : 0;
     const drawing = new Slider_DrawingArea({
         style_class,
         reactive: true,
