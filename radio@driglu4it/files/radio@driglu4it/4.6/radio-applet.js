@@ -4200,15 +4200,11 @@ function initPolyfills() {
 ;// CONCATENATED MODULE: ./src/lib/AppletContainer.ts
 const { Applet, AllowedLayout } = imports.ui.applet;
 const { EventType } = imports.gi.Clutter;
-const { panelManager } = imports.ui.main;
-const { getAppletDefinition } = imports.ui.appletManager;
+const { PanelLoc } = imports.ui.panel;
+const { layoutManager } = imports.ui.main;
 function createAppletContainer(args) {
     const { onClick, onScroll, onMiddleClick, onMoved, onRemoved, onRightClick } = args;
-    const appletDefinition = getAppletDefinition({
-        applet_id: __meta.instanceId,
-    });
-    const panel = panelManager.panels.find(panel => (panel === null || panel === void 0 ? void 0 : panel.panelId) === appletDefinition.panelId);
-    const applet = new Applet(__meta.orientation, panel.height, __meta.instanceId);
+    const applet = new Applet(__meta.orientation, __meta.panel.height, __meta.instanceId);
     let appletReloaded = false;
     applet.on_applet_clicked = () => {
         onClick();
@@ -4240,6 +4236,29 @@ function createAppletContainer(args) {
     });
     return applet;
 }
+/** *
+ * Returns the top and left position for a tooltip used for applets. This method should only be called when the pointer is placed on the applet (e.g. by connection to the hover signal). The position is calculated with the help of the pointer position and the panel the applet is placed on (e.g. on a bottom panel, the tooltip is shown above the pointer position and on top panel, the tooltip is sown below the panel )
+ *
+ */
+function getAppletTooltipPosition(props) {
+    const { appletTooltip } = props;
+    const [pointerX, pointerY] = global.get_pointer();
+    const { x: monitorLeft, width: monitorWidth, y: monitorTop, height: monitorHeight } = layoutManager.findMonitorForActor(__meta.panel.actor);
+    const { height: panelHeight } = __meta.panel;
+    const monitorRight = monitorLeft + monitorWidth;
+    const monitorBottom = monitorTop + monitorHeight;
+    const tooltipWidth = appletTooltip.width;
+    const tooltipHeight = appletTooltip.height;
+    const xHoricontalPanels = Math.max(monitorLeft, Math.min(pointerX - tooltipWidth / 2, monitorRight - tooltipWidth));
+    const yVertcialPanels = Math.max(monitorTop, Math.min(pointerY - tooltipHeight / 2, monitorBottom));
+    const panelLocTooltipPos = {
+        [PanelLoc.top]: [xHoricontalPanels, monitorTop + panelHeight],
+        [PanelLoc.bottom]: [xHoricontalPanels, monitorBottom - panelHeight - tooltipHeight],
+        [PanelLoc.left]: [monitorLeft + panelHeight, yVertcialPanels],
+        [PanelLoc.right]: [monitorRight - panelHeight - appletTooltip.width, yVertcialPanels]
+    };
+    return panelLocTooltipPos[__meta.panel.panelPosition];
+}
 
 ;// CONCATENATED MODULE: ./src/lib/AppletLabel.ts
 const { Label } = imports.gi.St;
@@ -4270,6 +4289,16 @@ function createRadioAppletLabel() {
             label.set_text('');
     });
     return label;
+}
+
+;// CONCATENATED MODULE: ./src/lib/Tooltip.ts
+const { Label: Tooltip_Label } = imports.gi.St;
+const { uiGroup } = imports.ui.main;
+function createTooltip(props) {
+    const tooltip = new Tooltip_Label(Object.assign({ name: 'Tooltip', visible: false }, props));
+    uiGroup.add_child(tooltip);
+    uiGroup.connect('actor-added', () => uiGroup.set_child_above_sibling(tooltip, null));
+    return tooltip;
 }
 
 ;// CONCATENATED MODULE: ./src/ui/Notifications/NotificationBase.ts
@@ -4519,16 +4548,21 @@ function addDownloadingSongsChangeListener(callback) {
 
 
 
+
 const { PanelItemTooltip } = imports.ui.tooltips;
 const { markup_escape_text } = imports.gi.GLib;
+const { Text } = imports.gi.Clutter;
 function createRadioAppletTooltip(args) {
     const { appletContainer, } = args;
-    const tooltip = new PanelItemTooltip(appletContainer, undefined, __meta.orientation);
-    tooltip['_tooltip'].set_style("text-align: left;");
+    // const tooltip = new PanelItemTooltip(appletContainer, undefined, __meta.orientation)
+    // tooltip['_tooltip'].set_style("text-align: left;")
+    const tooltip = createTooltip({
+        style: 'text-align: left;'
+    });
     const setRefreshTooltip = () => {
         var _a;
         if (mpvHandler.getPlaybackStatus() === 'Stopped') {
-            tooltip.set_markup(DEFAULT_TOOLTIP_TXT);
+            tooltip.set_text(DEFAULT_TOOLTIP_TXT);
             return;
         }
         const lines = [
@@ -4549,7 +4583,8 @@ function createRadioAppletTooltip(args) {
             ].forEach(line => lines.push(line));
         }
         const markupTxt = lines.join(`\n`);
-        tooltip.set_markup(markupTxt);
+        tooltip.clutter_text.set_markup(markupTxt);
+        // tooltip.set_text(markupTxt)
     };
     [
         mpvHandler.addVolumeChangeHandler,
@@ -4563,19 +4598,13 @@ function createRadioAppletTooltip(args) {
 }
 
 ;// CONCATENATED MODULE: ./src/lib/AppletIcon.ts
-const { panelManager: AppletIcon_panelManager } = imports.ui.main;
-const { getAppletDefinition: AppletIcon_getAppletDefinition } = imports.ui.appletManager;
 const { Icon: AppletIcon_Icon, IconType: AppletIcon_IconType } = imports.gi.St;
 const { Point } = imports.gi.Clutter;
 function createAppletIcon(props) {
     const icon_type = (props === null || props === void 0 ? void 0 : props.icon_type) || AppletIcon_IconType.SYMBOLIC;
-    const appletDefinition = AppletIcon_getAppletDefinition({
-        applet_id: __meta.instanceId,
-    });
-    const panel = AppletIcon_panelManager.panels.find(panel => (panel === null || panel === void 0 ? void 0 : panel.panelId) === appletDefinition.panelId);
-    const locationLabel = appletDefinition.location_label;
+    const panel = __meta.panel;
     function getIconSize() {
-        return panel.getPanelZoneIconSize(locationLabel, icon_type);
+        return panel.getPanelZoneIconSize(__meta.locationLabel, icon_type);
     }
     function getStyleClass() {
         return icon_type === AppletIcon_IconType.SYMBOLIC ? 'system-status-icon' : 'applet-icon';
@@ -5494,10 +5523,10 @@ function createRadioAppletContainer() {
     [createRadioAppletIcon(), createYoutubeDownloadIcon(), createRadioAppletLabel()].forEach(widget => {
         appletContainer.actor.add_child(widget);
     });
-    const tooltip = createRadioAppletTooltip({ appletContainer });
+    const appletTooltip = createRadioAppletTooltip({ appletContainer });
     const popupMenu = createRadioPopupMenu({ launcher: appletContainer.actor });
     popupMenu.connect('notify::visible', () => {
-        popupMenu.visible && tooltip.hide();
+        popupMenu.visible && appletTooltip.hide();
     });
     function handleAppletRemoved() {
         mpvHandler === null || mpvHandler === void 0 ? void 0 : mpvHandler.deactivateAllListener();
@@ -5524,6 +5553,14 @@ function createRadioAppletContainer() {
             installationInProgress = false;
         }
     }
+    appletContainer.actor.connect('notify::hover', () => {
+        appletTooltip.visible = appletContainer.actor.hover && !popupMenu.visible;
+        if (!appletTooltip.visible)
+            return;
+        appletTooltip.set_position(...getAppletTooltipPosition({
+            appletTooltip
+        }));
+    });
     return appletContainer;
 }
 

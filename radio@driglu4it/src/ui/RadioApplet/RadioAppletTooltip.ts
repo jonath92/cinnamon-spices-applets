@@ -1,9 +1,11 @@
 import { DEFAULT_TOOLTIP_TXT } from "../../consts"
+import { createTooltip } from "../../lib/Tooltip"
 import { mpvHandler } from "../../services/mpv/MpvHandler"
 import { addDownloadingSongsChangeListener, downloadingSongs } from "../../services/youtubeDownload/YoutubeDownloadManager"
 
 const { PanelItemTooltip } = imports.ui.tooltips
 const { markup_escape_text } = imports.gi.GLib
+const { Text } = imports.gi.Clutter
 
 interface Arguments {
     appletContainer: imports.ui.applet.Applet
@@ -15,13 +17,17 @@ export function createRadioAppletTooltip(args: Arguments) {
         appletContainer,
     } = args
 
-    const tooltip = new PanelItemTooltip(appletContainer, undefined, __meta.orientation)
-    tooltip['_tooltip'].set_style("text-align: left;")
+    // const tooltip = new PanelItemTooltip(appletContainer, undefined, __meta.orientation)
+    // tooltip['_tooltip'].set_style("text-align: left;")
+
+    const tooltip = createTooltip({
+        style: 'text-align: left;'
+    })
 
     const setRefreshTooltip = () => {
 
         if (mpvHandler.getPlaybackStatus() === 'Stopped') {
-            tooltip.set_markup(DEFAULT_TOOLTIP_TXT)
+            tooltip.set_text(DEFAULT_TOOLTIP_TXT)
             return
         }
 
@@ -46,7 +52,9 @@ export function createRadioAppletTooltip(args: Arguments) {
 
         const markupTxt = lines.join(`\n`)
 
-        tooltip.set_markup(markupTxt)
+        tooltip.clutter_text.set_markup(markupTxt)
+
+        // tooltip.set_text(markupTxt)
     };
 
     [

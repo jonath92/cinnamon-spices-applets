@@ -1,5 +1,5 @@
 
-import { createAppletContainer } from "../../lib/AppletContainer"
+import { createAppletContainer, getAppletTooltipPosition } from "../../lib/AppletContainer"
 import { mpvHandler } from "../../services/mpv/MpvHandler"
 import { createRadioAppletLabel } from "./RadioAppletLabel"
 import { createRadioAppletTooltip } from "./RadioAppletTooltip"
@@ -29,12 +29,12 @@ export function createRadioAppletContainer() {
         appletContainer.actor.add_child(widget)
     })
 
-    const tooltip = createRadioAppletTooltip({ appletContainer })
+    const appletTooltip = createRadioAppletTooltip({ appletContainer })
 
     const popupMenu = createRadioPopupMenu({ launcher: appletContainer.actor })
 
     popupMenu.connect('notify::visible', () => {
-        popupMenu.visible && tooltip.hide()
+        popupMenu.visible && appletTooltip.hide()
     })
 
     function handleAppletRemoved() {
@@ -62,8 +62,17 @@ export function createRadioAppletContainer() {
         } finally {
             installationInProgress = false
         }
-
     }
+
+    appletContainer.actor.connect('notify::hover', () => {
+        appletTooltip.visible = appletContainer.actor.hover && !popupMenu.visible
+
+        if (!appletTooltip.visible) return
+
+        appletTooltip.set_position(...getAppletTooltipPosition({
+            appletTooltip
+        }))
+    })
 
     return appletContainer
 }

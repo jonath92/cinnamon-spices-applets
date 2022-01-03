@@ -1,5 +1,3 @@
-const { panelManager } = imports.ui.main
-const { getAppletDefinition } = imports.ui.appletManager;
 const { Icon, IconType } = imports.gi.St
 const { Point } = imports.gi.Clutter
 
