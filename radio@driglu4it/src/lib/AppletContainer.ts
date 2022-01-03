@@ -95,21 +95,22 @@ export function getAppletTooltipPosition(props: { appletTooltip: imports.gi.St.L
     const tooltipWidth = appletTooltip.width
     const tooltipHeight = appletTooltip.height
 
-    const xHoricontalPanels = Math.max(
+    // withour Math.floor, the tooltip text gets sometimes blur
+    const xHoricontalPanels = Math.floor(Math.max(
         monitorLeft,
         Math.min(
             pointerX - tooltipWidth / 2,
             monitorRight - tooltipWidth
         )
-    )
+    ))
 
-    const yVertcialPanels = Math.max(
+    const yVertcialPanels = Math.floor(Math.max(
         monitorTop,
         Math.min(
             pointerY - tooltipHeight / 2,
             monitorBottom
         )
-    )
+    ))
 
     const panelLocTooltipPos: Record<imports.ui.panel.PanelLoc, TooltipPos> = {
         [PanelLoc.top]: [xHoricontalPanels, monitorTop + panelHeight],

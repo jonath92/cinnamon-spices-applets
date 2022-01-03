@@ -4249,8 +4249,8 @@ function getAppletTooltipPosition(props) {
     const monitorBottom = monitorTop + monitorHeight;
     const tooltipWidth = appletTooltip.width;
     const tooltipHeight = appletTooltip.height;
-    const xHoricontalPanels = Math.max(monitorLeft, Math.min(pointerX - tooltipWidth / 2, monitorRight - tooltipWidth));
-    const yVertcialPanels = Math.max(monitorTop, Math.min(pointerY - tooltipHeight / 2, monitorBottom));
+    const xHoricontalPanels = Math.floor(Math.max(monitorLeft, Math.min(pointerX - tooltipWidth / 2, monitorRight - tooltipWidth)));
+    const yVertcialPanels = Math.floor(Math.max(monitorTop, Math.min(pointerY - tooltipHeight / 2, monitorBottom)));
     const panelLocTooltipPos = {
         [PanelLoc.top]: [xHoricontalPanels, monitorTop + panelHeight],
         [PanelLoc.bottom]: [xHoricontalPanels, monitorBottom - panelHeight - tooltipHeight],
