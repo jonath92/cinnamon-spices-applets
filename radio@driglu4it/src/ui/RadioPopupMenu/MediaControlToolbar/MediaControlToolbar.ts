@@ -2,6 +2,7 @@ import { createPlayPauseButton } from "./PlayPauseButton";
 import { createCopyButton } from './CopyButton'
 import { createStopBtn } from "./StopButton";
 import { createDownloadButton } from "./DownloadButton";
+import { createJumpToLastSongBtn } from "./JumpToLastSongBtn";
 
 const { BoxLayout } = imports.gi.St
 const { ActorAlign } = imports.gi.Clutter
@@ -13,12 +14,14 @@ export const createMediaControlToolbar = () => {
         x_align: ActorAlign.CENTER
     });
 
-    const playPauseBtn = createPlayPauseButton();
-    const copyBtn = createCopyButton();
-    const stopBtn = createStopBtn();
-    const downloadBtn = createDownloadButton();
 
-    [playPauseBtn, downloadBtn, copyBtn, stopBtn].forEach(btn =>
+    [
+        createPlayPauseButton(), 
+        createDownloadButton(), 
+        createCopyButton(), 
+        createStopBtn(), 
+        createJumpToLastSongBtn()
+    ].forEach(btn =>
         toolbar.add_child(btn)
     )
 

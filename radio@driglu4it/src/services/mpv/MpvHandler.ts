@@ -42,7 +42,7 @@ function createMpvHandler() {
     let isLoading: boolean = false
 
     const playbackStatusChangeHandler: ChangeHandler<AdvancedPlaybackStatus>[] = []
-    const channelNameChangeHandler: ChangeHandler<string >[] = []
+    const channelNameChangeHandler: ChangeHandler<string>[] = []
     const volumeChangeHandler: ChangeHandler<number>[] = [] //
     const titleChangeHandler: ChangeHandler<string>[] = []
     const lengthChangeHandler: ChangeHandler<number>[] = []
@@ -66,9 +66,9 @@ function createMpvHandler() {
     let currentUrl: string | null = lastUrl
 
     // When no last Url is passed and mpv is running, it is assumed that mpv is not used for the radio applet (and therefore the playbackstatus is Stopped)
-    const initialPlaybackStatus =  getPlaybackStatus()
+    const initialPlaybackStatus = getPlaybackStatus()
     if (initialPlaybackStatus === 'Stopped') currentUrl = null
-    
+
     let currentLength: number = getLength() // in seconds
     let positionTimerId: ReturnType<typeof setInterval> | null = null
 
@@ -402,19 +402,45 @@ function createMpvHandler() {
     }
 
     /** @param newPosition in seconds */
-    function setPosition(newPosition: number): void {
+    function setPosition(newPosition: number, callback?: () => void): void {
         const positioninMicroSeconds = Math.min(newPosition * 1_000_000, currentLength * 1_000_000)
         const trackId = mediaServerPlayer.Metadata['mpris:trackid'].unpack()
-        mediaServerPlayer?.SetPositionRemote(trackId, positioninMicroSeconds)
+        mediaServerPlayer?.SetPositionRemote(trackId, positioninMicroSeconds, () => callback?.())
     }
 
     function getCurrentChannelName(): string | undefined {
 
-        if (getPlaybackStatus() === 'Stopped') return 
+        if (getPlaybackStatus() === 'Stopped') return
 
         const currentChannel = currentUrl ? settingsObject.userStations.find(cnl => cnl.url === currentUrl) : undefined
 
         return currentChannel?.name
+    }
+
+
+    function jumpToLastTitle(): void {
+        const inititalPlaybackstatus = mediaServerPlayer.PlaybackStatus
+        mediaServerPlayer.PauseSync()
+        const initialTitle = getCurrentTitle()
+
+        let positionToTest = getPosition() -1
+
+        function seekToLastTitle(){
+            setPosition(positionToTest, () => {                
+                const titleAfterSeek = getCurrentTitle()
+
+                if (titleAfterSeek !== initialTitle || positionToTest <= 0){
+                    inititalPlaybackstatus === 'Playing' ? mediaServerPlayer.PlaySync() : mediaServerPlayer.PauseSync()
+                    return
+                } else {
+                    positionToTest--
+                    seekToLastTitle()
+                }
+            })
+        }
+
+        seekToLastTitle()
+
     }
 
     addStationsListChangeHandler(() => {
@@ -426,6 +452,7 @@ function createMpvHandler() {
         if (!currentStationValid) stop()
 
     })
+
 
     return {
         increaseDecreaseVolume,
@@ -441,6 +468,7 @@ function createMpvHandler() {
         getLength,
         getPosition,
         getCurrentChannelName,
+        jumpToLastTitle,
 
 
         addPlaybackStatusChangeHandler: (changeHandler: ChangeHandler<AdvancedPlaybackStatus>) => {

@@ -3128,16 +3128,38 @@ function createMpvHandler() {
         return secondsRounded;
     }
     /** @param newPosition in seconds */
-    function setPosition(newPosition) {
+    function setPosition(newPosition, callback) {
         const positioninMicroSeconds = Math.min(newPosition * 1000000, currentLength * 1000000);
         const trackId = mediaServerPlayer.Metadata['mpris:trackid'].unpack();
-        mediaServerPlayer === null || mediaServerPlayer === void 0 ? void 0 : mediaServerPlayer.SetPositionRemote(trackId, positioninMicroSeconds);
+        mediaServerPlayer === null || mediaServerPlayer === void 0 ? void 0 : mediaServerPlayer.SetPositionRemote(trackId, positioninMicroSeconds, () => callback === null || callback === void 0 ? void 0 : callback());
     }
     function getCurrentChannelName() {
         if (getPlaybackStatus() === 'Stopped')
             return;
         const currentChannel = currentUrl ? settingsObject.userStations.find(cnl => cnl.url === currentUrl) : undefined;
         return currentChannel === null || currentChannel === void 0 ? void 0 : currentChannel.name;
+    }
+    function jumpToLastTitle() {
+        const inititalPlaybackstatus = mediaServerPlayer.PlaybackStatus;
+        mediaServerPlayer.PauseSync();
+        const initialTitle = getCurrentTitle();
+        let positionToTest = getPosition() - 1;
+        function seekToLastTitle() {
+            setPosition(positionToTest, () => {
+                if (positionToTest <= 0)
+                    return;
+                const titleAfterSeek = getCurrentTitle();
+                if (titleAfterSeek !== initialTitle) {
+                    inititalPlaybackstatus === 'Playing' ? mediaServerPlayer.PlaySync() : mediaServerPlayer.PauseSync();
+                    return;
+                }
+                else {
+                    positionToTest--;
+                    seekToLastTitle();
+                }
+            });
+        }
+        seekToLastTitle();
     }
     addStationsListChangeHandler(() => {
         if (!currentUrl)
@@ -3160,6 +3182,7 @@ function createMpvHandler() {
         getLength,
         getPosition,
         getCurrentChannelName,
+        jumpToLastTitle,
         addPlaybackStatusChangeHandler: (changeHandler) => {
             playbackStatusChangeHandler.push(changeHandler);
         },
@@ -5334,7 +5357,23 @@ function createDownloadButton() {
     return downloadButton.actor;
 }
 
+;// CONCATENATED MODULE: ./src/ui/RadioPopupMenu/MediaControlToolbar/JumpToLastSongBtn.ts
+
+
+
+function createJumpToLastSongBtn() {
+    const { jumpToLastTitle } = mpvHandler;
+    const controlBtn = createControlBtn({
+        iconName: COPY_ICON_NAME,
+        tooltipTxt: 'jump to last Song',
+        // TODO: it should be throttled
+        onClick: jumpToLastTitle
+    });
+    return controlBtn.actor;
+}
+
 ;// CONCATENATED MODULE: ./src/ui/RadioPopupMenu/MediaControlToolbar/MediaControlToolbar.ts
+
 
 
 
@@ -5346,11 +5385,13 @@ const createMediaControlToolbar = () => {
         style_class: "radio-applet-media-control-toolbar",
         x_align: MediaControlToolbar_ActorAlign.CENTER
     });
-    const playPauseBtn = createPlayPauseButton();
-    const copyBtn = createCopyButton();
-    const stopBtn = createStopBtn();
-    const downloadBtn = createDownloadButton();
-    [playPauseBtn, downloadBtn, copyBtn, stopBtn].forEach(btn => toolbar.add_child(btn));
+    [
+        createPlayPauseButton(),
+        createDownloadButton(),
+        createCopyButton(),
+        createStopBtn(),
+        createJumpToLastSongBtn()
+    ].forEach(btn => toolbar.add_child(btn));
     return toolbar;
 };
 
