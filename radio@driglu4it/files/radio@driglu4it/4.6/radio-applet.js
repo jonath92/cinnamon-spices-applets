@@ -2853,6 +2853,7 @@ function createMpvHandler() {
     const control = new MixerControl({ name: __meta.name });
     let cvcStream;
     let isLoading = false;
+    let isSeeking = false;
     const playbackStatusChangeHandler = [];
     const channelNameChangeHandler = [];
     const volumeChangeHandler = []; //
@@ -3091,8 +3092,7 @@ function createMpvHandler() {
         mediaServerPlayer.StopSync();
     }
     function getCurrentTitle() {
-        if (getPlaybackStatus() === "Stopped")
-            return;
+        // if (getPlaybackStatus() === "Stopped") return
         return mediaServerPlayer.Metadata["xesam:title"].unpack();
     }
     /**
@@ -3141,16 +3141,21 @@ function createMpvHandler() {
     }
     function jumpToLastTitle() {
         const inititalPlaybackstatus = mediaServerPlayer.PlaybackStatus;
-        mediaServerPlayer.PauseSync();
+        mediaServerPlayer.PauseRemote();
         const initialTitle = getCurrentTitle();
+        if (mediaPropsListenerId)
+            mediaProps === null || mediaProps === void 0 ? void 0 : mediaProps.disconnectSignal(mediaPropsListenerId);
+        if (seekListenerId)
+            mediaServerPlayer === null || mediaServerPlayer === void 0 ? void 0 : mediaServerPlayer.disconnectSignal(seekListenerId);
         let positionToTest = getPosition() - 1;
         function seekToLastTitle() {
             setPosition(positionToTest, () => {
-                if (positionToTest <= 0)
-                    return;
-                const titleAfterSeek = getCurrentTitle();
-                if (titleAfterSeek !== initialTitle) {
-                    inititalPlaybackstatus === 'Playing' ? mediaServerPlayer.PlaySync() : mediaServerPlayer.PauseSync();
+                // const titleAfterSeek = mediaServerPlayer.Metadata["xesam:title"].unpack()
+                const titleAfterSeek = mediaProps.GetSync('org.mpris.MediaPlayer2.Player', 'Metadata')[0].recursiveUnpack()['xesam:title'];
+                if (titleAfterSeek !== initialTitle || positionToTest <= 0) {
+                    activateMprisPropsListener();
+                    activateSeekListener();
+                    inititalPlaybackstatus === 'Playing' ? mediaServerPlayer.PlayRemote() : mediaServerPlayer.PauseRemote();
                     return;
                 }
                 else {

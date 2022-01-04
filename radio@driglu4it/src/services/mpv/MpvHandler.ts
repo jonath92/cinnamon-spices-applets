@@ -41,6 +41,8 @@ function createMpvHandler() {
     let cvcStream: imports.gi.Cvc.MixerStream
     let isLoading: boolean = false
 
+    let isSeeking = false
+
     const playbackStatusChangeHandler: ChangeHandler<AdvancedPlaybackStatus>[] = []
     const channelNameChangeHandler: ChangeHandler<string>[] = []
     const volumeChangeHandler: ChangeHandler<number>[] = [] //
@@ -350,7 +352,7 @@ function createMpvHandler() {
     }
 
     function getCurrentTitle(): string | undefined {
-        if (getPlaybackStatus() === "Stopped") return
+        // if (getPlaybackStatus() === "Stopped") return
 
         return mediaServerPlayer.Metadata["xesam:title"].unpack()
     }
@@ -420,17 +422,22 @@ function createMpvHandler() {
 
     function jumpToLastTitle(): void {
         const inititalPlaybackstatus = mediaServerPlayer.PlaybackStatus
-        mediaServerPlayer.PauseSync()
+        mediaServerPlayer.PauseRemote()
         const initialTitle = getCurrentTitle()
-
+        if (mediaPropsListenerId) mediaProps?.disconnectSignal(mediaPropsListenerId)
+        if (seekListenerId) mediaServerPlayer?.disconnectSignal(seekListenerId)
         let positionToTest = getPosition() -1
 
         function seekToLastTitle(){
-            setPosition(positionToTest, () => {                
-                const titleAfterSeek = getCurrentTitle()
+            setPosition(positionToTest, () => {             
+                // const titleAfterSeek = mediaServerPlayer.Metadata["xesam:title"].unpack()
+
+                const titleAfterSeek = mediaProps.GetSync('org.mpris.MediaPlayer2.Player', 'Metadata')[0].recursiveUnpack()['xesam:title']
 
                 if (titleAfterSeek !== initialTitle || positionToTest <= 0){
-                    inititalPlaybackstatus === 'Playing' ? mediaServerPlayer.PlaySync() : mediaServerPlayer.PauseSync()
+                    activateMprisPropsListener();
+                    activateSeekListener()
+                    inititalPlaybackstatus === 'Playing' ? mediaServerPlayer.PlayRemote() : mediaServerPlayer.PauseRemote()
                     return
                 } else {
                     positionToTest--
