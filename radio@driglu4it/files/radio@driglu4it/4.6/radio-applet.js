@@ -5001,7 +5001,19 @@ function createSlider(args) {
     };
 }
 
+;// CONCATENATED MODULE: ./src/lib/utils.ts
+// the visible prop from clutter actor always returns true when not implicity set to false. But when the parent is not visible, the actor is actually also not visible
+function checkActorTrulyVisible(actor) {
+    const parent = actor.get_parent();
+    if (!actor.visible)
+        return false;
+    if (!parent)
+        return true;
+    return checkActorTrulyVisible(parent);
+}
+
 ;// CONCATENATED MODULE: ./src/ui/VolumeSlider.ts
+
 
 
 
@@ -5022,7 +5034,7 @@ function createVolumeSlider() {
     });
     const tooltip = new Tooltip({
         // TODO: hier weitermachen
-        visible: false
+        visible: true
     });
     const icon = new VolumeSlider_Icon({
         icon_type: VolumeSlider_IconType.SYMBOLIC,
@@ -5057,7 +5069,7 @@ function createVolumeSlider() {
     }
     const setRefreshVolumeSlider = () => {
         const volume = getVolume();
-        //tooltip.visible = checkActorTrulyVisible(slider.actor)
+        tooltip.visible = checkActorTrulyVisible(slider.actor);
         if (volume != null) {
             tooltip.set_text(`Volume: ${volume.toString()} %`);
             global.log('abs indicator', slider.getAbsolutePositionIndicator());

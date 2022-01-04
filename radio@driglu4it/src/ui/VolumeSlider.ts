@@ -31,7 +31,7 @@ export function createVolumeSlider() {
 
     const tooltip = new Tooltip({
         // TODO: hier weitermachen
-        visible: false
+        visible: true
     })
 
     const icon = new Icon({
@@ -79,7 +79,7 @@ export function createVolumeSlider() {
     const setRefreshVolumeSlider = () => {
         const volume = getVolume()
 
-        //tooltip.visible = checkActorTrulyVisible(slider.actor)
+        tooltip.visible = checkActorTrulyVisible(slider.actor)
 
 
         if (volume != null) {
