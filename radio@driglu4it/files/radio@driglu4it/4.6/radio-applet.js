@@ -4248,7 +4248,6 @@ function getAppletTooltipPosition(props) {
     const monitorBottom = monitorTop + monitorHeight;
     const tooltipWidth = appletTooltip.width;
     const tooltipHeight = appletTooltip.height;
-    // withour Math.floor, the tooltip text gets sometimes blur
     const xHoricontalPanels = pointerX - tooltipWidth / 2;
     const yVertcialPanels = pointerY - tooltipHeight / 2;
     const panelLocTooltipPos = {
@@ -5526,7 +5525,10 @@ function createRadioAppletContainer() {
         onMoved: () => mpvHandler.deactivateAllListener(),
         onRemoved: handleAppletRemoved,
         onClick: handleClick,
-        onRightClick: () => popupMenu === null || popupMenu === void 0 ? void 0 : popupMenu.close(),
+        onRightClick: () => {
+            popupMenu === null || popupMenu === void 0 ? void 0 : popupMenu.close();
+            appletTooltip === null || appletTooltip === void 0 ? void 0 : appletTooltip.hide();
+        },
         onScroll: handleScroll
     });
     [createRadioAppletIcon(), createYoutubeDownloadIcon(), createRadioAppletLabel()].forEach(widget => {

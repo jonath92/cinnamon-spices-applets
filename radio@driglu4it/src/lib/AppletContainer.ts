@@ -93,7 +93,6 @@ export function getAppletTooltipPosition(props: { appletTooltip: imports.gi.St.L
     const tooltipWidth = appletTooltip.width
     const tooltipHeight = appletTooltip.height
 
-    // withour Math.floor, the tooltip text gets sometimes blur
     const xHoricontalPanels = pointerX - tooltipWidth / 2
     const yVertcialPanels =  pointerY - tooltipHeight / 2
 

@@ -21,7 +21,10 @@ export function createRadioAppletContainer() {
         onMoved: () => mpvHandler.deactivateAllListener(),
         onRemoved: handleAppletRemoved,
         onClick: handleClick,
-        onRightClick: () => popupMenu?.close(),
+        onRightClick: () => {
+            popupMenu?.close()
+            appletTooltip?.hide()
+        },
         onScroll: handleScroll
     });
 
