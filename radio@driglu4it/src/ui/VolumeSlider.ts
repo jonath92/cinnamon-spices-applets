@@ -84,7 +84,7 @@ export function createVolumeSlider() {
 
         if (volume != null) {
             tooltip.set_text(`Volume: ${volume.toString()} %`)
-            global.log('abs indicator', slider.getAbsolutePositionIndicator())
+            // global.log('abs indicator', slider.getAbsolutePositionIndicator())
             tooltip.set_position(slider.getAbsolutePositionIndicator(), 100)
             
 

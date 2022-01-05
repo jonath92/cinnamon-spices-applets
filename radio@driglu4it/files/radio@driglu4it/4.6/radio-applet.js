@@ -4935,11 +4935,11 @@ function createSlider(args) {
         const TAU = Math.PI * 2;
         const xPosition = handleRadius + (width - 2 * handleRadius) * value;
         absolutePositionIndicator = (drawing.get_transformed_position()[0] || 0) + xPosition;
-        global.log('absolutePositionIndicator', absolutePositionIndicator);
+        // global.log('absolutePositionIndicator', absolutePositionIndicator)
         // global.log('drawing position', drawing.get_position())
         // global.log('drawing width', drawing.get_width())
-        global.log('xPos', xPosition);
-        global.log('drawing absolut Position', drawing.get_transformed_position());
+        // global.log('xPos', xPosition)
+        // global.log('drawing absolut Position', drawing.get_transformed_position())
         cr.arc(sliderBorderRadius + sliderBorderWidth, height / 2, sliderBorderRadius, TAU * 1 / 4, TAU * 3 / 4);
         cr.lineTo(xPosition, (height - sliderHeight) / 2);
         cr.lineTo(xPosition, (height + sliderHeight) / 2);
@@ -5084,7 +5084,7 @@ function createVolumeSlider() {
         tooltip.visible = checkActorTrulyVisible(slider.actor);
         if (volume != null) {
             tooltip.set_text(`Volume: ${volume.toString()} %`);
-            global.log('abs indicator', slider.getAbsolutePositionIndicator());
+            // global.log('abs indicator', slider.getAbsolutePositionIndicator())
             tooltip.set_position(slider.getAbsolutePositionIndicator(), 100);
             slider.setValue(volume / 100, true);
             icon.set_icon_name(getVolumeIcon({ volume }));
