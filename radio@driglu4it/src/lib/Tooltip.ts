@@ -1,25 +1,17 @@
+import { addAppletRemovedFromPanelCleanup } from "../ui/RadioApplet/RadioAppletContainer"
+
 const { Label } = imports.gi.St
 const { uiGroup } = imports.ui.main
 // @ts-ignore
 const { registerClass } = imports.gi.GObject
 
-export function createTooltip(props?: ConstructorParameters<typeof Label>[0]) {
-
-    const tooltip = new Label({
-        name: 'Tooltip', // needed for the style
-        visible: false,
-        ...props
-    })
-
-    uiGroup.add_child(tooltip)
-
-
-    return tooltip
-}
-
 export const Tooltip = registerClass({
     GTypeName: 'Tooltip',
 }, class extends Label {
+
+    private uiGroupActorAddedSignalId: number | null = null
+    private panelEditSignalId: number | null = null
+
     _init(constructProperties = {}) {
         // @ts-ignore
         super._init({
@@ -29,22 +21,31 @@ export const Tooltip = registerClass({
         })
         uiGroup.add_child(this)
 
-        uiGroup.connect('actor-added', () => uiGroup.set_child_above_sibling(this, null))
+        this.uiGroupActorAddedSignalId = uiGroup.connect('actor-added', () => uiGroup.set_child_above_sibling(this, null))
 
-        global.settings.connect('changed::panel-edit-mode', () => this.visible = false)
+        this.panelEditSignalId = global.settings.connect('changed::panel-edit-mode', () => this.visible = false)
+
+        addAppletRemovedFromPanelCleanup(() => {
+            this.destroy()
+        })
 
     }
 
+    destroy(): void {
+        this.uiGroupActorAddedSignalId && uiGroup.disconnect(this.uiGroupActorAddedSignalId)
+        this.panelEditSignalId && global.settings.disconnect(this.panelEditSignalId)
+        super.disconnect
+    }
 
-    get visible(){
+    get visible() {
         return super.visible
     }
 
-    set visible (value: boolean) {
+    set visible(value: boolean) {
         super.visible = global.settings.get_boolean('panel-edit-mode') ? false : value
     }
 
-    get x(){
+    get x() {
         return super.x
     }
 
@@ -64,7 +65,7 @@ export const Tooltip = registerClass({
         super.x = Math.floor(valueLimited)
     }
 
-    get y(){
+    get y() {
         return super.y
     }
 
@@ -80,7 +81,6 @@ export const Tooltip = registerClass({
         )
 
         super.y = Math.floor(valueLimited)
-
     }
 
     set_x(value: number) {

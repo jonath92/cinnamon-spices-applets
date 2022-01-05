@@ -12,17 +12,33 @@ import { createYoutubeDownloadIcon } from "./YoutubeDownloadIcon"
 
 const { ScrollDirection } = imports.gi.Clutter;
 
+const cleanupFunctions: (() => void)[] = []
+
+export function addAppletRemovedFromPanelCleanup(cleanupFunc: () => void){
+    cleanupFunctions.push(cleanupFunc)
+}
+
 export function createRadioAppletContainer() {
 
     let installationInProgress = false
 
+    // the cleanupFunctions surrives on Applet Reload and therefore must be emptied !
+    while (cleanupFunctions.length) cleanupFunctions.pop() 
+    
     const appletContainer = createAppletContainer({
         onMiddleClick: () => mpvHandler.togglePlayPause(),
-        onMoved: () => mpvHandler.deactivateAllListener(),
+        onMoved: () => {
+            // Needed to hide error onDrag
+            appletContainer.actor.disconnect(hoverSignalId)
+            global.log('on moved called')
+            mpvHandler.deactivateAllListener()
+            // popupMenu.destroy()
+            cleanupFunctions.forEach(cleanup => cleanup())
+        },
         onRemoved: handleAppletRemoved,
         onClick: handleClick,
         onRightClick: () => {
-            popupMenu?.close()
+            // popupMenu?.close()
             appletTooltip?.hide()
         },
         onScroll: handleScroll
@@ -41,8 +57,11 @@ export function createRadioAppletContainer() {
     })
 
     function handleAppletRemoved() {
+        global.log('on Removed called')
         mpvHandler?.deactivateAllListener()
         mpvHandler?.stop()
+
+        cleanupFunctions.forEach(cleanup => cleanup())
     }
 
     function handleScroll(scrollDirection: imports.gi.Clutter.ScrollDirection) {
@@ -67,7 +86,7 @@ export function createRadioAppletContainer() {
         }
     }
 
-    appletContainer.actor.connect('notify::hover', () => {
+    const hoverSignalId = appletContainer.actor.connect('notify::hover', () => {
 
         appletTooltip.visible = appletContainer.actor.hover && !popupMenu.visible
 

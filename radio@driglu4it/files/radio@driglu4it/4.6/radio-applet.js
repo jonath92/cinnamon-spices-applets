@@ -2902,19 +2902,21 @@ function createMpvHandler() {
     function handleMpvStopped() {
         isLoading = false;
         currentLength = 0;
-        stopPositionTimer();
+        deactivateListener(false);
         mediaPropsListenerId && mediaProps.disconnectSignal(mediaPropsListenerId);
         seekListenerId && mediaServerPlayer.disconnectSignal(seekListenerId);
         mediaPropsListenerId = seekListenerId = currentUrl = null;
         playbackStatusChangeHandler.forEach(handler => handler('Stopped'));
         settingsObject.lastVolume = lastVolume;
     }
-    function deactivateAllListener() {
-        dbus.disconnectSignal(nameOwnerSignalId);
+    function deactivateListener(includeDbus = true) {
+        if (includeDbus)
+            dbus.disconnectSignal(nameOwnerSignalId);
         if (mediaPropsListenerId)
             mediaProps === null || mediaProps === void 0 ? void 0 : mediaProps.disconnectSignal(mediaPropsListenerId);
         if (seekListenerId)
             mediaServerPlayer === null || mediaServerPlayer === void 0 ? void 0 : mediaServerPlayer.disconnectSignal(seekListenerId);
+        stopPositionTimer();
     }
     function activateMprisPropsListener() {
         mediaPropsListenerId = mediaProps.connectSignal('PropertiesChanged', (proxy, nameOwner, [interfaceName, props]) => {
@@ -3154,7 +3156,7 @@ function createMpvHandler() {
         stop,
         getCurrentTitle,
         setPosition,
-        deactivateAllListener,
+        deactivateAllListener: deactivateListener,
         getPlaybackStatus,
         getVolume,
         getLength,
@@ -4291,24 +4293,34 @@ function createRadioAppletLabel() {
 }
 
 ;// CONCATENATED MODULE: ./src/lib/Tooltip.ts
+
 const { Label: Tooltip_Label } = imports.gi.St;
 const { uiGroup } = imports.ui.main;
 // @ts-ignore
 const { registerClass } = imports.gi.GObject;
-function createTooltip(props) {
-    const tooltip = new Tooltip_Label(Object.assign({ name: 'Tooltip', visible: false }, props));
-    uiGroup.add_child(tooltip);
-    return tooltip;
-}
 const Tooltip = registerClass({
     GTypeName: 'Tooltip',
 }, class extends Tooltip_Label {
+    constructor() {
+        super(...arguments);
+        this.uiGroupActorAddedSignalId = null;
+        this.panelEditSignalId = null;
+    }
     _init(constructProperties = {}) {
         // @ts-ignore
         super._init(Object.assign({ name: 'Tooltip', visible: false }, constructProperties));
         uiGroup.add_child(this);
-        uiGroup.connect('actor-added', () => uiGroup.set_child_above_sibling(this, null));
-        global.settings.connect('changed::panel-edit-mode', () => this.visible = false);
+        this.uiGroupActorAddedSignalId = uiGroup.connect('actor-added', () => uiGroup.set_child_above_sibling(this, null));
+        this.panelEditSignalId = global.settings.connect('changed::panel-edit-mode', () => this.visible = false);
+        addAppletRemovedFromPanelCleanup(() => {
+            global.log('destroy function called');
+            this.destroy();
+        });
+    }
+    destroy() {
+        this.uiGroupActorAddedSignalId && uiGroup.disconnect(this.uiGroupActorAddedSignalId);
+        this.panelEditSignalId && global.settings.disconnect(this.panelEditSignalId);
+        super.disconnect;
     }
     get visible() {
         return super.visible;
@@ -5530,15 +5542,29 @@ function createYoutubeDownloadIcon() {
 
 
 const { ScrollDirection: RadioAppletContainer_ScrollDirection } = imports.gi.Clutter;
+const cleanupFunctions = [];
+function addAppletRemovedFromPanelCleanup(cleanupFunc) {
+    cleanupFunctions.push(cleanupFunc);
+}
 function createRadioAppletContainer() {
     let installationInProgress = false;
+    // the cleanupFunctions surrives on Applet Reload and therefore must be emptied !
+    while (cleanupFunctions.length)
+        cleanupFunctions.pop();
     const appletContainer = createAppletContainer({
         onMiddleClick: () => mpvHandler.togglePlayPause(),
-        onMoved: () => mpvHandler.deactivateAllListener(),
+        onMoved: () => {
+            // Needed to hide error onDrag
+            appletContainer.actor.disconnect(hoverSignalId);
+            global.log('on moved called');
+            mpvHandler.deactivateAllListener();
+            // popupMenu.destroy()
+            cleanupFunctions.forEach(cleanup => cleanup());
+        },
         onRemoved: handleAppletRemoved,
         onClick: handleClick,
         onRightClick: () => {
-            popupMenu === null || popupMenu === void 0 ? void 0 : popupMenu.close();
+            // popupMenu?.close()
             appletTooltip === null || appletTooltip === void 0 ? void 0 : appletTooltip.hide();
         },
         onScroll: handleScroll
@@ -5552,8 +5578,10 @@ function createRadioAppletContainer() {
         popupMenu.visible && appletTooltip.hide();
     });
     function handleAppletRemoved() {
+        global.log('on Removed called');
         mpvHandler === null || mpvHandler === void 0 ? void 0 : mpvHandler.deactivateAllListener();
         mpvHandler === null || mpvHandler === void 0 ? void 0 : mpvHandler.stop();
+        cleanupFunctions.forEach(cleanup => cleanup());
     }
     function handleScroll(scrollDirection) {
         const volumeChange = scrollDirection === RadioAppletContainer_ScrollDirection.UP ? VOLUME_DELTA : -VOLUME_DELTA;
@@ -5576,7 +5604,7 @@ function createRadioAppletContainer() {
             installationInProgress = false;
         }
     }
-    appletContainer.actor.connect('notify::hover', () => {
+    const hoverSignalId = appletContainer.actor.connect('notify::hover', () => {
         appletTooltip.visible = appletContainer.actor.hover && !popupMenu.visible;
         if (!appletTooltip.visible)
             return;
@@ -5594,6 +5622,7 @@ function createRadioAppletContainer() {
 
 
 function main() {
+    global.log('main.js called');
     // order must be retained!
     initPolyfills();
     initConfig();

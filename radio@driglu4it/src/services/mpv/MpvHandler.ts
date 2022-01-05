@@ -13,6 +13,7 @@ export const initMpvHandler = () => {
     mpvHandler = createMpvHandler()
 }
 
+
 function createMpvHandler() {
 
     const {
@@ -105,7 +106,7 @@ function createMpvHandler() {
     function handleMpvStopped(): void {
         isLoading = false
         currentLength = 0
-        stopPositionTimer()
+        deactivateListener(false)
         mediaPropsListenerId && mediaProps.disconnectSignal(mediaPropsListenerId)
         seekListenerId && mediaServerPlayer.disconnectSignal(seekListenerId)
         mediaPropsListenerId = seekListenerId = currentUrl = null
@@ -113,10 +114,11 @@ function createMpvHandler() {
         settingsObject.lastVolume = lastVolume
     }
 
-    function deactivateAllListener(): void {
-        dbus.disconnectSignal(nameOwnerSignalId)
+    function deactivateListener(includeDbus = true): void {
+        if (includeDbus) dbus.disconnectSignal(nameOwnerSignalId)
         if (mediaPropsListenerId) mediaProps?.disconnectSignal(mediaPropsListenerId)
         if (seekListenerId) mediaServerPlayer?.disconnectSignal(seekListenerId)
+        stopPositionTimer()
     }
 
     function activateMprisPropsListener(): void {
@@ -435,7 +437,7 @@ function createMpvHandler() {
         stop,
         getCurrentTitle,
         setPosition,
-        deactivateAllListener,
+        deactivateAllListener: deactivateListener,
         getPlaybackStatus,
         getVolume,
         getLength,

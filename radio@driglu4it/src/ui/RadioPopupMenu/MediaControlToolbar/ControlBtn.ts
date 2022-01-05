@@ -1,9 +1,8 @@
 import { createActivWidget } from "../../../lib/ActivWidget";
-import { createTooltip, Tooltip } from "../../../lib/Tooltip";
+import { Tooltip } from "../../../lib/Tooltip";
 
 const { Button, Icon, IconType } = imports.gi.St;
 const { Settings } = imports.gi.Gio
-
 
 interface Arguments {
     iconName?: string,
