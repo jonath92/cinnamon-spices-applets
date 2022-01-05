@@ -24,6 +24,7 @@ export function createAppletIcon(props?: ConstructorParameters<typeof Icon>[0]) 
     })
 
     panel.connect('icon-size-changed', () => {
+        global.log('icon size changed called')
         icon.set_icon_size(getIconSize())
     })
 

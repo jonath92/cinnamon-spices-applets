@@ -4313,7 +4313,6 @@ const Tooltip = registerClass({
         this.uiGroupActorAddedSignalId = uiGroup.connect('actor-added', () => uiGroup.set_child_above_sibling(this, null));
         this.panelEditSignalId = global.settings.connect('changed::panel-edit-mode', () => this.visible = false);
         addAppletRemovedFromPanelCleanup(() => {
-            global.log('destroy function called');
             this.destroy();
         });
     }
@@ -4665,6 +4664,7 @@ function createAppletIcon(props) {
     }
     const icon = new AppletIcon_Icon(Object.assign({ icon_type, style_class: getStyleClass(), icon_size: getIconSize(), pivot_point: new Point({ x: 0.5, y: 0.5 }) }, props));
     panel.connect('icon-size-changed', () => {
+        global.log('icon size changed called');
         icon.set_icon_size(getIconSize());
     });
     icon.connect('notify::icon-type', () => {
