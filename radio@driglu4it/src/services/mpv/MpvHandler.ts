@@ -11,6 +11,8 @@ export let mpvHandler: ReturnType<typeof createMpvHandler>
 
 export const initMpvHandler = () => {
     mpvHandler = createMpvHandler()
+
+    return mpvHandler
 }
 
 
@@ -108,10 +110,10 @@ function createMpvHandler() {
         currentLength = 0
         deactivateListener(false)
         mediaPropsListenerId && mediaProps.disconnectSignal(mediaPropsListenerId)
-        seekListenerId && mediaServerPlayer.disconnectSignal(seekListenerId)
-        mediaPropsListenerId = seekListenerId = currentUrl = null
-        playbackStatusChangeHandler.forEach(handler => handler('Stopped'))
-        settingsObject.lastVolume = lastVolume
+        // seekListenerId && mediaServerPlayer.disconnectSignal(seekListenerId)
+        // mediaPropsListenerId = seekListenerId = currentUrl = null
+        // playbackStatusChangeHandler.forEach(handler => handler('Stopped'))
+        // settingsObject.lastVolume = lastVolume
     }
 
     function deactivateListener(includeDbus = true): void {
@@ -429,6 +431,8 @@ function createMpvHandler() {
 
     })
 
+    imports.signals.addSignalMethods(mediaProps)
+
     return {
         increaseDecreaseVolume,
         setVolume: setMprisVolume,
@@ -471,6 +475,7 @@ function createMpvHandler() {
 
         // it is very confusing but dbus must be returned!
         // Otherwilse all listeners stop working after about 20 seconds which is fucking difficult to debug
-        dbus
+        dbus, 
+        mediaProps
     }
 }

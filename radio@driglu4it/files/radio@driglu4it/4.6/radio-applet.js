@@ -2840,6 +2840,7 @@ const { MixerControl } = imports.gi.Cvc;
 let mpvHandler;
 const initMpvHandler = () => {
     mpvHandler = createMpvHandler();
+    return mpvHandler;
 };
 function createMpvHandler() {
     const { settingsObject, getInitialVolume, addStationsListChangeHandler } = configs;
@@ -2904,10 +2905,10 @@ function createMpvHandler() {
         currentLength = 0;
         deactivateListener(false);
         mediaPropsListenerId && mediaProps.disconnectSignal(mediaPropsListenerId);
-        seekListenerId && mediaServerPlayer.disconnectSignal(seekListenerId);
-        mediaPropsListenerId = seekListenerId = currentUrl = null;
-        playbackStatusChangeHandler.forEach(handler => handler('Stopped'));
-        settingsObject.lastVolume = lastVolume;
+        // seekListenerId && mediaServerPlayer.disconnectSignal(seekListenerId)
+        // mediaPropsListenerId = seekListenerId = currentUrl = null
+        // playbackStatusChangeHandler.forEach(handler => handler('Stopped'))
+        // settingsObject.lastVolume = lastVolume
     }
     function deactivateListener(includeDbus = true) {
         if (includeDbus)
@@ -3148,6 +3149,7 @@ function createMpvHandler() {
         if (!currentStationValid)
             stop();
     });
+    imports.signals.addSignalMethods(mediaProps);
     return {
         increaseDecreaseVolume,
         setVolume: setMprisVolume,
@@ -3182,7 +3184,8 @@ function createMpvHandler() {
         },
         // it is very confusing but dbus must be returned!
         // Otherwilse all listeners stop working after about 20 seconds which is fucking difficult to debug
-        dbus
+        dbus,
+        mediaProps
     };
 }
 
@@ -5621,13 +5624,37 @@ function createRadioAppletContainer() {
 
 
 
+const { Applet: src_Applet, AllowedLayout: src_AllowedLayout } = imports.ui.applet;
+const {} = imports.signals;
 function main() {
-    global.log('main.js called');
     // order must be retained!
     initPolyfills();
     initConfig();
-    initMpvHandler();
-    return createRadioAppletContainer();
+    const mpvHandler = initMpvHandler();
+    let appletReloaded = false;
+    const appletContainer = createRadioAppletContainer();
+    // const applet = new Applet(__meta.orientation, __meta.panel.height, __meta.instanceId)
+    // // @ts-ignore
+    // applet.actor = appletContainer.actor
+    // applet.on_applet_reloaded = function () {
+    //     appletReloaded = true
+    // }
+    // applet.on_applet_removed_from_panel = function () {
+    //     mpvHandler.deactivateAllListener()
+    //     mpvHandler.stop()
+    //     // appletReloaded ? onMoved() : onRemoved()
+    //     // appletReloaded = false
+    // }
+    return {
+        actor: appletContainer.actor,
+        on_applet_reloaded: () => { },
+        _onAppletRemovedFromPanel: () => { },
+        // _panelLocation: null,
+        on_applet_added_to_panel_internal: () => { },
+        _addStyleClass: () => { },
+        finalizeContextMenu: () => { },
+        getAllowedLayout: () => src_AllowedLayout.BOTH
+    };
 }
 
 })();

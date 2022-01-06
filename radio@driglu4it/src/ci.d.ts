@@ -1,12 +1,16 @@
-import "@ci-types/cjs";
+/// <reference path="/home/jonathan/Projekte/types-cjs/index.d.ts" />
 
-declare global {
-    // added during build (see webpack.config.js)
-    interface Meta {
-        instanceId: number
-        orientation: imports.gi.St.Side
-        panel: imports.ui.panel.Panel
-        locationLabel: imports.ui.appletManager.LocationLabel
-        monitor: imports.ui.layout.Monitor
-    }
-}
+ //import "@ci-types/cjs";
+
+
+
+// declare global {
+//     // added during build (see webpack.config.js)
+//     interface Meta {
+//         instanceId: number
+//         orientation: imports.gi.St.Side
+//         panel: imports.ui.panel.Panel
+//         locationLabel: imports.ui.appletManager.LocationLabel
+//         monitor: imports.ui.layout.Monitor
+//     }
+// }
