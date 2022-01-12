@@ -8,6 +8,8 @@ import { createRadioPopupMenu } from './ui/RadioPopupMenu/RadioPopupMenu';
 const { Applet, AllowedLayout } = imports.ui.applet
 const { GenericContainer } = imports.gi.Cinnamon
 const { BoxLayout } = imports.gi.St
+const Lang = imports.Lang
+const Tweener = imports.ui.tweener;
 
 const { } = imports.signals
 
@@ -22,6 +24,55 @@ declare global {
     }
 }
 
+
+function makeDraggable(actor: imports.gi.St.BoxLayout) {
+    return new _Draggable(actor)
+}
+
+class _Draggable {
+
+    public inhibit: boolean
+    public actor: imports.gi.St.BoxLayout
+    public target: null
+    public buttonPressEventId: number
+    public destroyEventId: number
+
+    constructor(actor: imports.gi.St.BoxLayout) {
+
+        const params = {
+            manualMode: false,
+            restoreOnSuccess: false,
+            overrideX: undefined,
+            overrideY: undefined,
+            dragActorMaxSize: undefined,
+            dragActorOpacity: undefined
+        }
+
+        this.inhibit = false // Use the inhibit flag to temporarily disable an object from being draggable
+
+        this.actor = actor
+
+        this.target = null
+        this.buttonPressEventId = this.actor.connect('button-press-event', (actor, event) => this._onButtonPress(actor, event))
+        this.destroyEventId = 0;
+
+    }
+
+    _onButtonPress(actor: imports.gi.St.BoxLayout, event: imports.gi.Clutter.ButtonEvent
+    ) {
+        if (this.inhibit)
+            return false;
+
+        if (event.get_button() != 1)
+            return false;
+
+        if (Tweener.getTweenCount(actor))
+
+
+
+        return false
+    }
+}
 
 export function main() {
 
@@ -48,26 +99,7 @@ export function main() {
 
     appletContainer.add_child(createRadioAppletIcon())
 
-    // const appletContainer = createRadioAppletContainer()
 
-
-    // const applet = new Applet(__meta.orientation, __meta.panel.height, __meta.instanceId)
-
-    // // @ts-ignore
-    // applet.actor = appletContainer.actor
-
-
-    // applet.on_applet_reloaded = function () {
-    //     appletReloaded = true
-    // }
-
-
-    // applet.on_applet_removed_from_panel = function () {
-    //     mpvHandler.deactivateAllListener()
-    //     mpvHandler.stop()
-    //     // appletReloaded ? onMoved() : onRemoved()
-    //     // appletReloaded = false
-    // }
 
 
     return {
