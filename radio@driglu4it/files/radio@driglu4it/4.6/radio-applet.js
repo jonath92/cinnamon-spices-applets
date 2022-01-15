@@ -5420,9 +5420,109 @@ function RadioPopupMenu_createRadioPopupMenu(props) {
 
 
 const { Applet, AllowedLayout } = imports.ui.applet;
+const { GenericContainer } = imports.gi.Cinnamon;
 const { BoxLayout: src_BoxLayout } = imports.gi.St;
-const {} = imports.signals;
+const Lang = imports.lang;
+const Tweener = imports.ui.tweener;
+const { grab_pointer: src_grab_pointer, EventType } = imports.gi.Clutter;
+// function makeDraggable(actor: imports.gi.St.BoxLayout) {
+//     return new _Draggable(actor)
+// }
+// class _Draggable {
+//     public inhibit: boolean
+//     public actor: imports.gi.St.BoxLayout
+//     public target: null
+//     public buttonPressEventId: number
+//     public destroyEventId: number
+//     private _buttonDown: boolean
+//     private _dragInProgress: boolean
+//     private _animationInProgress: boolean
+//     private _dragCancellable: boolean
+//     private _eventsGrabbed: boolean
+//     private _onEventId: number | null
+//     private _dragStartX: number | null = null
+//     private _dragStartY: number | null = null
+//     private _actorDestroyed: boolean | null = null
+//     private _restoreOnSuccess: boolean
+//     private __dragActorMaxSize: undefined
+//     private _dragActorOpacity: undefined
+//     private _overrideX: undefined
+//     private _overrideY: undefined
+//     private _dragActor: undefined 
+//     // finished
+//     constructor(actor: imports.gi.St.BoxLayout) {
+//         const params = {
+//             manualMode: false,
+//             restoreOnSuccess: false,
+//             overrideX: undefined,
+//             overrideY: undefined,
+//             dragActorMaxSize: undefined,
+//             dragActorOpacity: undefined
+//         }
+//         this.inhibit = false // Use the inhibit flag to temporarily disable an object from being draggable
+//         this.actor = actor
+//         this.target = null
+//         this.buttonPressEventId = this.actor.connect('button-press-event', (actor, event) => this._onButtonPress(actor, event))
+//         this.destroyEventId = this.actor.connect('destroy', () => {
+//             this._actorDestroyed = true
+//             if (this._dragInProgress && this._dragCancellable) {
+//                 this._cancelDrag(global.get_current_time())
+//             }
+//             //this.disconnectAll();
+//         });
+//         this._onEventId = null;
+//         this._restoreOnSuccess = false
+//         this.__dragActorMaxSize = undefined
+//         this._dragActorOpacity = undefined
+//         this._overrideY = undefined
+//         this._overrideX = undefined
+//         this._buttonDown = false; // The mouse button has been pressed and has not yet been released.
+//         this._dragInProgress = false; // The drag has been started, and has not been dropped or cancelled yet.
+//         this._animationInProgress = false; // The drag is over and the item is in the process of animating to its original position (snapping back or reverting).
+//         this._dragCancellable = true;
+//         this._eventsGrabbed = false;
+//     }
+//     // finished
+//     _onButtonPress(actor: imports.gi.St.BoxLayout, event: imports.gi.Clutter.ButtonEvent
+//     ) {
+//         if (this.inhibit)
+//             return false;
+//         if (event.get_button() != 1)
+//             return false;
+//         if (Tweener.getTweenCount(actor))
+//             return false
+//         this._buttonDown = true;
+//         this._grabActor();
+//         const [stageX, stageY] = event.get_coords()
+//         this._dragStartX = stageX
+//         this._dragStartY = stageY
+//         return false
+//     }
+//     private _grabActor() {
+//         grab_pointer(this.actor)
+//         this._onEventId = this.actor.connect('event', (actor, event) => this._onEvent(actor, event))
+//     }
+//     private _onEvent(actor: imports.gi.St.BoxLayout, event: imports.gi.Clutter.Event) {
+//         // We intercept BUTTON_RELEASE event to know that the button was released in case we
+//         // didn't start the drag, to drop the draggable in case the drag was in progress, and
+//         // to complete the drag and ensure that whatever happens to be under the pointer does
+//         // not get triggered if the drag was cancelled with Esc.
+//         if (event.type() == EventType.BUTTON_RELEASE) {
+//             this._buttonDown = false;
+//             if (this._dragInProgress) {
+//                 return this._dragActorDropped(event);
+//             }
+//         }
+//     }
+//     private _dragActorDropped(event: imports.gi.Clutter.Event){
+//         const target = this.target ? this.target : this._dragActor
+//     }
+//     private _cancelDrag(eventTime: number) {
+//         // TODO: emit drag-cancelled
+//     }
+// }
 function main() {
+    global.log(global.screen_height);
     // order must be retained!
     initPolyfills();
     initConfig();
@@ -5432,23 +5532,13 @@ function main() {
         onClick: () => popupMenu.toggle(),
         onMiddleClick: () => global.log('onMiddleClick'),
         onRightClick: () => global.log('onRigh Click'),
-        onScroll: () => global.log('onScroll')
+        onScroll: () => global.log(global.get_current_time())
+    });
+    const dragActor = new GenericContainer({
+        style_class: 'drag-item-container'
     });
     const popupMenu = RadioPopupMenu_createRadioPopupMenu({ launcher: appletContainer });
     appletContainer.add_child(RadioAppletIcon_createRadioAppletIcon());
-    // const appletContainer = createRadioAppletContainer()
-    // const applet = new Applet(__meta.orientation, __meta.panel.height, __meta.instanceId)
-    // // @ts-ignore
-    // applet.actor = appletContainer.actor
-    // applet.on_applet_reloaded = function () {
-    //     appletReloaded = true
-    // }
-    // applet.on_applet_removed_from_panel = function () {
-    //     mpvHandler.deactivateAllListener()
-    //     mpvHandler.stop()
-    //     // appletReloaded ? onMoved() : onRemoved()
-    //     // appletReloaded = false
-    // }
     return {
         actor: appletContainer,
         on_applet_reloaded: () => { },
