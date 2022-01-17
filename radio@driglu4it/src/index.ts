@@ -13,7 +13,7 @@ const Tweener = imports.ui.tweener;
 const { source_remove } = imports.gi.GLib
 const { pushModal, popModal, uiGroup } = imports.ui.main
 
-const { grab_pointer, EventType, ungrab_pointer, Actor, KEY_Escapeg } = imports.gi.Clutter
+const { grab_pointer, EventType, ungrab_pointer, Actor, KEY_Escape } = imports.gi.Clutter
 
 
 declare global {
