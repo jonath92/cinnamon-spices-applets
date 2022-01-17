@@ -44,7 +44,9 @@ function _getEventHandlerActor() {
     return eventHandlerActor;
 }
 
-
+interface ActorWithDelegate extends imports.gi.St.BoxLayout {
+    _delegate?: imports.ui.applet.Applet
+}
 
 function makeDraggable(actor: imports.gi.St.BoxLayout) {
     return new _Draggable(actor)
@@ -53,9 +55,9 @@ function makeDraggable(actor: imports.gi.St.BoxLayout) {
 class _Draggable {
 
     public inhibit: boolean
-    public actor: imports.gi.St.BoxLayout
+    public actor: ActorWithDelegate
     public target: null
-    public buttonPressEventId: number
+    public buttonPressEventId: number | undefined
     public destroyEventId: number
     private _buttonDown: boolean
     private _dragInProgress: boolean
@@ -76,9 +78,11 @@ class _Draggable {
     private _dragX: number | undefined = undefined
     private _dragY: number | undefined = undefined
 
+    private _dragActorSource: undefined | imports.gi.St.BoxLayout
+
 
     // finished
-    constructor(actor: imports.gi.St.BoxLayout) {
+    constructor(actor: ActorWithDelegate) {
 
         const params = {
             manualMode: false,
@@ -94,7 +98,9 @@ class _Draggable {
         this.actor = actor
 
         this.target = null
+        // @ts-ignore
         this.buttonPressEventId = this.actor.connect('button-press-event', (actor, event) => this._onButtonPress(actor, event))
+        // @ts-ignore
         this.destroyEventId = this.actor.connect('destroy', () => {
             this._actorDestroyed = true
 
@@ -145,6 +151,7 @@ class _Draggable {
     // finished
     private _grabActor() {
         grab_pointer(this.actor)
+        // @ts-ignore
         this._onEventId = this.actor.connect('event', (actor, event) => this._onEvent(actor, event))
     }
 
@@ -268,12 +275,11 @@ class _Draggable {
         this._dragX = this._dragStartX = stageX;
         this._dragY = this._dragStartY = stageY;
 
-        // @ts-ignore
-        if (this.actor._delegate && this.actor._delegate.getDragActor) {
+        if (this.actor._delegate !== undefined) {
             this._dragActor = this.actor._delegate.getDragActor();
-            global.reparentActor(this._dragActor, Main.uiGroup);
+            global.reparentActor(this._dragActor, uiGroup);
             this._dragActor.raise_top();
-            Cinnamon.util_set_hidden_from_pick(this._dragActor, true);
+            util_set_hidden_from_pick(this._dragActor, true);
 
             // Drag actor does not always have to be the same as actor. For example drag actor
             // can be an image that's part of the actor. So to perform "snap back" correctly we need
@@ -285,7 +291,7 @@ class _Draggable {
                 // around the pointer
                 let [sourceX, sourceY] = this._dragActorSource.get_transformed_position();
                 let x, y;
-                if (stageX > sourceX && stageX <= sourceX + this._dragActor.width &&
+                if (sourceX && stageX > sourceX && stageX <= sourceX + this._dragActor.width && sourceY &&
                     stageY > sourceY && stageY <= sourceY + this._dragActor.height) {
                     x = sourceX;
                     y = sourceY;
