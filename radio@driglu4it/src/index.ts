@@ -6,14 +6,21 @@ import { createRadioAppletIcon } from './ui/RadioApplet/RadioAppletIcon';
 import { createRadioAppletContainerNew } from './ui/RadioApplet/RadioAppletContainerNew';
 import { createRadioPopupMenu } from './ui/RadioPopupMenu/RadioPopupMenu';
 const { Applet, AllowedLayout } = imports.ui.applet
-const { GenericContainer, util_set_hidden_from_pick, Cursor } = imports.gi.Cinnamon
+const { GenericContainer, util_set_hidden_from_pick, Cursor, util_get_transformed_allocation } = imports.gi.Cinnamon
 const { BoxLayout } = imports.gi.St
 const Lang = imports.lang
 const Tweener = imports.ui.tweener;
 const { source_remove } = imports.gi.GLib
 const { pushModal, popModal, uiGroup } = imports.ui.main
 
-const { grab_pointer, EventType, ungrab_pointer, Actor, KEY_Escape } = imports.gi.Clutter
+const { grab_pointer, EventType, ungrab_pointer, Actor, KEY_Escape, PickMode } = imports.gi.Clutter
+const { DragMotionResult, DragDropResult } = imports.ui.dnd
+
+const { Settings } = imports.gi.Gtk
+const { idle_add, PRIORITY_DEFAULT } = imports.gi.GLib
+
+const SCALE_ANIMATION_TIME = 0.25;
+const dragMonitors = [];
 
 
 declare global {
@@ -44,7 +51,7 @@ function _getEventHandlerActor() {
     return eventHandlerActor;
 }
 
-interface ActorWithDelegate extends imports.gi.St.BoxLayout {
+interface ActorWithDelegate extends imports.gi.St.Widget {
     _delegate?: imports.ui.applet.Applet
 }
 
@@ -73,12 +80,23 @@ class _Draggable {
     private _dragActorOpacity: undefined
     private _overrideX: undefined
     private _overrideY: undefined
-    private _dragActor: undefined | imports.gi.St.BoxLayout // or imports.gi.Clutter.Actor??
+    private _dragActor: undefined | imports.gi.St.Widget
     private _updateHoverId: undefined | number = undefined
     private _dragX: number | undefined = undefined
     private _dragY: number | undefined = undefined
-
-    private _dragActorSource: undefined | imports.gi.St.BoxLayout
+    private _dragOrigParent: undefined | imports.gi.Clutter.Actor
+    private _dragActorSource: undefined | imports.gi.St.Widget
+    private _dragOffsetX: undefined | number
+    private _dragOffsetY: undefined | number
+    private _dragOrigX: undefined | number
+    private _dragOrigY: undefined | number
+    private _dragOrigScale: undefined | number
+    private _dragOrigOpacity: undefined | number
+    private _snapBackX: undefined | number
+    private _snapBackY: undefined | number
+    private _snapBackScale: undefined | number
+    private _dragActorMaxSize: undefined
+    private recentDropTarget: undefined | null
 
 
     // finished
@@ -197,9 +215,7 @@ class _Draggable {
             } else if (this._dragActor != null && !this._animationInProgress) {
                 // Drag must have been cancelled with Esc.
                 // Check if escaped drag was from a desklet
-                // @ts-ignore
                 if (this.target?._delegate.acceptDrop) {
-                    // @ts-ignore
                     this.target?._delegate.cancelDrag(this.actor._delegate, this._dragActor);
                 }
                 this._dragComplete();
@@ -254,6 +270,8 @@ class _Draggable {
      * Directly initiate a drag and drop operation from the given actor.
      * This function is useful to call if you've specified manualMode
      * for the draggable.
+     * 
+     * //finished
      */
     private startDrag(stageX: number, stageY: number, time: number) {
         currentDraggable = this;
@@ -319,16 +337,18 @@ class _Draggable {
             // Set the actor's scale such that it will keep the same
             // transformed size when it's reparented to the uiGroup
             let [scaledWidth, scaledHeight] = this.actor.get_transformed_size();
+            if (!scaledWidth) scaledWidth = 0
+            if (!scaledHeight) scaledHeight = 0
             this._dragActor.set_scale(scaledWidth / this.actor.width,
                 scaledHeight / this.actor.height);
 
             let [actorStageX, actorStageY] = this.actor.get_transformed_position();
-            this._dragOffsetX = actorStageX - this._dragStartX;
-            this._dragOffsetY = actorStageY - this._dragStartY;
+            this._dragOffsetX = actorStageX || 0 - this._dragStartX;
+            this._dragOffsetY = actorStageY || 0 - this._dragStartY;
 
-            global.reparentActor(this._dragActor, Main.uiGroup);
+            global.reparentActor(this._dragActor, uiGroup);
             this._dragActor.raise_top();
-            Cinnamon.util_set_hidden_from_pick(this._dragActor, true);
+            util_set_hidden_from_pick(this._dragActor, true);
         }
 
         this._dragOrigOpacity = this._dragActor.opacity;
@@ -341,7 +361,7 @@ class _Draggable {
 
         if (this._dragActorMaxSize != undefined) {
             let [scaledWidth, scaledHeight] = this._dragActor.get_transformed_size();
-            let currentSize = Math.max(scaledWidth, scaledHeight);
+            let currentSize = Math.max(scaledWidth || 0, scaledHeight || 0);
             if (currentSize > this._dragActorMaxSize) {
                 let scale = this._dragActorMaxSize / currentSize;
                 let origScale = this._dragActor.scale_x;
@@ -372,13 +392,197 @@ class _Draggable {
         }
     }
 
-    private _dragActorDropped(event: imports.gi.Clutter.Event) {
-        const target = this.target ? this.target : this._dragActor
+    // finished
+    private _maybeStartDrag(event: imports.gi.Clutter.Event) {
+        let [stageX, stageY] = event.get_coords();
 
+        // See if the user has moved the mouse enough to trigger a drag
+        // @ts-ignore
+        let threshold = Settings.get_default().gtk_dnd_drag_threshold;
+        if ((Math.abs(stageX - (this._dragStartX || 0)) > threshold ||
+            Math.abs(stageY - (this._dragStartY || 0)) > threshold)) {
+            this.startDrag(stageX, stageY, event.get_time());
+            this._updateDragPosition(event);
+        }
+
+        return true;
+    }
+
+    // finished
+    private _updateDragHover() {
+        this._updateHoverId = 0;
+        let target: ActorWithDelegate | null = null;
+        let result = null;
+
+        let x = this._overrideX == undefined ? this._dragX : this._overrideX
+        let y = this._overrideY == undefined ? this._dragY : this._overrideY
+
+        if (this.recentDropTarget) {
+            let allocation = util_get_transformed_allocation(this.recentDropTarget);
+
+            // @ts-ignore
+            if (x < allocation.x1 || x > allocation.x2 || y < allocation.y1 || y > allocation.y2) {
+                this.recentDropTarget._delegate.handleDragOut();
+                this.recentDropTarget = null;
+            }
+        }
+
+        if (this.target) {
+            target = this.target;
+        } else {
+            let stage = this._dragActor?.get_stage();
+            if (!stage) {
+                return;
+            }
+            target = stage.get_actor_at_pos(PickMode.ALL, x || 0, y || 0) as ActorWithDelegate;
+        }
+
+        let dragEvent = {
+            x: this._dragX,
+            y: this._dragY,
+            dragActor: this._dragActor,
+            source: this.actor._delegate,
+            targetActor: target
+        };
+        for (let i = 0; i < dragMonitors.length; i++) {
+            let motionFunc = dragMonitors[i].dragMotion;
+            if (motionFunc) {
+                result = motionFunc(dragEvent);
+                if (result == DragMotionResult.MOVE_DROP || result == DragMotionResult.COPY_DROP) {
+                    break;
+                }
+            }
+        }
+
+        while (target) {
+            if (target._delegate && target._delegate.handleDragOver) {
+                let [r, targX, targY] = target.transform_stage_point(x, y);
+                // We currently loop through all parents on drag-over even if one of the children has handled it.
+                // We can check the return value of the function and break the loop if it's true if we don't want
+                // to continue checking the parents.
+                result = target._delegate.handleDragOver(this.actor._delegate,
+                    this._dragActor,
+                    targX,
+                    targY,
+                    0);
+                if (result == DragMotionResult.MOVE_DROP || result == DragMotionResult.COPY_DROP) {
+                    if (target._delegate.handleDragOut) this.recentDropTarget = target;
+                    break;
+                }
+            }
+            target = target.get_parent();
+        }
+        if (result in DRAG_CURSOR_MAP) global.set_cursor(DRAG_CURSOR_MAP[result]);
+        else global.set_cursor(Cinnamon.Cursor.DND_IN_DRAG);
+        return false;
+    }
+
+    // finished
+    private _queueUpdateDragHover() {
+        if (this._updateHoverId)
+            return;
+        // @ts-ignore
+        this._updateHoverId = idle_add(PRIORITY_DEFAULT, () => this._updateDragHover);
+    }
+
+    // finished
+    private _updateDragPosition(event: imports.gi.Clutter.Event) {
+        let [stageX, stageY] = event.get_coords();
+        this._dragX = stageX;
+        this._dragY = stageY;
+
+        this._setDragActorPosition();
+
+        this._queueUpdateDragHover();
+        return true;
+    }
+
+    // finished
+    private _setDragActorPosition() {
+
+        if (this._dragActor) {
+            this._dragActor.x = this._overrideX == undefined ?
+                this._dragX || 0 + (this._dragOffsetX || 0) : this._overrideX;
+
+            this._dragActor.y = this._overrideY == undefined ?
+                this._dragY || 0 + (this._dragOffsetY || 0) : this._overrideY;
+        }
+    }
+
+    private _dragActorDropped(event: imports.gi.Clutter.Event) {
+        let [dropX, dropY] = event.get_coords();
+        let target = null;
+
+        if (this._overrideX != undefined) dropX = this._overrideX;
+        if (this._overrideY != undefined) dropY = this._overrideY;
+
+        if (this.target)
+            target = this.target;
+        else
+            target = this._dragActor?.get_stage().get_actor_at_pos(PickMode.ALL,
+                dropX, dropY);
+
+        // We call observers only once per motion with the innermost
+        // target actor. If necessary, the observer can walk the
+        // parent itself.
+        let dropEvent = {
+            dropActor: this._dragActor,
+            targetActor: target,
+            clutterEvent: event
+        };
+        for (let i = 0; i < dragMonitors.length; i++) {
+            let dropFunc = dragMonitors[i].dragDrop;
+            if (dropFunc)
+                switch (dropFunc(dropEvent)) {
+                    case DragDropResult.FAILURE:
+                    case DragDropResult.SUCCESS:
+                        return true;
+                    case DragDropResult.CONTINUE:
+                        continue;
+                }
+        }
+
+        // At this point it is too late to cancel a drag by destroying
+        // the actor, the fate of which is decided by acceptDrop and its
+        // side-effects
+        this._dragCancellable = false;
+
+        while (target) {
+            if (target._delegate && target._delegate.acceptDrop) {
+                let [r, targX, targY] = target.transform_stage_point(dropX, dropY);
+                if (target._delegate.acceptDrop(this.actor._delegate,
+                    this._dragActor,
+                    targX,
+                    targY,
+                    event.get_time())) {
+                    // If it accepted the drop without taking the actor,
+                    // handle it ourselves.
+                    if (!this._dragActor.is_finalized() && this._dragActor.get_parent() === Main.uiGroup) {
+                        if (this._restoreOnSuccess) {
+                            this._restoreDragActor(event.get_time());
+                            return true;
+                        } else
+                            this._dragActor.destroy();
+                    }
+
+                    this._dragInProgress = false;
+                    global.unset_cursor();
+                    // @ts-ignore
+                    this.emit('drag-end', event.get_time(), true);
+                    this._dragComplete();
+                    return true;
+                }
+            }
+            target = target.get_parent();
+        }
+
+        this._cancelDrag(event.get_time());
+
+        return true;
     }
 
     private _dragComplete() {
-        if (!this._actorDestroyed && !this._dragActor?.is_finalized())
+        if (!this._actorDestroyed && !this._dragActor?.is_finalized() && this._dragActor)
             util_set_hidden_from_pick(this._dragActor, false);
 
         this._ungrabEvents();
