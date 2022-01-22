@@ -14,14 +14,7 @@ const { source_remove } = imports.gi.GLib
 const { pushModal, popModal, uiGroup } = imports.ui.main
 
 const { grab_pointer, EventType, ungrab_pointer, Actor, KEY_Escape, PickMode } = imports.gi.Clutter
-const { DragMotionResult, DragDropResult } = imports.ui.dnd
-
-const { Settings } = imports.gi.Gtk
-const { idle_add, PRIORITY_DEFAULT } = imports.gi.GLib
-
-const SCALE_ANIMATION_TIME = 0.25;
-const dragMonitors = [];
-
+const { DragMotionResult, DragDropResult, SCALE_ANIMATION_TIME, SNAP_BACK_ANIMATION_TIME, REVERT_ANIMATION_TIME, DRAG_CURSOR_MAP } = imports.ui.dnd
 
 declare global {
     // added during build (see webpack.config.js)
@@ -34,6 +27,13 @@ declare global {
     }
 }
 
+const { Settings } = imports.gi.Gtk
+const { idle_add, PRIORITY_DEFAULT } = imports.gi.GLib
+
+
+
+
+
 let eventHandlerActor: null | imports.gi.Clutter.Actor = null
 let currentDraggable: null | _Draggable = null
 
@@ -43,28 +43,38 @@ function _getEventHandlerActor() {
         uiGroup.add_actor(eventHandlerActor);
         // We connect to 'event' rather than 'captured-event' because the capturing phase doesn't happen
         // when you've grabbed the pointer.
-        eventHandlerActor.connect('event',
-            function (actor, event) {
-                return currentDraggable?._onEvent(actor, event);
-            });
+        // @ts-ignore
+        eventHandlerActor.connect('event', () => currentDraggable?._onEvent(actor, event))
     }
     return eventHandlerActor;
 }
 
-interface ActorWithDelegate extends imports.gi.St.Widget {
-    _delegate?: imports.ui.applet.Applet
+interface DraggableActor extends imports.gi.St.Widget {
+    _delegate?: {
+        getDragActor: () => imports.gi.St.Widget
+        getDragActorSource: () => imports.gi.St.BoxLayout
+    }
 }
 
-function makeDraggable(actor: imports.gi.St.BoxLayout) {
+function makeDraggable(actor: DraggableActor) {
     return new _Draggable(actor)
 }
+
+interface DragTarget extends imports.gi.St.Widget {
+    _delegate: {
+        handleDragOver: (source: imports.ui.applet.Applet | imports.ui.desklet.Desklet, actor: imports.gi.Clutter.Actor, x: number, y: number, time: number) => imports.ui.dnd.DragMotionResult
+        handleDragOut?: () => void
+        acceptDrop: (source: imports.ui.applet.Applet | imports.ui.desklet.Desklet, actor: imports.gi.Clutter.Actor, x: number, y: number, time: number) => boolean
+    }
+}
+
 
 class _Draggable {
 
     public inhibit: boolean
-    public actor: ActorWithDelegate
-    public target: null
-    public buttonPressEventId: number | undefined
+    public actor: DraggableActor
+    public target: null | DragTarget
+    public buttonPressEventId: number
     public destroyEventId: number
     private _buttonDown: boolean
     private _dragInProgress: boolean
@@ -96,11 +106,11 @@ class _Draggable {
     private _snapBackY: undefined | number
     private _snapBackScale: undefined | number
     private _dragActorMaxSize: undefined
-    private recentDropTarget: undefined | null
+    private recentDropTarget: undefined | null | DragTarget
 
 
     // finished
-    constructor(actor: ActorWithDelegate) {
+    constructor(actor: DraggableActor) {
 
         const params = {
             manualMode: false,
@@ -213,11 +223,7 @@ class _Draggable {
             if (this._dragInProgress) {
                 return this._dragActorDropped(event);
             } else if (this._dragActor != null && !this._animationInProgress) {
-                // Drag must have been cancelled with Esc.
-                // Check if escaped drag was from a desklet
-                if (this.target?._delegate.acceptDrop) {
-                    this.target?._delegate.cancelDrag(this.actor._delegate, this._dragActor);
-                }
+
                 this._dragComplete();
                 return true;
             } else {
@@ -284,7 +290,8 @@ class _Draggable {
             this.actor.hover = false;
         }
 
-        // this.emit('drag-begin', time);
+        // @ts-ignore
+        this.emit('drag-begin', time);
         if (this._onEventId)
             this._ungrabActor();
         this._grabEvents();
@@ -411,7 +418,7 @@ class _Draggable {
     // finished
     private _updateDragHover() {
         this._updateHoverId = 0;
-        let target: ActorWithDelegate | null = null;
+        let target: DragTarget | null | imports.gi.Clutter.Actor = null;
         let result = null;
 
         let x = this._overrideX == undefined ? this._dragX : this._overrideX
@@ -421,59 +428,45 @@ class _Draggable {
             let allocation = util_get_transformed_allocation(this.recentDropTarget);
 
             // @ts-ignore
-            if (x < allocation.x1 || x > allocation.x2 || y < allocation.y1 || y > allocation.y2) {
+            if (x < allocation.x1 || x > allocation.x2 || y < allocation.y1 || y > allocation.y2 && this.recentDropTarget?._delegate?.handleDragOut) {
+                //@ts-ignore
                 this.recentDropTarget._delegate.handleDragOut();
                 this.recentDropTarget = null;
             }
         }
 
-        if (this.target) {
-            target = this.target;
-        } else {
-            let stage = this._dragActor?.get_stage();
-            if (!stage) {
-                return;
-            }
-            target = stage.get_actor_at_pos(PickMode.ALL, x || 0, y || 0) as ActorWithDelegate;
-        }
 
-        let dragEvent = {
-            x: this._dragX,
-            y: this._dragY,
-            dragActor: this._dragActor,
-            source: this.actor._delegate,
-            targetActor: target
-        };
-        for (let i = 0; i < dragMonitors.length; i++) {
-            let motionFunc = dragMonitors[i].dragMotion;
-            if (motionFunc) {
-                result = motionFunc(dragEvent);
-                if (result == DragMotionResult.MOVE_DROP || result == DragMotionResult.COPY_DROP) {
-                    break;
-                }
-            }
+        let stage = this._dragActor?.get_stage();
+        if (!stage) {
+            return;
         }
+        target = stage.get_actor_at_pos(PickMode.ALL, x || 0, y || 0) as DragTarget;
 
         while (target) {
-            if (target._delegate && target._delegate.handleDragOver) {
+            // @ts-ignore
+            if (target._delegate && target._delegate.handleDragOver && this.actor._delegate) {
+                // @ts-ignore
                 let [r, targX, targY] = target.transform_stage_point(x, y);
                 // We currently loop through all parents on drag-over even if one of the children has handled it.
                 // We can check the return value of the function and break the loop if it's true if we don't want
                 // to continue checking the parents.
+                // @ts-ignore
                 result = target._delegate.handleDragOver(this.actor._delegate,
                     this._dragActor,
                     targX,
                     targY,
                     0);
                 if (result == DragMotionResult.MOVE_DROP || result == DragMotionResult.COPY_DROP) {
+                    // @ts-ignore
                     if (target._delegate.handleDragOut) this.recentDropTarget = target;
                     break;
                 }
             }
             target = target.get_parent();
         }
+        // @ts-ignore
         if (result in DRAG_CURSOR_MAP) global.set_cursor(DRAG_CURSOR_MAP[result]);
-        else global.set_cursor(Cinnamon.Cursor.DND_IN_DRAG);
+        else global.set_cursor(Cursor.DND_IN_DRAG);
         return false;
     }
 
@@ -509,18 +502,17 @@ class _Draggable {
         }
     }
 
+    // finished
     private _dragActorDropped(event: imports.gi.Clutter.Event) {
         let [dropX, dropY] = event.get_coords();
-        let target = null;
+        let target: null | DragTarget | imports.gi.Clutter.Actor = null;
 
         if (this._overrideX != undefined) dropX = this._overrideX;
         if (this._overrideY != undefined) dropY = this._overrideY;
 
-        if (this.target)
-            target = this.target;
-        else
-            target = this._dragActor?.get_stage().get_actor_at_pos(PickMode.ALL,
-                dropX, dropY);
+
+        target = this._dragActor?.get_stage().get_actor_at_pos(PickMode.ALL,
+            dropX, dropY) as DragTarget;
 
         // We call observers only once per motion with the innermost
         // target actor. If necessary, the observer can walk the
@@ -530,17 +522,6 @@ class _Draggable {
             targetActor: target,
             clutterEvent: event
         };
-        for (let i = 0; i < dragMonitors.length; i++) {
-            let dropFunc = dragMonitors[i].dragDrop;
-            if (dropFunc)
-                switch (dropFunc(dropEvent)) {
-                    case DragDropResult.FAILURE:
-                    case DragDropResult.SUCCESS:
-                        return true;
-                    case DragDropResult.CONTINUE:
-                        continue;
-                }
-        }
 
         // At this point it is too late to cancel a drag by destroying
         // the actor, the fate of which is decided by acceptDrop and its
@@ -548,8 +529,10 @@ class _Draggable {
         this._dragCancellable = false;
 
         while (target) {
+            // @ts-ignore
             if (target._delegate && target._delegate.acceptDrop) {
                 let [r, targX, targY] = target.transform_stage_point(dropX, dropY);
+                // @ts-ignore
                 if (target._delegate.acceptDrop(this.actor._delegate,
                     this._dragActor,
                     targX,
@@ -557,7 +540,7 @@ class _Draggable {
                     event.get_time())) {
                     // If it accepted the drop without taking the actor,
                     // handle it ourselves.
-                    if (!this._dragActor.is_finalized() && this._dragActor.get_parent() === Main.uiGroup) {
+                    if (!this._dragActor?.is_finalized() && this._dragActor?.get_parent() === uiGroup) {
                         if (this._restoreOnSuccess) {
                             this._restoreDragActor(event.get_time());
                             return true;
@@ -581,6 +564,121 @@ class _Draggable {
         return true;
     }
 
+
+    // finish
+    private _getRestoreLocation() {
+        let x: number | null | undefined, y: number | null | undefined, scale: number | undefined;
+
+        if (this._dragActorSource && this._dragActorSource.visible) {
+            // Snap the clone back to its source
+            [x, y] = this._dragActorSource.get_transformed_position();
+            let [sourceScaledWidth, sourceScaledHeight] = this._dragActorSource.get_transformed_size();
+            scale = this._dragActor?.width || 0 / (sourceScaledWidth || 0);
+        } else if (this._dragOrigParent) {
+            // Snap the actor back to its original position within
+            // its parent, adjusting for the fact that the parent
+            // may have been moved or scaled
+            let [parentX, parentY] = this._dragOrigParent.get_transformed_position();
+            let [parentWidth, parentHeight] = this._dragOrigParent.get_size();
+            let [parentScaledWidth, parentScaledHeight] = this._dragOrigParent.get_transformed_size();
+            let parentScale = 1.0;
+            if (parentWidth != 0)
+                parentScale = (parentScaledWidth || 0) / (parentWidth || 0);
+
+            x = parentX || 0 + parentScale * (this._dragOrigX || 0);
+            y = (parentY || 0) + parentScale * (this._dragOrigY || 0);
+            scale = (this._dragOrigScale || 0) * parentScale;
+        } else {
+            // Snap back actor to its original stage position
+            x = this._snapBackX;
+            y = this._snapBackY;
+            scale = this._snapBackScale;
+        }
+
+        return [x, y, scale];
+    }
+    // finish
+    private _cancelDrag(eventTime: number) {
+        // @ts-ignore
+        this.emit('drag-cancelled', eventTime);
+        this._dragInProgress = false;
+        let [snapBackX, snapBackY, snapBackScale] = this._getRestoreLocation();
+
+        if (this._actorDestroyed) {
+            global.unset_cursor();
+            if (!this._buttonDown)
+                this._dragComplete();
+            // @ts-ignore
+            this.emit('drag-end', eventTime, false);
+            if (!this._dragOrigParent)
+                this._dragActor?.destroy();
+
+            return;
+        }
+
+        this._animationInProgress = true;
+
+        if (this._dragActor) {
+            // No target, so snap back
+            Tweener.addTween(this._dragActor,
+                {
+                    x: snapBackX,
+                    y: snapBackY,
+                    scale_x: snapBackScale,
+                    scale_y: snapBackScale,
+                    opacity: this._dragOrigOpacity,
+                    time: SNAP_BACK_ANIMATION_TIME,
+                    transition: 'easeOutQuad',
+                    onComplete: this._onAnimationComplete,
+                    onCompleteScope: this,
+                    onCompleteParams: [this._dragActor, eventTime]
+                });
+        }
+
+    }
+
+    private _restoreDragActor(eventTime: number) {
+        this._dragInProgress = false;
+        let [restoreX, restoreY, restoreScale] = this._getRestoreLocation();
+
+        // fade the actor back in at its original location
+        this._dragActor?.set_position(restoreX || 0, restoreY || 0);
+        this._dragActor?.set_scale(restoreScale || 0, restoreScale || 0);
+        if (this._dragActor) {
+            this._dragActor.opacity = 0;
+
+            this._animationInProgress = true;
+            Tweener.addTween(this._dragActor,
+                {
+                    opacity: this._dragOrigOpacity,
+                    time: REVERT_ANIMATION_TIME,
+                    transition: 'easeOutQuad',
+                    onComplete: this._onAnimationComplete,
+                    onCompleteScope: this,
+                    onCompleteParams: [this._dragActor, eventTime]
+                });
+        }
+
+
+    }
+
+    private _onAnimationComplete(dragActor: imports.gi.Clutter.Actor, eventTime: number) {
+        if (this._dragOrigParent) {
+            global.reparentActor(dragActor, this._dragOrigParent);
+            dragActor.set_scale(this._dragOrigScale || 0, this._dragOrigScale || 0);
+            dragActor.set_position(this._dragOrigX || 0, this._dragOrigY || 0);
+        } else {
+            dragActor.destroy();
+        }
+        global.unset_cursor();
+        // @ts-ignore
+        this.emit('drag-end', eventTime, false);
+
+        this._animationInProgress = false;
+        if (!this._buttonDown)
+            this._dragComplete();
+    }
+
     private _dragComplete() {
         if (!this._actorDestroyed && !this._dragActor?.is_finalized() && this._dragActor)
             util_set_hidden_from_pick(this._dragActor, false);
@@ -598,18 +696,13 @@ class _Draggable {
     }
 
 
-    private _cancelDrag(eventTime: number) {
-        // TODO: emit drag-cancelled
 
-
-
-
-    }
 }
 
 export function main() {
 
-    global.log(global.screen_height)
+    // @ts-ignore
+
 
     // order must be retained!
     initPolyfills()

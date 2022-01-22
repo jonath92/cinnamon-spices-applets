@@ -14,15 +14,15 @@ export function createRadioAppletContainerNew(args: Arguments) {
 
     const appletContainer = new BoxLayout({
         style_class: 'applet-box',
-        reactive: true, 
+        reactive: true,
         track_hover: true
     })
 
     appletContainer.connect('button-press-event', (owner, event) => {
-        
+
         const btnNumberCallback: Record<number, () => void> = {
-            1: onClick, 
-            2: onMiddleClick, 
+            1: onClick,
+            2: onMiddleClick,
             3: onRightClick
         }
 
