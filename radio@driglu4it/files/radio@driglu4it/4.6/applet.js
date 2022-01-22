@@ -26,5 +26,8 @@ function main(metadata, orientation, panel_height, instance_id) {
     dummyApplet.actor = trueApplet.actor
     dummyApplet.getAllowedLayout = trueApplet.getAllowedLayout
 
+    dummyApplet.actor._delegate = dummyApplet
+    dummyApplet.actor._applet = dummyApplet
+
     return dummyApplet;
 }
