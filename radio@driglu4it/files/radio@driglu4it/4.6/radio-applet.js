@@ -4327,7 +4327,6 @@ function createRadioAppletContainerNew(args) {
             2: onMiddleClick,
             3: onRightClick
         };
-        global.log('event: ', event.type());
         const btnNumber = event.get_button();
         btnNumberCallback[btnNumber]();
         return true;
