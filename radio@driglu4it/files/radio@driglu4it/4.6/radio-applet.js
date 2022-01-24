@@ -4314,6 +4314,11 @@ function RadioAppletIcon_createRadioAppletIcon() {
 
 ;// CONCATENATED MODULE: ./src/ui/RadioApplet/RadioAppletContainerNew.ts
 const { BoxLayout } = imports.gi.St;
+const { GenericContainer, Cursor } = imports.gi.Cinnamon;
+const { grab_pointer, EventType, KEY_Escape, Clone } = imports.gi.Clutter;
+const { uiGroup } = imports.ui.main;
+const Gdk = imports.gi.Gdk;
+let IS_DRAGGING = false;
 function createRadioAppletContainerNew(args) {
     const { onClick, onMiddleClick, onRightClick, onScroll } = args;
     const appletContainer = new BoxLayout({
@@ -4321,13 +4326,82 @@ function createRadioAppletContainerNew(args) {
         reactive: true,
         track_hover: true
     });
+    const dragActor = new Clone({
+        source: appletContainer,
+        width: appletContainer.width,
+        height: appletContainer.height,
+        visible: false
+    });
+    appletContainer.connect('notify::width', () => dragActor.width = appletContainer.width);
+    appletContainer.connect('notify::height', () => dragActor.height = appletContainer.height);
+    const display = Gdk.Display.get_default();
+    const deviceManager = display === null || display === void 0 ? void 0 : display.get_device_manager();
+    const pointer = deviceManager === null || deviceManager === void 0 ? void 0 : deviceManager.get_client_pointer();
+    pointer === null || pointer === void 0 ? void 0 : pointer.connect('changed', () => global.log('changed pointer called'));
+    global.log('position', pointer === null || pointer === void 0 ? void 0 : pointer.get_position());
+    const handleDrag = () => {
+        IS_DRAGGING = true;
+        // TODO using grab_pointer is bad practise (see jsdoc)
+        //grab_pointer(appletContainer)
+        appletContainer.connect('event', (_, event) => {
+            const eventType = event.type();
+            global.log(eventType);
+            if (eventType === EventType.BUTTON_RELEASE) {
+                global.log('drag complete');
+                return true;
+            }
+            if (eventType === EventType.MOTION) {
+                global.log('motion event called');
+                global.set_cursor(Cursor.DND_IN_DRAG);
+                //const pointer = global.get_pointer()
+                const [stageX, stageY] = event.get_coords();
+                // const dragActor = new Clone({
+                //     source: appletContainer,
+                //     width: appletContainer.width,
+                //     height: appletContainer.height
+                // })
+                global.reparentActor(dragActor, uiGroup);
+                dragActor.raise_top();
+                dragActor.show();
+                dragActor.set_position(stageX, stageY);
+                const [pointerX, pointerY] = global.get_pointer();
+                setInterval(() => {
+                    dragActor.set_position(pointerX, pointerY);
+                }, 10);
+            }
+            if (eventType === EventType.KEY_PRESS) {
+                global.log('key pressed');
+                global.log('cancel drag');
+                global.unset_cursor();
+            }
+            return true;
+        });
+        return true;
+    };
     appletContainer.connect('button-press-event', (owner, event) => {
+        global.log('button-press-called');
         const btnNumberCallback = {
             1: onClick,
             2: onMiddleClick,
             3: onRightClick
         };
         const btnNumber = event.get_button();
+        if (btnNumber === 1 && global.settings.get_boolean('panel-edit-mode')) {
+            if (IS_DRAGGING)
+                return true;
+            IS_DRAGGING = true;
+            global.set_cursor(Cursor.DND_IN_DRAG);
+            const [stageX, stageY] = event.get_coords();
+            global.reparentActor(dragActor, uiGroup);
+            dragActor.raise_top();
+            dragActor.show();
+            dragActor.set_position(stageX, stageY);
+            setInterval(() => {
+                const [pointerX, pointerY] = global.get_pointer();
+                dragActor.set_position(pointerX, pointerY);
+            }, 10);
+            return true;
+        }
         btnNumberCallback[btnNumber]();
         return true;
     });
@@ -4484,7 +4558,7 @@ function createInfoSection() {
 
 ;// CONCATENATED MODULE: ./src/lib/Slider.ts
 const { DrawingArea: Slider_DrawingArea } = imports.gi.St;
-const { cairo_set_source_color, grab_pointer, ungrab_pointer } = imports.gi.Clutter;
+const { cairo_set_source_color, grab_pointer: Slider_grab_pointer, ungrab_pointer } = imports.gi.Clutter;
 function createSlider(args) {
     const { initialValue, onValueChanged } = args;
     let value = initialValue != null ? limitToMinMax(initialValue) : 0;
@@ -4540,7 +4614,7 @@ function createSlider(args) {
         cr.$dispose();
     });
     drawing.connect('button-press-event', (actor, event) => {
-        grab_pointer(drawing);
+        Slider_grab_pointer(drawing);
         const motionId = drawing.connect('motion-event', (actor, event) => {
             moveHandle(event);
             return false;
@@ -4676,7 +4750,7 @@ function createRadioAppletContainer() {
 ;// CONCATENATED MODULE: ./src/lib/Tooltip.ts
 
 const { Label: Tooltip_Label } = imports.gi.St;
-const { uiGroup } = imports.ui.main;
+const { uiGroup: Tooltip_uiGroup } = imports.ui.main;
 // @ts-ignore
 const { registerClass } = imports.gi.GObject;
 const Tooltip = registerClass({
@@ -4690,15 +4764,15 @@ const Tooltip = registerClass({
     _init(constructProperties = {}) {
         // @ts-ignore
         super._init(Object.assign({ name: 'Tooltip', visible: false }, constructProperties));
-        uiGroup.add_child(this);
-        this.uiGroupActorAddedSignalId = uiGroup.connect('actor-added', () => uiGroup.set_child_above_sibling(this, null));
+        Tooltip_uiGroup.add_child(this);
+        this.uiGroupActorAddedSignalId = Tooltip_uiGroup.connect('actor-added', () => Tooltip_uiGroup.set_child_above_sibling(this, null));
         this.panelEditSignalId = global.settings.connect('changed::panel-edit-mode', () => this.visible = false);
         addAppletRemovedFromPanelCleanup(() => {
             this.destroy();
         });
     }
     destroy() {
-        this.uiGroupActorAddedSignalId && uiGroup.disconnect(this.uiGroupActorAddedSignalId);
+        this.uiGroupActorAddedSignalId && Tooltip_uiGroup.disconnect(this.uiGroupActorAddedSignalId);
         this.panelEditSignalId && global.settings.disconnect(this.panelEditSignalId);
         super.disconnect;
     }
@@ -5420,13 +5494,13 @@ function RadioPopupMenu_createRadioPopupMenu(props) {
 
 
 const { Applet, AllowedLayout } = imports.ui.applet;
-const { GenericContainer, util_set_hidden_from_pick, Cursor, util_get_transformed_allocation } = imports.gi.Cinnamon;
+const { GenericContainer: src_GenericContainer, util_set_hidden_from_pick, Cursor: src_Cursor, util_get_transformed_allocation } = imports.gi.Cinnamon;
 const { BoxLayout: src_BoxLayout } = imports.gi.St;
 const Lang = imports.lang;
 const Tweener = imports.ui.tweener;
 const { source_remove } = imports.gi.GLib;
 const { pushModal, popModal, uiGroup: src_uiGroup } = imports.ui.main;
-const { grab_pointer: src_grab_pointer, EventType, ungrab_pointer: src_ungrab_pointer, Actor, KEY_Escape, PickMode } = imports.gi.Clutter;
+const { grab_pointer: src_grab_pointer, EventType: src_EventType, ungrab_pointer: src_ungrab_pointer, Actor, KEY_Escape: src_KEY_Escape, PickMode } = imports.gi.Clutter;
 const { DragMotionResult, DragDropResult, SCALE_ANIMATION_TIME, SNAP_BACK_ANIMATION_TIME, REVERT_ANIMATION_TIME, DRAG_CURSOR_MAP } = imports.ui.dnd;
 const { Settings: src_Settings } = imports.gi.Gtk;
 const { idle_add, PRIORITY_DEFAULT } = imports.gi.GLib;
@@ -5540,7 +5614,7 @@ class _Draggable {
         // didn't start the drag, to drop the draggable in case the drag was in progress, and
         // to complete the drag and ensure that whatever happens to be under the pointer does
         // not get triggered if the drag was cancelled with Esc.
-        if (event.type() == EventType.BUTTON_RELEASE) {
+        if (event.type() == src_EventType.BUTTON_RELEASE) {
             this._buttonDown = false;
             if (this._dragInProgress) {
                 return this._dragActorDropped(event);
@@ -5557,7 +5631,7 @@ class _Draggable {
             // We intercept MOTION event to figure out if the drag has started and to draw
             // this._dragActor under the pointer when dragging is in progress
         }
-        else if (event.type() == EventType.MOTION) {
+        else if (event.type() == src_EventType.MOTION) {
             if (this._dragInProgress) {
                 return this._updateDragPosition(event);
             }
@@ -5567,9 +5641,9 @@ class _Draggable {
             // We intercept KEY_PRESS event so that we can process Esc key press to cancel
             // dragging and ignore all other key presses.
         }
-        else if (event.type() == EventType.KEY_PRESS && this._dragInProgress) {
+        else if (event.type() == src_EventType.KEY_PRESS && this._dragInProgress) {
             let symbol = event.get_key_symbol();
-            if (symbol === KEY_Escape) {
+            if (symbol === src_KEY_Escape) {
                 this._cancelDrag(event.get_time());
                 return true;
             }
@@ -5604,18 +5678,12 @@ class _Draggable {
     startDrag(stageX, stageY, time) {
         currentDraggable = this;
         this._dragInProgress = true;
-        // Special-case St.Button: the pointer grab messes with the internal
-        // state, so force a reset to a reasonable state here
-        if (this.actor instanceof imports.gi.St.Button) {
-            this.actor.fake_release();
-            this.actor.hover = false;
-        }
         // @ts-ignore
-        this.emit('drag-begin', time);
+        // this.emit('drag-begin', time);
         if (this._onEventId)
             this._ungrabActor();
         this._grabEvents();
-        global.set_cursor(Cursor.DND_IN_DRAG);
+        global.set_cursor(src_Cursor.DND_IN_DRAG);
         this._dragX = this._dragStartX = stageX;
         this._dragY = this._dragStartY = stageY;
         if (this.actor._delegate !== undefined) {
@@ -5767,7 +5835,7 @@ class _Draggable {
         if (result in DRAG_CURSOR_MAP)
             global.set_cursor(DRAG_CURSOR_MAP[result]);
         else
-            global.set_cursor(Cursor.DND_IN_DRAG);
+            global.set_cursor(src_Cursor.DND_IN_DRAG);
         return false;
     }
     // finished
@@ -5836,7 +5904,7 @@ class _Draggable {
                     this._dragInProgress = false;
                     global.unset_cursor();
                     // @ts-ignore
-                    this.emit('drag-end', event.get_time(), true);
+                    //this.emit('drag-end', event.get_time(), true);
                     this._dragComplete();
                     return true;
                 }
@@ -5881,8 +5949,6 @@ class _Draggable {
     // finish
     _cancelDrag(eventTime) {
         var _a;
-        // @ts-ignore
-        this.emit('drag-cancelled', eventTime);
         this._dragInProgress = false;
         let [snapBackX, snapBackY, snapBackScale] = this._getRestoreLocation();
         if (this._actorDestroyed) {
@@ -5890,7 +5956,7 @@ class _Draggable {
             if (!this._buttonDown)
                 this._dragComplete();
             // @ts-ignore
-            this.emit('drag-end', eventTime, false);
+            //this.emit('drag-end', eventTime, false);
             if (!this._dragOrigParent)
                 (_a = this._dragActor) === null || _a === void 0 ? void 0 : _a.destroy();
             return;
@@ -5943,7 +6009,7 @@ class _Draggable {
         }
         global.unset_cursor();
         // @ts-ignore
-        this.emit('drag-end', eventTime, false);
+        //  this.emit('drag-end', eventTime, false);
         this._animationInProgress = false;
         if (!this._buttonDown)
             this._dragComplete();
@@ -5962,8 +6028,28 @@ class _Draggable {
         currentDraggable = null;
     }
 }
+// TODO: add the cleanup stuff
 function main() {
     // @ts-ignore
+    global.stage.connect('event', () => {
+        global.log('stage event');
+    });
+    src_uiGroup.connect('event', () => {
+        global.log('uiGroup event');
+        return false;
+    });
+    global.background_actor.connect('event', () => {
+        global.log('background_actor event');
+        return false;
+    });
+    global.overlay_group.connect('event', () => {
+        global.log('overlay group event');
+        return false;
+    });
+    global.stage.connect('key-press-event', () => {
+        global.log('key press event');
+        return false;
+    });
     // order must be retained!
     initPolyfills();
     initConfig();
@@ -5975,19 +6061,16 @@ function main() {
         onRightClick: () => global.log('onRigh Click'),
         onScroll: () => global.log(global.get_current_time())
     });
-    const dragActor = new GenericContainer({
-        style_class: 'drag-item-container'
-    });
     const popupMenu = RadioPopupMenu_createRadioPopupMenu({ launcher: appletContainer });
     appletContainer.add_child(RadioAppletIcon_createRadioAppletIcon());
     return {
         actor: appletContainer,
-        on_applet_reloaded: () => { },
-        _onAppletRemovedFromPanel: () => { },
-        // _panelLocation: null,
-        on_applet_added_to_panel_internal: () => { },
-        _addStyleClass: () => { },
-        finalizeContextMenu: () => { },
+        // on_applet_reloaded: () => { },
+        // _onAppletRemovedFromPanel: () => { },
+        // // _panelLocation: null,
+        // on_applet_added_to_panel_internal: () => { },
+        // _addStyleClass: () => { },
+        // finalizeContextMenu: () => { },
         getAllowedLayout: () => AllowedLayout.BOTH
     };
 }

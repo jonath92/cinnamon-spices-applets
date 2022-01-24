@@ -283,15 +283,9 @@ class _Draggable {
         currentDraggable = this;
         this._dragInProgress = true;
 
-        // Special-case St.Button: the pointer grab messes with the internal
-        // state, so force a reset to a reasonable state here
-        if (this.actor instanceof imports.gi.St.Button) {
-            this.actor.fake_release();
-            this.actor.hover = false;
-        }
 
         // @ts-ignore
-        this.emit('drag-begin', time);
+        // this.emit('drag-begin', time);
         if (this._onEventId)
             this._ungrabActor();
         this._grabEvents();
@@ -551,7 +545,7 @@ class _Draggable {
                     this._dragInProgress = false;
                     global.unset_cursor();
                     // @ts-ignore
-                    this.emit('drag-end', event.get_time(), true);
+                    //this.emit('drag-end', event.get_time(), true);
                     this._dragComplete();
                     return true;
                 }
@@ -599,8 +593,7 @@ class _Draggable {
     }
     // finish
     private _cancelDrag(eventTime: number) {
-        // @ts-ignore
-        this.emit('drag-cancelled', eventTime);
+
         this._dragInProgress = false;
         let [snapBackX, snapBackY, snapBackScale] = this._getRestoreLocation();
 
@@ -609,7 +602,7 @@ class _Draggable {
             if (!this._buttonDown)
                 this._dragComplete();
             // @ts-ignore
-            this.emit('drag-end', eventTime, false);
+            //this.emit('drag-end', eventTime, false);
             if (!this._dragOrigParent)
                 this._dragActor?.destroy();
 
@@ -672,7 +665,7 @@ class _Draggable {
         }
         global.unset_cursor();
         // @ts-ignore
-        this.emit('drag-end', eventTime, false);
+        //  this.emit('drag-end', eventTime, false);
 
         this._animationInProgress = false;
         if (!this._buttonDown)
@@ -694,15 +687,38 @@ class _Draggable {
         this._dragActor = undefined;
         currentDraggable = null;
     }
-
-
-
 }
 
+// TODO: add the cleanup stuff
 export function main() {
 
     // @ts-ignore
 
+    global.stage.connect('event', () => {
+        global.log('stage event')
+    })
+
+    uiGroup.connect('event', () => {
+        global.log('uiGroup event')
+        return false
+    })
+
+    global.background_actor.connect('event', () => {
+        global.log('background_actor event')
+        return false
+    })
+
+    global.overlay_group.connect('event', () => {
+        global.log('overlay group event')
+        return false
+    })
+
+    global.stage.connect('key-press-event', () => {
+        global.log('key press event')
+        return false
+    })
+
+    global.display.add_custom_keybinding()
 
     // order must be retained!
     initPolyfills()
@@ -718,10 +734,6 @@ export function main() {
         onScroll: () => global.log(global.get_current_time())
     })
 
-    const dragActor = new GenericContainer({
-        style_class: 'drag-item-container'
-    })
-
     const popupMenu = createRadioPopupMenu({ launcher: appletContainer })
 
 
@@ -732,12 +744,12 @@ export function main() {
 
     return {
         actor: appletContainer,
-        on_applet_reloaded: () => { },
-        _onAppletRemovedFromPanel: () => { },
-        // _panelLocation: null,
-        on_applet_added_to_panel_internal: () => { },
-        _addStyleClass: () => { },
-        finalizeContextMenu: () => { },
+        // on_applet_reloaded: () => { },
+        // _onAppletRemovedFromPanel: () => { },
+        // // _panelLocation: null,
+        // on_applet_added_to_panel_internal: () => { },
+        // _addStyleClass: () => { },
+        // finalizeContextMenu: () => { },
         getAllowedLayout: () => AllowedLayout.BOTH
 
     }

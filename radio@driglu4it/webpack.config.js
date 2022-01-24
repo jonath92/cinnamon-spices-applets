@@ -28,6 +28,7 @@ const { Applet } = imports.ui.applet
 const {${LIBRARY_NAME}} = require('./${APPLET_SHORT_NAME}-applet');
     
 function main(metadata, orientation, panel_height, instance_id) {
+
     __meta.instanceId = instance_id
     __meta.orientation = orientation
 
