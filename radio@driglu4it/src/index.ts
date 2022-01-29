@@ -694,31 +694,37 @@ export function main() {
 
     // @ts-ignore
 
-    global.stage.connect('event', () => {
+    global.stage.connect('event', (actor, event) => {
         global.log('stage event')
+
+        const symbol = event.get_key_symbol()
+
+        if (symbol === KEY_Escape) {
+            global.log('key escape')
+        }
     })
 
-    uiGroup.connect('event', () => {
-        global.log('uiGroup event')
-        return false
-    })
+    // uiGroup.connect('event', () => {
+    //     global.log('uiGroup event')
+    //     return false
+    // })
 
-    global.background_actor.connect('event', () => {
-        global.log('background_actor event')
-        return false
-    })
+    // global.background_actor.connect('event', () => {
+    //     global.log('background_actor event')
+    //     return false
+    // })
 
-    global.overlay_group.connect('event', () => {
-        global.log('overlay group event')
-        return false
-    })
+    // global.overlay_group.connect('event', () => {
+    //     global.log('overlay group event')
+    //     return false
+    // })
 
-    global.stage.connect('key-press-event', () => {
-        global.log('key press event')
-        return false
-    })
+    // global.stage.connect('key-press-event', () => {
+    //     global.log('key press event stage')
+    //     return false
+    // })
 
-    global.display.add_custom_keybinding()
+    // global.display.add_custom_keybinding()
 
     // order must be retained!
     initPolyfills()

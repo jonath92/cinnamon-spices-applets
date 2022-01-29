@@ -4316,7 +4316,7 @@ function RadioAppletIcon_createRadioAppletIcon() {
 const { BoxLayout } = imports.gi.St;
 const { GenericContainer, Cursor } = imports.gi.Cinnamon;
 const { grab_pointer, EventType, KEY_Escape, Clone } = imports.gi.Clutter;
-const { uiGroup } = imports.ui.main;
+const { uiGroup, pushModal, popModal } = imports.ui.main;
 const Gdk = imports.gi.Gdk;
 let IS_DRAGGING = false;
 function createRadioAppletContainerNew(args) {
@@ -4331,6 +4331,21 @@ function createRadioAppletContainerNew(args) {
         width: appletContainer.width,
         height: appletContainer.height,
         visible: false
+    });
+    //    pushModal(dragActor)
+    dragActor.connect('button-press-event', (actor, event) => {
+        const symbol = event.get_key_symbol();
+        global.log('dragActor keypress event');
+        if (symbol === KEY_Escape) {
+            global.log('key escape');
+            popModal(dragActor);
+        }
+        return true;
+    });
+    // global.stage.set_key_focus(appletContainer)
+    appletContainer.connect('key-press-event', () => {
+        global.log('key press event appletContainer');
+        return true;
     });
     appletContainer.connect('notify::width', () => dragActor.width = appletContainer.width);
     appletContainer.connect('notify::height', () => dragActor.height = appletContainer.height);
@@ -4365,9 +4380,9 @@ function createRadioAppletContainerNew(args) {
                 dragActor.show();
                 dragActor.set_position(stageX, stageY);
                 const [pointerX, pointerY] = global.get_pointer();
-                setInterval(() => {
-                    dragActor.set_position(pointerX, pointerY);
-                }, 10);
+                // setInterval(() => {
+                //     dragActor.set_position(pointerX, pointerY)
+                // }, 10)
             }
             if (eventType === EventType.KEY_PRESS) {
                 global.log('key pressed');
@@ -4389,6 +4404,7 @@ function createRadioAppletContainerNew(args) {
         if (btnNumber === 1 && global.settings.get_boolean('panel-edit-mode')) {
             if (IS_DRAGGING)
                 return true;
+            pushModal(dragActor);
             IS_DRAGGING = true;
             global.set_cursor(Cursor.DND_IN_DRAG);
             const [stageX, stageY] = event.get_coords();
@@ -5499,7 +5515,7 @@ const { BoxLayout: src_BoxLayout } = imports.gi.St;
 const Lang = imports.lang;
 const Tweener = imports.ui.tweener;
 const { source_remove } = imports.gi.GLib;
-const { pushModal, popModal, uiGroup: src_uiGroup } = imports.ui.main;
+const { pushModal: src_pushModal, popModal: src_popModal, uiGroup: src_uiGroup } = imports.ui.main;
 const { grab_pointer: src_grab_pointer, EventType: src_EventType, ungrab_pointer: src_ungrab_pointer, Actor, KEY_Escape: src_KEY_Escape, PickMode } = imports.gi.Clutter;
 const { DragMotionResult, DragDropResult, SCALE_ANIMATION_TIME, SNAP_BACK_ANIMATION_TIME, REVERT_ANIMATION_TIME, DRAG_CURSOR_MAP } = imports.ui.dnd;
 const { Settings: src_Settings } = imports.gi.Gtk;
@@ -5594,7 +5610,7 @@ class _Draggable {
     // finished
     _grabEvents() {
         if (!this._eventsGrabbed) {
-            this._eventsGrabbed = pushModal(_getEventHandlerActor());
+            this._eventsGrabbed = src_pushModal(_getEventHandlerActor());
             if (this._eventsGrabbed)
                 src_grab_pointer(_getEventHandlerActor());
         }
@@ -5603,7 +5619,7 @@ class _Draggable {
     _ungrabEvents() {
         if (this._eventsGrabbed) {
             src_ungrab_pointer();
-            popModal(_getEventHandlerActor());
+            src_popModal(_getEventHandlerActor());
             this._eventsGrabbed = false;
         }
     }
@@ -6031,25 +6047,30 @@ class _Draggable {
 // TODO: add the cleanup stuff
 function main() {
     // @ts-ignore
-    global.stage.connect('event', () => {
+    global.stage.connect('event', (actor, event) => {
         global.log('stage event');
+        const symbol = event.get_key_symbol();
+        if (symbol === src_KEY_Escape) {
+            global.log('key escape');
+        }
     });
-    src_uiGroup.connect('event', () => {
-        global.log('uiGroup event');
-        return false;
-    });
-    global.background_actor.connect('event', () => {
-        global.log('background_actor event');
-        return false;
-    });
-    global.overlay_group.connect('event', () => {
-        global.log('overlay group event');
-        return false;
-    });
-    global.stage.connect('key-press-event', () => {
-        global.log('key press event');
-        return false;
-    });
+    // uiGroup.connect('event', () => {
+    //     global.log('uiGroup event')
+    //     return false
+    // })
+    // global.background_actor.connect('event', () => {
+    //     global.log('background_actor event')
+    //     return false
+    // })
+    // global.overlay_group.connect('event', () => {
+    //     global.log('overlay group event')
+    //     return false
+    // })
+    // global.stage.connect('key-press-event', () => {
+    //     global.log('key press event stage')
+    //     return false
+    // })
+    // global.display.add_custom_keybinding()
     // order must be retained!
     initPolyfills();
     initConfig();

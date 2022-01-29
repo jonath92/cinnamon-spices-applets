@@ -2,7 +2,7 @@ const { BoxLayout } = imports.gi.St
 const { GenericContainer, Cursor } = imports.gi.Cinnamon
 
 const { grab_pointer, EventType, KEY_Escape, Clone } = imports.gi.Clutter
-const { uiGroup } = imports.ui.main
+const { uiGroup, pushModal, popModal } = imports.ui.main
 
 const Gdk = imports.gi.Gdk
 
@@ -30,6 +30,27 @@ export function createRadioAppletContainerNew(args: Arguments) {
         width: appletContainer.width,
         height: appletContainer.height,
         visible: false
+    })
+
+    //    pushModal(dragActor)
+
+    dragActor.connect('button-press-event', (actor, event) => {
+        const symbol = event.get_key_symbol()
+        global.log('dragActor keypress event')
+
+        if (symbol === KEY_Escape) {
+            global.log('key escape')
+            popModal(dragActor)
+        }
+
+        return true
+    })
+
+    // global.stage.set_key_focus(appletContainer)
+
+    appletContainer.connect('key-press-event', () => {
+        global.log('key press event appletContainer')
+        return true
     })
 
     appletContainer.connect('notify::width', () => dragActor.width = appletContainer.width)
@@ -78,9 +99,9 @@ export function createRadioAppletContainerNew(args: Arguments) {
 
                 const [pointerX, pointerY] = global.get_pointer()
 
-                setInterval(() => {
-                    dragActor.set_position(pointerX, pointerY)
-                }, 10)
+                // setInterval(() => {
+                //     dragActor.set_position(pointerX, pointerY)
+                // }, 10)
 
             }
 
@@ -111,6 +132,8 @@ export function createRadioAppletContainerNew(args: Arguments) {
 
         if (btnNumber === 1 && global.settings.get_boolean('panel-edit-mode')) {
             if (IS_DRAGGING) return true
+
+            pushModal(dragActor)
 
             IS_DRAGGING = true
 
