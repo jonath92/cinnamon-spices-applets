@@ -694,15 +694,15 @@ export function main() {
 
     // @ts-ignore
 
-    global.stage.connect('event', (actor, event) => {
-        global.log('stage event')
+    // global.stage.connect('event', (actor, event) => {
+    //     global.log('stage event')
 
-        const symbol = event.get_key_symbol()
+    //     const symbol = event.get_key_symbol()
 
-        if (symbol === KEY_Escape) {
-            global.log('key escape')
-        }
-    })
+    //     if (symbol === KEY_Escape) {
+    //         global.log('key escape')
+    //     }
+    // })
 
     // uiGroup.connect('event', () => {
     //     global.log('uiGroup event')

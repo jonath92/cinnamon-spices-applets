@@ -128,7 +128,7 @@ function createMetadata() {
 
 
 function copyDir(src, dest) {
-    fs.rmdirSync(dest, { recursive: true })
+    fs.existsSync(dest) && fs.rmdirSync(dest, { recursive: true })
     fs.mkdirSync(dest, { recursive: true })
 
     const entries = fs.readdirSync(src, { withFileTypes: true })
