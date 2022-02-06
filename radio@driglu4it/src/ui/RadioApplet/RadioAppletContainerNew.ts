@@ -158,6 +158,7 @@ export function createRadioAppletContainerNew(args: Arguments) {
 
                 global.stage.disconnect(keyPressEventId)
                 global.stage.disconnect(keyLeaveEventId)
+                IS_DRAGGING = false
             }
 
             const keyPressEventId = global.stage.connect('key-press-event', (actor, event) => {

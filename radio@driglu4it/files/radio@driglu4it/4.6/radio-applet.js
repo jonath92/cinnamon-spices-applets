@@ -4419,6 +4419,7 @@ function createRadioAppletContainerNew(args) {
                 clearInterval(intervalId);
                 global.stage.disconnect(keyPressEventId);
                 global.stage.disconnect(keyLeaveEventId);
+                IS_DRAGGING = false;
             };
             const keyPressEventId = global.stage.connect('key-press-event', (actor, event) => {
                 const symbol = event.get_key_symbol();
