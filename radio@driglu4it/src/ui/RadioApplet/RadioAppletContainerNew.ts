@@ -2,9 +2,15 @@ const { BoxLayout } = imports.gi.St
 const { GenericContainer, Cursor } = imports.gi.Cinnamon
 
 const { grab_pointer, EventType, KEY_Escape, Clone } = imports.gi.Clutter
-const { uiGroup, pushModal, popModal } = imports.ui.main
+const { uiGroup, pushModal, popModal, layoutManager, modalActorFocusStack, } = imports.ui.main
+const { disable_unredirect_for_screen, enable_unredirect_for_screen } = imports.gi.Meta
+
+let { modalCount } = imports.ui.main
+
+const { StageInputMode } = imports.gi.Cinnamon
 
 const Gdk = imports.gi.Gdk
+
 
 interface Arguments {
     onClick: () => void,
@@ -12,6 +18,8 @@ interface Arguments {
     onMiddleClick: () => void,
     onRightClick: () => void,
 }
+
+// let modalCount = 0
 
 let IS_DRAGGING = false
 
@@ -32,15 +40,6 @@ export function createRadioAppletContainerNew(args: Arguments) {
         visible: false
     })
 
-    dragActor.connect('button-press-event', (actor, event) => {
-        const symbol = event.get_key_symbol()
-
-        if (symbol === KEY_Escape) {
-            popModal(dragActor)
-        }
-
-        return true
-    })
 
     appletContainer.connect('key-press-event', () => {
         global.log('key press event appletContainer')
@@ -81,12 +80,16 @@ export function createRadioAppletContainerNew(args: Arguments) {
                 const [pointerX, pointerY] = global.get_pointer()
 
                 dragActor.set_position(pointerX, pointerY)
+
+                // TODO: test if target-below
+
             }, 10)
 
             pushModal(dragActor)
 
 
             const handleDragCancelled = () => {
+                global.log('dragCancelled called')
                 dragActor.visible = false
                 popModal(dragActor)
                 global.unset_cursor()
