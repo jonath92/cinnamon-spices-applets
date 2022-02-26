@@ -4332,17 +4332,13 @@ function createRadioAppletContainerNew(args) {
         height: appletContainer.height,
         visible: false
     });
-    //    pushModal(dragActor)
     dragActor.connect('button-press-event', (actor, event) => {
         const symbol = event.get_key_symbol();
-        global.log('dragActor keypress event');
         if (symbol === KEY_Escape) {
-            global.log('key escape');
             popModal(dragActor);
         }
         return true;
     });
-    // global.stage.set_key_focus(appletContainer)
     appletContainer.connect('key-press-event', () => {
         global.log('key press event appletContainer');
         return true;
@@ -4354,47 +4350,6 @@ function createRadioAppletContainerNew(args) {
     const pointer = deviceManager === null || deviceManager === void 0 ? void 0 : deviceManager.get_client_pointer();
     pointer === null || pointer === void 0 ? void 0 : pointer.connect('changed', () => global.log('changed pointer called'));
     global.log('position', pointer === null || pointer === void 0 ? void 0 : pointer.get_position());
-    const handleDragCancelled = () => {
-    };
-    const handleDrag = () => {
-        IS_DRAGGING = true;
-        // TODO using grab_pointer is bad practise (see jsdoc)
-        //grab_pointer(appletContainer)
-        appletContainer.connect('event', (_, event) => {
-            const eventType = event.type();
-            global.log(eventType);
-            if (eventType === EventType.BUTTON_RELEASE) {
-                global.log('drag complete');
-                return true;
-            }
-            if (eventType === EventType.MOTION) {
-                global.log('motion event called');
-                global.set_cursor(Cursor.DND_IN_DRAG);
-                //const pointer = global.get_pointer()
-                const [stageX, stageY] = event.get_coords();
-                // const dragActor = new Clone({
-                //     source: appletContainer,
-                //     width: appletContainer.width,
-                //     height: appletContainer.height
-                // })
-                global.reparentActor(dragActor, uiGroup);
-                dragActor.raise_top();
-                dragActor.show();
-                dragActor.set_position(stageX, stageY);
-                const [pointerX, pointerY] = global.get_pointer();
-                // setInterval(() => {
-                //     dragActor.set_position(pointerX, pointerY)
-                // }, 10)
-            }
-            if (eventType === EventType.KEY_PRESS) {
-                global.log('key pressed');
-                global.log('cancel drag');
-                global.unset_cursor();
-            }
-            return true;
-        });
-        return true;
-    };
     appletContainer.connect('button-press-event', (owner, event) => {
         global.log('button-press-called');
         const btnNumberCallback = {
@@ -4403,10 +4358,10 @@ function createRadioAppletContainerNew(args) {
             3: onRightClick
         };
         const btnNumber = event.get_button();
-        global.set_cursor(Cursor.DND_IN_DRAG);
         if (btnNumber === 1 && global.settings.get_boolean('panel-edit-mode')) {
             if (IS_DRAGGING)
                 return true;
+            global.set_cursor(Cursor.DND_IN_DRAG);
             const intervalId = setInterval(() => {
                 const [pointerX, pointerY] = global.get_pointer();
                 dragActor.set_position(pointerX, pointerY);
@@ -4432,12 +4387,6 @@ function createRadioAppletContainerNew(args) {
                 handleDragCancelled();
                 return true;
             });
-            // global.stage.connect('event' (actor, event) => {
-            //     const symbol = event.get_key_symbol()
-            //     if (symbol === KEY_Escape) {
-            //         global.log('key escape')
-            //     }
-            // })
             IS_DRAGGING = true;
             const [stageX, stageY] = event.get_coords();
             global.reparentActor(dragActor, uiGroup);
