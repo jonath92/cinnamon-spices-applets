@@ -1,13 +1,14 @@
 const { BoxLayout } = imports.gi.St
 const { GenericContainer, Cursor } = imports.gi.Cinnamon
 
-const { grab_pointer, EventType, KEY_Escape, Clone } = imports.gi.Clutter
-const { uiGroup, pushModal, popModal, layoutManager, modalActorFocusStack, } = imports.ui.main
+const { grab_pointer, EventType, KEY_Escape, Clone, PickMode } = imports.gi.Clutter
+const { uiGroup, pushModal, popModal, layoutManager, modalActorFocusStack, panelManager } = imports.ui.main
 const { disable_unredirect_for_screen, enable_unredirect_for_screen } = imports.gi.Meta
-
 let { modalCount } = imports.ui.main
 
-const { StageInputMode } = imports.gi.Cinnamon
+const { StageInputMode, util_set_hidden_from_pick } = imports.gi.Cinnamon
+
+type MabeDragTarget = Partial<Pick<imports.ui.dnd.DragTarget, '_delegate'>> & imports.gi.Clutter.Actor
 
 const Gdk = imports.gi.Gdk
 
@@ -62,6 +63,7 @@ export function createRadioAppletContainerNew(args: Arguments) {
     appletContainer.connect('button-press-event', (owner, event) => {
         global.log('button-press-called')
 
+
         const btnNumberCallback: Record<number, () => void> = {
             1: onClick,
             2: onMiddleClick,
@@ -70,11 +72,16 @@ export function createRadioAppletContainerNew(args: Arguments) {
 
         const btnNumber = event.get_button()
 
+        panelManager.panels.forEach(panel => {
+            global.log(panel.actor.width)
+        })
+
 
         if (btnNumber === 1 && global.settings.get_boolean('panel-edit-mode')) {
             if (IS_DRAGGING) return true
 
             global.set_cursor(Cursor.DND_IN_DRAG)
+            util_set_hidden_from_pick(dragActor, true);
 
             const intervalId = setInterval(() => {
                 const [pointerX, pointerY] = global.get_pointer()
@@ -82,6 +89,33 @@ export function createRadioAppletContainerNew(args: Arguments) {
                 dragActor.set_position(pointerX, pointerY)
 
                 // TODO: test if target-below
+
+                const actorAtPos = global.stage.get_actor_at_pos(PickMode.ALL, pointerX, pointerY)
+
+                // global.log('actorAtPos', actorAtPos.name)
+                // global.log('actorPos', pointerX, pointerY)
+
+                const maybeDragTarget = dragActor.get_stage().get_actor_at_pos(PickMode.ALL, pointerX, pointerY) as MabeDragTarget
+
+                const delegate = maybeDragTarget?._delegate
+
+                // if (maybeDragTarget._delegate) {
+                //     global.log('drag target')
+                // }
+
+
+                if (delegate instanceof imports.ui.panel.PanelZoneDNDHandler) {
+                    // typescript seems to be wrong here: https://github.com/microsoft/TypeScript/issues/10934
+                    // (delegate as imports.ui.panel.PanelZoneDNDHandler).handleDragOver(null, )
+                    //     global.log('panelTarget')
+                }
+
+
+                // global.log('dragACtor stag', dragActor.get_stage().get_actor_at_pos(PickMode.ALL, pointerX, pointerY)?._delegate?.handleDragOver)
+
+
+
+
 
             }, 10)
 
@@ -135,6 +169,8 @@ export function createRadioAppletContainerNew(args: Arguments) {
         return true
     })
 
+
+    // const handleDragOver = ()
 
 
     return appletContainer

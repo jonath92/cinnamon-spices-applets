@@ -4315,11 +4315,11 @@ function RadioAppletIcon_createRadioAppletIcon() {
 ;// CONCATENATED MODULE: ./src/ui/RadioApplet/RadioAppletContainerNew.ts
 const { BoxLayout } = imports.gi.St;
 const { GenericContainer, Cursor } = imports.gi.Cinnamon;
-const { grab_pointer, EventType, KEY_Escape, Clone } = imports.gi.Clutter;
-const { uiGroup, pushModal, popModal, layoutManager, modalActorFocusStack, } = imports.ui.main;
+const { grab_pointer, EventType, KEY_Escape, Clone, PickMode } = imports.gi.Clutter;
+const { uiGroup, pushModal, popModal, layoutManager, modalActorFocusStack, panelManager } = imports.ui.main;
 const { disable_unredirect_for_screen, enable_unredirect_for_screen } = imports.gi.Meta;
 let { modalCount } = imports.ui.main;
-const { StageInputMode } = imports.gi.Cinnamon;
+const { StageInputMode, util_set_hidden_from_pick } = imports.gi.Cinnamon;
 const Gdk = imports.gi.Gdk;
 // let modalCount = 0
 let IS_DRAGGING = false;
@@ -4355,13 +4355,29 @@ function createRadioAppletContainerNew(args) {
             3: onRightClick
         };
         const btnNumber = event.get_button();
+        panelManager.panels.forEach(panel => {
+            global.log(panel.actor.width);
+        });
         if (btnNumber === 1 && global.settings.get_boolean('panel-edit-mode')) {
             if (IS_DRAGGING)
                 return true;
             global.set_cursor(Cursor.DND_IN_DRAG);
+            util_set_hidden_from_pick(dragActor, true);
             const intervalId = setInterval(() => {
                 const [pointerX, pointerY] = global.get_pointer();
                 dragActor.set_position(pointerX, pointerY);
+                // TODO: test if target-below
+                const actorAtPos = global.stage.get_actor_at_pos(PickMode.ALL, pointerX, pointerY);
+                // global.log('actorAtPos', actorAtPos.name)
+                // global.log('actorPos', pointerX, pointerY)
+                const maybeDragTarget = dragActor.get_stage().get_actor_at_pos(PickMode.ALL, pointerX, pointerY);
+                if (maybeDragTarget._delegate) {
+                    global.log('drag target');
+                }
+                if (maybeDragTarget._delegate instanceof imports.ui.panel.PanelZoneDNDHandler) {
+                    global.log('panelTarget');
+                }
+                // global.log('dragACtor stag', dragActor.get_stage().get_actor_at_pos(PickMode.ALL, pointerX, pointerY)?._delegate?.handleDragOver)
             }, 10);
             pushModal(dragActor);
             const handleDragCancelled = () => {
@@ -5485,13 +5501,13 @@ function RadioPopupMenu_createRadioPopupMenu(props) {
 
 
 const { Applet, AllowedLayout } = imports.ui.applet;
-const { GenericContainer: src_GenericContainer, util_set_hidden_from_pick, Cursor: src_Cursor, util_get_transformed_allocation } = imports.gi.Cinnamon;
+const { GenericContainer: src_GenericContainer, util_set_hidden_from_pick: src_util_set_hidden_from_pick, Cursor: src_Cursor, util_get_transformed_allocation } = imports.gi.Cinnamon;
 const { BoxLayout: src_BoxLayout } = imports.gi.St;
 const Lang = imports.lang;
 const Tweener = imports.ui.tweener;
 const { source_remove } = imports.gi.GLib;
 const { pushModal: src_pushModal, popModal: src_popModal, uiGroup: src_uiGroup } = imports.ui.main;
-const { grab_pointer: src_grab_pointer, EventType: src_EventType, ungrab_pointer: src_ungrab_pointer, Actor, KEY_Escape: src_KEY_Escape, PickMode } = imports.gi.Clutter;
+const { grab_pointer: src_grab_pointer, EventType: src_EventType, ungrab_pointer: src_ungrab_pointer, Actor, KEY_Escape: src_KEY_Escape, PickMode: src_PickMode } = imports.gi.Clutter;
 const { DragMotionResult, DragDropResult, SCALE_ANIMATION_TIME, SNAP_BACK_ANIMATION_TIME, REVERT_ANIMATION_TIME, DRAG_CURSOR_MAP } = imports.ui.dnd;
 const { Settings: src_Settings } = imports.gi.Gtk;
 const { idle_add, PRIORITY_DEFAULT } = imports.gi.GLib;
@@ -5681,7 +5697,7 @@ class _Draggable {
             this._dragActor = this.actor._delegate.getDragActor();
             global.reparentActor(this._dragActor, src_uiGroup);
             this._dragActor.raise_top();
-            util_set_hidden_from_pick(this._dragActor, true);
+            src_util_set_hidden_from_pick(this._dragActor, true);
             // Drag actor does not always have to be the same as actor. For example drag actor
             // can be an image that's part of the actor. So to perform "snap back" correctly we need
             // to know what was the drag actor source.
@@ -5730,7 +5746,7 @@ class _Draggable {
             this._dragOffsetY = actorStageY || 0 - this._dragStartY;
             global.reparentActor(this._dragActor, src_uiGroup);
             this._dragActor.raise_top();
-            util_set_hidden_from_pick(this._dragActor, true);
+            src_util_set_hidden_from_pick(this._dragActor, true);
         }
         this._dragOrigOpacity = this._dragActor.opacity;
         if (this._dragActorOpacity != undefined)
@@ -5802,7 +5818,7 @@ class _Draggable {
         if (!stage) {
             return;
         }
-        target = stage.get_actor_at_pos(PickMode.ALL, x || 0, y || 0);
+        target = stage.get_actor_at_pos(src_PickMode.ALL, x || 0, y || 0);
         while (target) {
             // @ts-ignore
             if (target._delegate && target._delegate.handleDragOver && this.actor._delegate) {
@@ -5863,7 +5879,7 @@ class _Draggable {
             dropX = this._overrideX;
         if (this._overrideY != undefined)
             dropY = this._overrideY;
-        target = (_a = this._dragActor) === null || _a === void 0 ? void 0 : _a.get_stage().get_actor_at_pos(PickMode.ALL, dropX, dropY);
+        target = (_a = this._dragActor) === null || _a === void 0 ? void 0 : _a.get_stage().get_actor_at_pos(src_PickMode.ALL, dropX, dropY);
         // We call observers only once per motion with the innermost
         // target actor. If necessary, the observer can walk the
         // parent itself.
@@ -6008,7 +6024,7 @@ class _Draggable {
     _dragComplete() {
         var _a;
         if (!this._actorDestroyed && !((_a = this._dragActor) === null || _a === void 0 ? void 0 : _a.is_finalized()) && this._dragActor)
-            util_set_hidden_from_pick(this._dragActor, false);
+            src_util_set_hidden_from_pick(this._dragActor, false);
         this._ungrabEvents();
         global.sync_pointer();
         if (this._updateHoverId) {
