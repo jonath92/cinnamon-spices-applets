@@ -45,6 +45,23 @@ const getDropTargetAtPosition = (props: { stage: imports.gi.Clutter.Stage, xPos:
 }
 
 
+// based on handelDragOver from panel.js
+const handleDragOver = (props: { dropTarget: imports.gi.Clutter.Actor }) => {
+    const { dropTarget } = props
+
+    // const isVertical = dropTaget.get_parent()
+    const isVertical = false // TODO: get right value
+
+    const children = dropTarget.get_children()
+
+    const placeholder = new BoxLayout({
+        style: 'width: 100px; background-color:red'
+    })
+
+    dropTarget.insert_child_at_index(placeholder, 1)
+
+}
+
 
 export function createRadioAppletContainerNew(args: Arguments) {
 
@@ -105,19 +122,25 @@ export function createRadioAppletContainerNew(args: Arguments) {
 
             global.set_cursor(Cursor.DND_IN_DRAG)
 
+            let prevDropTargetAtPosition: imports.gi.Clutter.Actor | undefined = undefined
+
             const intervalId = setInterval(() => {
                 const [pointerX, pointerY] = global.get_pointer()
 
                 dragActor.set_position(pointerX, pointerY)
 
-
                 const dropTarget = getDropTargetAtPosition({ stage: dragActor.get_stage(), xPos: pointerX, yPos: pointerY })
 
-                global.log('dropTarget', dropTarget?.name)
 
+                if (dropTarget && !prevDropTargetAtPosition) {
+                    handleDragOver({ dropTarget })
+                }
 
-                // global.log('dragACtor stag', dragActor.get_stage().get_actor_at_pos(PickMode.ALL, pointerX, pointerY)?._delegate?.handleDragOver)
+                if (!dropTarget && prevDropTargetAtPosition) {
+                    // TODO: removePlaceholder
+                }
 
+                prevDropTargetAtPosition = dropTarget
 
 
 

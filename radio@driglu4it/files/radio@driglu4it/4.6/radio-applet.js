@@ -4336,6 +4336,17 @@ const getDropTargetAtPosition = (props) => {
     };
     return getDropTargetinAncestors(stage.get_actor_at_pos(PickMode.ALL, xPos, yPos));
 };
+// based on handelDragOver from panel.js
+const handleDragOver = (props) => {
+    const { dropTarget } = props;
+    // const isVertical = dropTaget.get_parent()
+    const isVertical = false; // TODO: get right value
+    const children = dropTarget.get_children();
+    const placeholder = new BoxLayout({
+        style: 'width: 100px; background-color:red'
+    });
+    dropTarget.insert_child_at_index(placeholder, 1);
+};
 function createRadioAppletContainerNew(args) {
     const { onClick, onMiddleClick, onRightClick, onScroll } = args;
     const appletContainer = new BoxLayout({
@@ -4376,16 +4387,18 @@ function createRadioAppletContainerNew(args) {
             if (IS_DRAGGING)
                 return true;
             global.set_cursor(Cursor.DND_IN_DRAG);
+            let prevDropTargetAtPosition = undefined;
             const intervalId = setInterval(() => {
                 const [pointerX, pointerY] = global.get_pointer();
                 dragActor.set_position(pointerX, pointerY);
-                // TODO: test if target-below
-                // global.log('actorAtPos', actorAtPos.name)
-                // global.log('actorPos', pointerX, pointerY)
-                const maybeDropTarget = dragActor.get_stage().get_actor_at_pos(PickMode.ALL, pointerX, pointerY);
                 const dropTarget = getDropTargetAtPosition({ stage: dragActor.get_stage(), xPos: pointerX, yPos: pointerY });
-                global.log('isDropTarget', dropTarget === null || dropTarget === void 0 ? void 0 : dropTarget.name);
-                // global.log('dragACtor stag', dragActor.get_stage().get_actor_at_pos(PickMode.ALL, pointerX, pointerY)?._delegate?.handleDragOver)
+                if (dropTarget && !prevDropTargetAtPosition) {
+                    handleDragOver({ dropTarget });
+                }
+                if (!dropTarget && prevDropTargetAtPosition) {
+                    // TODO: removePlaceholder
+                }
+                prevDropTargetAtPosition = dropTarget;
             }, 10);
             pushModal(dragActor);
             const handleDragCancelled = () => {
