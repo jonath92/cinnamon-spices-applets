@@ -4323,6 +4323,16 @@ const { StageInputMode, util_set_hidden_from_pick } = imports.gi.Cinnamon;
 const Gdk = imports.gi.Gdk;
 // let modalCount = 0
 let IS_DRAGGING = false;
+const checkIfActorIsDropTarget = (props) => {
+    const { actor } = props;
+    if (['panelLeft', 'panelRight', 'panelCenter'].includes(actor.name)) {
+        return true;
+    }
+    const parent = actor.get_parent();
+    if (!parent)
+        return false;
+    return checkIfActorIsDropTarget({ actor: parent });
+};
 function createRadioAppletContainerNew(args) {
     const { onClick, onMiddleClick, onRightClick, onScroll } = args;
     const appletContainer = new BoxLayout({
@@ -4370,13 +4380,9 @@ function createRadioAppletContainerNew(args) {
                 const actorAtPos = global.stage.get_actor_at_pos(PickMode.ALL, pointerX, pointerY);
                 // global.log('actorAtPos', actorAtPos.name)
                 // global.log('actorPos', pointerX, pointerY)
-                const maybeDragTarget = dragActor.get_stage().get_actor_at_pos(PickMode.ALL, pointerX, pointerY);
-                if (maybeDragTarget._delegate) {
-                    global.log('drag target');
-                }
-                if (maybeDragTarget._delegate instanceof imports.ui.panel.PanelZoneDNDHandler) {
-                    global.log('panelTarget');
-                }
+                const maybeDropTarget = dragActor.get_stage().get_actor_at_pos(PickMode.ALL, pointerX, pointerY);
+                const isDropTarget = checkIfActorIsDropTarget({ actor: maybeDropTarget });
+                global.log('isDropTarget', isDropTarget);
                 // global.log('dragACtor stag', dragActor.get_stage().get_actor_at_pos(PickMode.ALL, pointerX, pointerY)?._delegate?.handleDragOver)
             }, 10);
             pushModal(dragActor);
@@ -4412,6 +4418,7 @@ function createRadioAppletContainerNew(args) {
         btnNumberCallback[btnNumber]();
         return true;
     });
+    // const handleDragOver = ()
     return appletContainer;
 }
 

@@ -24,6 +24,21 @@ interface Arguments {
 
 let IS_DRAGGING = false
 
+const checkIfActorIsDropTarget = (props: { actor: imports.gi.Clutter.Actor }): boolean => {
+    const { actor } = props
+    if (['panelLeft', 'panelRight', 'panelCenter'].includes(actor.name)) {
+        return true
+    }
+
+    const parent = actor.get_parent()
+
+    if (!parent) return false
+
+    return checkIfActorIsDropTarget({ actor: parent })
+}
+
+
+
 export function createRadioAppletContainerNew(args: Arguments) {
 
     const { onClick, onMiddleClick, onRightClick, onScroll } = args
@@ -95,20 +110,12 @@ export function createRadioAppletContainerNew(args: Arguments) {
                 // global.log('actorAtPos', actorAtPos.name)
                 // global.log('actorPos', pointerX, pointerY)
 
-                const maybeDragTarget = dragActor.get_stage().get_actor_at_pos(PickMode.ALL, pointerX, pointerY) as MabeDragTarget
-
-                const delegate = maybeDragTarget?._delegate
-
-                // if (maybeDragTarget._delegate) {
-                //     global.log('drag target')
-                // }
+                const maybeDropTarget = dragActor.get_stage().get_actor_at_pos(PickMode.ALL, pointerX, pointerY)
 
 
-                if (delegate instanceof imports.ui.panel.PanelZoneDNDHandler) {
-                    // typescript seems to be wrong here: https://github.com/microsoft/TypeScript/issues/10934
-                    // (delegate as imports.ui.panel.PanelZoneDNDHandler).handleDragOver(null, )
-                    //     global.log('panelTarget')
-                }
+                const isDropTarget = checkIfActorIsDropTarget({ actor: maybeDropTarget })
+
+                global.log('isDropTarget', isDropTarget)
 
 
                 // global.log('dragACtor stag', dragActor.get_stage().get_actor_at_pos(PickMode.ALL, pointerX, pointerY)?._delegate?.handleDragOver)
