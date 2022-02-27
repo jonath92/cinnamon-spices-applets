@@ -24,17 +24,24 @@ interface Arguments {
 
 let IS_DRAGGING = false
 
-const checkIfActorIsDropTarget = (props: { actor: imports.gi.Clutter.Actor }): boolean => {
-    const { actor } = props
-    if (['panelLeft', 'panelRight', 'panelCenter'].includes(actor.name)) {
-        return true
+const getDropTargetAtPosition = (props: { stage: imports.gi.Clutter.Stage, xPos: number, yPos: number }): imports.gi.Clutter.Actor | undefined => {
+
+    const { stage, xPos, yPos } = props
+
+    const getDropTargetinAncestors = (actor: imports.gi.Clutter.Actor): imports.gi.Clutter.Actor | undefined => {
+        if (['panelLeft', 'panelRight', 'panelCenter'].includes(actor.name)) {
+            return actor
+        }
+
+        const parent = actor.get_parent()
+
+        if (!parent) return undefined
+
+        return getDropTargetinAncestors(parent)
     }
 
-    const parent = actor.get_parent()
 
-    if (!parent) return false
-
-    return checkIfActorIsDropTarget({ actor: parent })
+    return getDropTargetinAncestors(stage.get_actor_at_pos(PickMode.ALL, xPos, yPos))
 }
 
 
@@ -55,6 +62,7 @@ export function createRadioAppletContainerNew(args: Arguments) {
         height: appletContainer.height,
         visible: false
     })
+    util_set_hidden_from_pick(dragActor, true);
 
 
     appletContainer.connect('key-press-event', () => {
@@ -96,26 +104,16 @@ export function createRadioAppletContainerNew(args: Arguments) {
             if (IS_DRAGGING) return true
 
             global.set_cursor(Cursor.DND_IN_DRAG)
-            util_set_hidden_from_pick(dragActor, true);
 
             const intervalId = setInterval(() => {
                 const [pointerX, pointerY] = global.get_pointer()
 
                 dragActor.set_position(pointerX, pointerY)
 
-                // TODO: test if target-below
 
-                const actorAtPos = global.stage.get_actor_at_pos(PickMode.ALL, pointerX, pointerY)
+                const dropTarget = getDropTargetAtPosition({ stage: dragActor.get_stage(), xPos: pointerX, yPos: pointerY })
 
-                // global.log('actorAtPos', actorAtPos.name)
-                // global.log('actorPos', pointerX, pointerY)
-
-                const maybeDropTarget = dragActor.get_stage().get_actor_at_pos(PickMode.ALL, pointerX, pointerY)
-
-
-                const isDropTarget = checkIfActorIsDropTarget({ actor: maybeDropTarget })
-
-                global.log('isDropTarget', isDropTarget)
+                global.log('dropTarget', dropTarget?.name)
 
 
                 // global.log('dragACtor stag', dragActor.get_stage().get_actor_at_pos(PickMode.ALL, pointerX, pointerY)?._delegate?.handleDragOver)

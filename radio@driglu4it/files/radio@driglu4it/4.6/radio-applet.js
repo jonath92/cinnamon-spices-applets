@@ -4323,15 +4323,18 @@ const { StageInputMode, util_set_hidden_from_pick } = imports.gi.Cinnamon;
 const Gdk = imports.gi.Gdk;
 // let modalCount = 0
 let IS_DRAGGING = false;
-const checkIfActorIsDropTarget = (props) => {
-    const { actor } = props;
-    if (['panelLeft', 'panelRight', 'panelCenter'].includes(actor.name)) {
-        return true;
-    }
-    const parent = actor.get_parent();
-    if (!parent)
-        return false;
-    return checkIfActorIsDropTarget({ actor: parent });
+const getDropTargetAtPosition = (props) => {
+    const { stage, xPos, yPos } = props;
+    const getDropTargetinAncestors = (actor) => {
+        if (['panelLeft', 'panelRight', 'panelCenter'].includes(actor.name)) {
+            return actor;
+        }
+        const parent = actor.get_parent();
+        if (!parent)
+            return undefined;
+        return getDropTargetinAncestors(parent);
+    };
+    return getDropTargetinAncestors(stage.get_actor_at_pos(PickMode.ALL, xPos, yPos));
 };
 function createRadioAppletContainerNew(args) {
     const { onClick, onMiddleClick, onRightClick, onScroll } = args;
@@ -4346,6 +4349,7 @@ function createRadioAppletContainerNew(args) {
         height: appletContainer.height,
         visible: false
     });
+    util_set_hidden_from_pick(dragActor, true);
     appletContainer.connect('key-press-event', () => {
         global.log('key press event appletContainer');
         return true;
@@ -4372,17 +4376,15 @@ function createRadioAppletContainerNew(args) {
             if (IS_DRAGGING)
                 return true;
             global.set_cursor(Cursor.DND_IN_DRAG);
-            util_set_hidden_from_pick(dragActor, true);
             const intervalId = setInterval(() => {
                 const [pointerX, pointerY] = global.get_pointer();
                 dragActor.set_position(pointerX, pointerY);
                 // TODO: test if target-below
-                const actorAtPos = global.stage.get_actor_at_pos(PickMode.ALL, pointerX, pointerY);
                 // global.log('actorAtPos', actorAtPos.name)
                 // global.log('actorPos', pointerX, pointerY)
                 const maybeDropTarget = dragActor.get_stage().get_actor_at_pos(PickMode.ALL, pointerX, pointerY);
-                const isDropTarget = checkIfActorIsDropTarget({ actor: maybeDropTarget });
-                global.log('isDropTarget', isDropTarget);
+                const dropTarget = getDropTargetAtPosition({ stage: dragActor.get_stage(), xPos: pointerX, yPos: pointerY });
+                global.log('isDropTarget', dropTarget === null || dropTarget === void 0 ? void 0 : dropTarget.name);
                 // global.log('dragACtor stag', dragActor.get_stage().get_actor_at_pos(PickMode.ALL, pointerX, pointerY)?._delegate?.handleDragOver)
             }, 10);
             pushModal(dragActor);
