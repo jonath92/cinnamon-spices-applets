@@ -1,0 +1,14 @@
+{
+  "name": "radio-applet",
+  "version": "1.0.0",
+  "description": "",
+  "sideEffects": false,
+  "main": "index.js",
+  "scripts": {
+    "build": "webpack --config webpack.config.js",
+    "test": "jest --watchAll"
+  },
+  "keywords": [],
+  "author": "Jonathan Heard",
+  "license": "MIT"
+}
