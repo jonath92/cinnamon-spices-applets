@@ -16,9 +16,10 @@
   "repository": {
     "type": "git",
     "url": "git+https://github.com/jonath92/cinnamon-spices-applets.git"
-  },
+  },  
   "scripts": {
-    "test": "echo \"Error: run tests from root\" && exit 1"
+    "build": "webpack --config webpack.config.js",
+    "test": "jest --watchAll"
   },
   "bugs": {
     "url": "https://github.com/jonath92/cinnamon-spices-applets/issues"
