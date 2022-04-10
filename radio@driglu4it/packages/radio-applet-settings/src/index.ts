@@ -1,7 +1,11 @@
+// @ts-ignore
+imports.gi.versions.Gtk = "3.0";
+
 const { Gtk } = imports.gi;
-const { Server, MemoryUse } = imports.gi.Soup
-const { GtkWindow } = imports.gi.XApp
-const { spawn_command_line_async } = imports.gi.GLib
+const GObject = imports.gi.GObject;
+const { Server, MemoryUse } = imports.gi.Soup;
+const { GtkWindow } = imports.gi.XApp;
+const { spawn_command_line_async } = imports.gi.GLib;
 // import { OFFICE365_CLIENT_ID } from 'consts';
 // import { logInfo } from 'Logger';
 // import { stringify } from 'query-string'
@@ -13,71 +17,59 @@ const { spawn_command_line_async } = imports.gi.GLib
 // import {getState} from '../applet/Store'
 
 // @ts-ignore
-imports.gi.versions.Gtk = '3.0'
-
-// @ts-ignore
-
 Gtk.init(null);
 
-const innerMagin = 30
+const innerMagin = 30;
 
-// const queryParams = stringify({
-//     client_id: OFFICE365_CLIENT_ID,
-//     scope: "offline_access calendars.read",
-//     response_type: "code",
-//     redirect_uri: 'http://localhost:8080',
-// })
-
-// const loginUrl = `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?${queryParams}`;
-
-const { Box, Orientation, Align, ListBox, Label } = Gtk
-
-
-// TODO: find free ports first
-// const server = new Server({ port: 8080 })
-// startServer()
-
-// log(ARGV)
-
-// logInfo('test from settings2')
-
+const { Box, Orientation, Align, ListBox, Label, TreeView, ListStore } = Gtk;
 
 const window = new GtkWindow({
-    default_width: 800,
-    default_height: 600,
-    icon_name: 'view-calendar',
-    title: 'Calendar Applet'
-})
+  default_width: 800,
+  default_height: 600,
+  icon_name: "view-calendar",
+  title: "Calendar Applet",
+});
 
 const mainBox = new Box({
-    visible: true,
-    can_focus: true,
-    border_width: 12,
-    orientation: Orientation.VERTICAL,
-    margin_top: innerMagin,
-    margin_bottom: innerMagin,
-    margin_end: innerMagin,
-    margin_start: innerMagin,
-    spacing: innerMagin
-})
+  visible: true,
+  can_focus: true,
+  border_width: 12,
+  orientation: Orientation.VERTICAL,
+  margin_top: innerMagin,
+  margin_bottom: innerMagin,
+  margin_end: innerMagin,
+  margin_start: innerMagin,
+  spacing: innerMagin,
+});
 
-const addedAccountsList = new ListBox()
+const searchResultStore = new ListStore();
+
+// @ts-ignore
+searchResultStore.set_column_types([GObject.TYPE_STRING, GObject.TYPE_INT]);
+
+// @ts-ignore
+searchResultStore.insert_with_valuesv(-1, ["test", "test"], ["test", "test"])
+
+// const treeView = new TreeView({
+//     model
+// })
+
+const addedAccountsList = new ListBox();
 
 // const addedGoogleAccount = createAddedAccountListRow()
 // addedAccountsList.add(addedGoogleAccount)
 
-mainBox.add(addedAccountsList)
-
+mainBox.add(addedAccountsList);
 
 const addAcountLabel = new Label({
-    use_markup: true,
-    label: '<b>Add an account</b>',
-    halign: Align.START
-})
+  use_markup: true,
+  label: "<b>Add an account</b>",
+  halign: Align.START,
+});
 
-mainBox.add(addAcountLabel)
+mainBox.add(addAcountLabel);
 
-const availableAccountList = new ListBox()
+const availableAccountList = new ListBox();
 
 // availableAccountList.add(createNewAccountListRow())
 
@@ -85,18 +77,17 @@ const availableAccountList = new ListBox()
 //     spawn_command_line_async(`xdg-open ${loginUrl}`)
 // })
 
-
-mainBox.add(availableAccountList)
-window.add(mainBox)
+mainBox.add(availableAccountList);
+window.add(mainBox);
 window.show_all();
 
 Gtk.main();
 
-window.connect('destroy', () => {
-    // server.disconnect()
-    Gtk.main_quit()
-    // log('window destroyed')
-})
+window.connect("destroy", () => {
+  // server.disconnect()
+  Gtk.main_quit();
+  // log('window destroyed')
+});
 
 // function startServer() {
 
@@ -123,7 +114,6 @@ window.connect('destroy', () => {
 //                 </html>`
 //         )
 
-
 //         // @ts-ignore
 //         const code: string = query.code
 
@@ -133,17 +123,14 @@ window.connect('destroy', () => {
 //         logInfo(code)
 
 //         // addAccountToSettings({
-//         //     provider: 'Office365', 
+//         //     provider: 'Office365',
 //         //     authCode: code
 //         // })
 
 //         // // @ts-ignore
 //         // log(query.code)
 
-
-
 //     })
-
 
 //     server.run_async()
 

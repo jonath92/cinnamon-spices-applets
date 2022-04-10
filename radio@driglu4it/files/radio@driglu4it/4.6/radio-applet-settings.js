@@ -2,7 +2,10 @@
 /******/ 	"use strict";
 var __webpack_exports__ = {};
 
+// @ts-ignore
+imports.gi.versions.Gtk = "3.0";
 const { Gtk } = imports.gi;
+const GObject = imports.gi.GObject;
 const { Server, MemoryUse } = imports.gi.Soup;
 const { GtkWindow } = imports.gi.XApp;
 const { spawn_command_line_async } = imports.gi.GLib;
@@ -15,28 +18,14 @@ const { spawn_command_line_async } = imports.gi.GLib;
 // TODO: this should throw an error!
 // import {getState} from '../applet/Store'
 // @ts-ignore
-imports.gi.versions.Gtk = '3.0';
-// @ts-ignore
 Gtk.init(null);
 const innerMagin = 30;
-// const queryParams = stringify({
-//     client_id: OFFICE365_CLIENT_ID,
-//     scope: "offline_access calendars.read",
-//     response_type: "code",
-//     redirect_uri: 'http://localhost:8080',
-// })
-// const loginUrl = `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?${queryParams}`;
-const { Box, Orientation, Align, ListBox, Label } = Gtk;
-// TODO: find free ports first
-// const server = new Server({ port: 8080 })
-// startServer()
-// log(ARGV)
-// logInfo('test from settings2')
+const { Box, Orientation, Align, ListBox, Label, TreeView, ListStore } = Gtk;
 const window = new GtkWindow({
     default_width: 800,
     default_height: 600,
-    icon_name: 'view-calendar',
-    title: 'Calendar Applet'
+    icon_name: "view-calendar",
+    title: "Calendar Applet",
 });
 const mainBox = new Box({
     visible: true,
@@ -47,16 +36,24 @@ const mainBox = new Box({
     margin_bottom: innerMagin,
     margin_end: innerMagin,
     margin_start: innerMagin,
-    spacing: innerMagin
+    spacing: innerMagin,
 });
+const searchResultStore = new ListStore();
+// @ts-ignore
+searchResultStore.set_column_types([GObject.TYPE_STRING, GObject.TYPE_INT]);
+// @ts-ignore
+searchResultStore.insert_with_valuesv(-1, ["test", "test"], ["test", "test"]);
+// const treeView = new TreeView({
+//     model
+// })
 const addedAccountsList = new ListBox();
 // const addedGoogleAccount = createAddedAccountListRow()
 // addedAccountsList.add(addedGoogleAccount)
 mainBox.add(addedAccountsList);
 const addAcountLabel = new Label({
     use_markup: true,
-    label: '<b>Add an account</b>',
-    halign: Align.START
+    label: "<b>Add an account</b>",
+    halign: Align.START,
 });
 mainBox.add(addAcountLabel);
 const availableAccountList = new ListBox();
@@ -68,7 +65,7 @@ mainBox.add(availableAccountList);
 window.add(mainBox);
 window.show_all();
 Gtk.main();
-window.connect('destroy', () => {
+window.connect("destroy", () => {
     // server.disconnect()
     Gtk.main_quit();
     // log('window destroyed')
@@ -100,7 +97,7 @@ window.connect('destroy', () => {
 //             return
 //         logInfo(code)
 //         // addAccountToSettings({
-//         //     provider: 'Office365', 
+//         //     provider: 'Office365',
 //         //     authCode: code
 //         // })
 //         // // @ts-ignore
