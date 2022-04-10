@@ -11,9 +11,8 @@ const MAX_INSTANCES = 1;
 const CINNAMON_VERSION = "4.6"; // When set to null, the build output path is set to the files applet folder, else to a sub dir inside the applet files dir
 const APPLET_VERSION = "2.0.4";
 
-const ROOT_PATH = path.resolve(__dirname, "../../");
-
 // Automatic calculated constants
+const ROOT_PATH = path.resolve(__dirname, "../../");
 const UUID = ROOT_PATH.split("/").slice(-1)[0];
 const APPLET_SHORT_NAME = UUID.split("@")[0];
 const BUNDLED_FILE_NAME = `${APPLET_SHORT_NAME}-applet.js`;

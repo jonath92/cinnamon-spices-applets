@@ -4539,21 +4539,21 @@ function limitString(text, maxCharNumber) {
     return [...text].slice(0, maxCharNumber - 3).join('') + '...';
 }
 
-;// CONCATENATED MODULE: ./src/lib/IconMenuItem.ts
+;// CONCATENATED MODULE: ./src/lib/SimpleMenuItem.ts
 
 
-const { Icon: IconMenuItem_Icon, IconType: IconMenuItem_IconType, Label: IconMenuItem_Label, BoxLayout } = imports.gi.St;
-const { Point: IconMenuItem_Point } = imports.gi.Clutter;
-function createIconMenuItem(args) {
+const { Icon: SimpleMenuItem_Icon, IconType: SimpleMenuItem_IconType, Label: SimpleMenuItem_Label, BoxLayout } = imports.gi.St;
+const { Point: SimpleMenuItem_Point } = imports.gi.Clutter;
+function createSimpleMenuItem(args) {
     const { initialText = '', maxCharNumber, iconName, onActivated } = args;
-    const icon = new IconMenuItem_Icon({
-        icon_type: IconMenuItem_IconType.SYMBOLIC,
+    const icon = new SimpleMenuItem_Icon({
+        icon_type: SimpleMenuItem_IconType.SYMBOLIC,
         style_class: 'popup-menu-icon',
-        pivot_point: new IconMenuItem_Point({ x: 0.5, y: 0.5 }),
+        pivot_point: new SimpleMenuItem_Point({ x: 0.5, y: 0.5 }),
         icon_name: iconName || '',
         visible: !!iconName
     });
-    const label = new IconMenuItem_Label({
+    const label = new SimpleMenuItem_Label({
         text: maxCharNumber ? limitString(initialText, maxCharNumber) : initialText
     });
     const container = new BoxLayout({
@@ -4761,12 +4761,12 @@ function createSeparatorMenuItem() {
 const { BoxLayout: InfoSection_BoxLayout } = imports.gi.St;
 function createInfoSection() {
     const { addChannelChangeHandler, addTitleChangeHandler, getCurrentChannelName, getCurrentTitle } = mpvHandler;
-    const channelInfoItem = createIconMenuItem({
+    const channelInfoItem = createSimpleMenuItem({
         iconName: RADIO_SYMBOLIC_ICON_NAME,
         initialText: getCurrentChannelName(),
         maxCharNumber: MAX_STRING_LENGTH
     });
-    const songInfoItem = createIconMenuItem({
+    const songInfoItem = createSimpleMenuItem({
         iconName: SONG_INFO_ICON_NAME,
         initialText: getCurrentTitle(),
         maxCharNumber: MAX_STRING_LENGTH
@@ -5081,7 +5081,7 @@ function createChannelMenuItem(args) {
         ["Loading", LOADING_ICON_NAME],
         ["Stopped", null]
     ]);
-    const iconMenuItem = createIconMenuItem({
+    const iconMenuItem = createSimpleMenuItem({
         maxCharNumber: MAX_STRING_LENGTH,
         initialText: channelName,
         onActivated: () => {
@@ -5326,15 +5326,21 @@ const createMediaControlToolbar = () => {
 
 
 const { BoxLayout: RadioPopupMenu_BoxLayout, Label: RadioPopupMenu_Label } = imports.gi.St;
+const { spawnCommandLine: RadioPopupMenu_spawnCommandLine } = imports.misc.util;
 function createRadioPopupMenu(props) {
-    const { launcher, } = props;
+    const { launcher } = props;
     const { getPlaybackStatus, addPlaybackStatusChangeHandler } = mpvHandler;
     const popupMenu = createPopupMenu({ launcher });
     const radioActiveSection = new RadioPopupMenu_BoxLayout({
         vertical: true,
-        visible: getPlaybackStatus() !== 'Stopped'
+        visible: getPlaybackStatus() !== "Stopped",
     });
-    [createInfoSection(), createMediaControlToolbar(), createVolumeSlider(), createSeeker()].forEach(widget => {
+    [
+        createInfoSection(),
+        createMediaControlToolbar(),
+        createVolumeSlider(),
+        createSeeker(),
+    ].forEach((widget) => {
         radioActiveSection.add_child(createSeparatorMenuItem());
         radioActiveSection.add_child(widget);
     });
@@ -5342,18 +5348,16 @@ function createRadioPopupMenu(props) {
     popupMenu.add_child(radioActiveSection);
     // TODO: this is not good as it is redundant (already used in IconMenuItem)
     // const searchStationItem = new BoxLayout({
-    //     style_class: 'popup-menu-item', 
+    //     style_class: 'popup-menu-item',
     // })
-    const searchStationItem = createIconMenuItem({
-        initialText: 'Find Station',
-        onActivated: () => global.log('todo'),
-        maxCharNumber: 100
+    const searchStationItem = createSimpleMenuItem({
+        initialText: "Find Station",
+        onActivated: () => RadioPopupMenu_spawnCommandLine(`cjs ${__meta.path}/radio-applet-settings.js`),
     });
     popupMenu.add_child(createSeparatorMenuItem());
-    // searchStationItem.add_child(new Label({text: 'Find Station'}))
     popupMenu.add_child(searchStationItem.actor);
     addPlaybackStatusChangeHandler((newValue) => {
-        radioActiveSection.visible = newValue !== 'Stopped';
+        radioActiveSection.visible = newValue !== "Stopped";
     });
     return popupMenu;
 }

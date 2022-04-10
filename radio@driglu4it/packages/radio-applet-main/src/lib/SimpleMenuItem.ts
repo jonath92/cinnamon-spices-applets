@@ -11,7 +11,7 @@ interface Arguments {
     maxCharNumber?: number,
 }
 
-export function createIconMenuItem(args: Arguments) {
+export function createSimpleMenuItem(args: Arguments) {
 
     const {
         initialText = '',

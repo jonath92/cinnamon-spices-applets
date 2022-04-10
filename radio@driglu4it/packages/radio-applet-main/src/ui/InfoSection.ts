@@ -1,5 +1,5 @@
 import { RADIO_SYMBOLIC_ICON_NAME, MAX_STRING_LENGTH, SONG_INFO_ICON_NAME } from "../consts";
-import { createIconMenuItem } from "../lib/IconMenuItem";
+import { createSimpleMenuItem } from "../lib/SimpleMenuItem";
 import { mpvHandler } from "../services/mpv/MpvHandler";
 const { BoxLayout } = imports.gi.St
 
@@ -13,13 +13,13 @@ export function createInfoSection() {
         getCurrentTitle
     } = mpvHandler
 
-    const channelInfoItem = createIconMenuItem({
+    const channelInfoItem = createSimpleMenuItem({
         iconName: RADIO_SYMBOLIC_ICON_NAME,
         initialText: getCurrentChannelName(),
         maxCharNumber: MAX_STRING_LENGTH
     })
 
-    const songInfoItem = createIconMenuItem({
+    const songInfoItem = createSimpleMenuItem({
         iconName: SONG_INFO_ICON_NAME,
         initialText: getCurrentTitle(),
         maxCharNumber: MAX_STRING_LENGTH
