@@ -71,22 +71,22 @@ module.exports = {
         filename: BUNDLED_FILE_NAME,
         library: LIBRARY_NAME,
     },
-    plugins: [
-        {
+    // plugins: [
+    //     {
 
-            apply: (
-              /** @type {import('webpack').Compiler}  */  compiler
-            ) => {
-                compiler.hooks.afterEmit.tap('afterEmitPlugin', (compilation) => {
-                    exec(`cinnamon-install-spice applet ${FILES_DIR} && xdotool key ctrl+alt+0xff1b`, (error, stdout, stderr) => {
-                        if (stderr) {
-                            console.log(`stderr: ${stderr}`);
-                        }
-                    })
-                })
-            }
-        }
-    ]
+    //         apply: (
+    //           /** @type {import('webpack').Compiler}  */  compiler
+    //         ) => {
+    //             compiler.hooks.afterEmit.tap('afterEmitPlugin', (compilation) => {
+    //                 exec(`cinnamon-install-spice applet ${FILES_DIR} && xdotool key ctrl+alt+0xff1b`, (error, stdout, stderr) => {
+    //                     if (stderr) {
+    //                         console.log(`stderr: ${stderr}`);
+    //                     }
+    //                 })
+    //             })
+    //         }
+    //     }
+    // ]
 };
 
 
