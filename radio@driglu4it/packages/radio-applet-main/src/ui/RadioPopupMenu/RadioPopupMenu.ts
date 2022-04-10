@@ -1,3 +1,4 @@
+import { createIconMenuItem } from "../../lib/IconMenuItem"
 import { createPopupMenu } from "../../lib/PopupMenu"
 import { createSeparatorMenuItem } from "../../lib/PopupSeperator"
 import { mpvHandler } from "../../services/mpv/MpvHandler"
@@ -7,7 +8,7 @@ import { createVolumeSlider } from "../VolumeSlider"
 import { createChannelList } from "./ChannelList"
 import { createMediaControlToolbar } from "./MediaControlToolbar/MediaControlToolbar"
 
-const { BoxLayout } = imports.gi.St
+const { BoxLayout, Label } = imports.gi.St
 
 export function createRadioPopupMenu(props: { launcher: imports.gi.St.BoxLayout }) {
     const {
@@ -33,6 +34,22 @@ export function createRadioPopupMenu(props: { launcher: imports.gi.St.BoxLayout 
 
     popupMenu.add_child(createChannelList())
     popupMenu.add_child(radioActiveSection)
+
+
+    // TODO: this is not good as it is redundant (already used in IconMenuItem)
+    // const searchStationItem = new BoxLayout({
+    //     style_class: 'popup-menu-item', 
+    // })
+
+    const searchStationItem = createIconMenuItem({
+        initialText: 'Find Station', 
+        onActivated: () => global.log('todo'), 
+        maxCharNumber: 100
+    })
+
+    popupMenu.add_child(createSeparatorMenuItem())
+    // searchStationItem.add_child(new Label({text: 'Find Station'}))
+    popupMenu.add_child(searchStationItem.actor)
 
     addPlaybackStatusChangeHandler((newValue) => {
         radioActiveSection.visible = newValue !== 'Stopped'

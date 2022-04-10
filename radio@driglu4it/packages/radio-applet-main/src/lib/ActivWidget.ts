@@ -6,7 +6,7 @@ export interface Arguments {
     widget: imports.gi.St.Widget
 }
 
-
+// TODO: This is bad as it mutates the passed widget
 export function createActivWidget(args: Arguments) {
 
     const {

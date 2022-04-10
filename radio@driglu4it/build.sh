@@ -11,5 +11,4 @@ ln -s ${FILES_DIR}/icons ${OUTPUT_DIR}
 
 cp ${CURRENT_DIR}/assets/* ${OUTPUT_DIR}
 
-
-# npx lerna run build && cinnamon-install-spice applet && xdotool key ctrl+alt+0xff1b
+npx lerna run build && cinnamon-install-spice applet && xdotool key ctrl+alt+0xff1b
