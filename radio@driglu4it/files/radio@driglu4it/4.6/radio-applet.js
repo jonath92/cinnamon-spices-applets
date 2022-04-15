@@ -4105,7 +4105,186 @@ function createRadioAppletLabel() {
     return label;
 }
 
+;// CONCATENATED MODULE: ./src/ui/Notifications/NotificationBase.ts
+const { SystemNotificationSource, Notification } = imports.ui.messageTray;
+const { messageTray } = imports.ui.main;
+const { Icon, IconType } = imports.gi.St;
+
+const messageSource = new SystemNotificationSource('Radio Applet');
+messageTray.add(messageSource);
+function createBasicNotification(args) {
+    const { notificationText, isMarkup = false, transient = true } = args;
+    const icon = new Icon({
+        icon_type: IconType.SYMBOLIC,
+        icon_name: RADIO_SYMBOLIC_ICON_NAME,
+        icon_size: 25
+    });
+    const notification = new Notification(messageSource, __meta.name, notificationText, { icon, bodyMarkup: isMarkup });
+    notification.setTransient(transient);
+    notification.notify = () => {
+        messageSource.notify(notification);
+    };
+    return notification;
+}
+
+;// CONCATENATED MODULE: ./src/ui/Notifications/YoutubeDownloadFailedNotification.ts
+
+
+const { spawnCommandLine: YoutubeDownloadFailedNotification_spawnCommandLine } = imports.misc.util;
+const { get_home_dir: YoutubeDownloadFailedNotification_get_home_dir } = imports.gi.GLib;
+function notifyYoutubeDownloadFailed(props) {
+    const { youtubeCli } = props;
+    const notificationText = `Couldn't download Song from Youtube due to an Error. Make Sure you have the newest version of ${youtubeCli} installed. 
+        \n<b>Important:</b> Don't use apt for the installation but follow the installation instruction given on the Radio Applet Site in the Cinnamon Store instead
+        \nFor more information see the logs`;
+    const notification = createBasicNotification({
+        notificationText,
+        isMarkup: true,
+        transient: false
+    });
+    const viewStoreBtnId = 'viewStoreBtn';
+    const viewLogBtnId = 'viewLogBtn';
+    notification.addButton(viewStoreBtnId, 'View Installation Instruction');
+    notification.addButton(viewLogBtnId, "View Logs");
+    notification.connect('action-invoked', (actor, id) => {
+        if (id === viewStoreBtnId) {
+            YoutubeDownloadFailedNotification_spawnCommandLine(`xdg-open ${APPLET_SITE} `);
+        }
+        if (id === viewLogBtnId) {
+            YoutubeDownloadFailedNotification_spawnCommandLine(`xdg-open ${YoutubeDownloadFailedNotification_get_home_dir()}/.xsession-errors`);
+        }
+    });
+    notification.notify();
+}
+
+;// CONCATENATED MODULE: ./src/ui/Notifications/YoutubeDownloadFinishedNotification.ts
+
+const { spawnCommandLine: YoutubeDownloadFinishedNotification_spawnCommandLine } = imports.misc.util;
+function notifyYoutubeDownloadFinished(args) {
+    const { downloadPath, fileAlreadExist = false } = args;
+    const notificationText = fileAlreadExist ?
+        'Downloaded Song not saved as a file with the same name already exists' :
+        `Download finished. File saved to ${downloadPath}`;
+    const notification = createBasicNotification({
+        notificationText,
+        isMarkup: false,
+        transient: false
+    });
+    // workaround to remove the underline of the downloadPath
+    notification["_bodyUrlHighlighter"].actor.clutter_text.set_markup(notificationText);
+    const playBtnId = 'openBtn';
+    notification.addButton(playBtnId, 'Play');
+    notification.connect('action-invoked', (actor, id) => {
+        if (id === playBtnId) {
+            YoutubeDownloadFinishedNotification_spawnCommandLine(`xdg-open '${downloadPath}'`);
+        }
+    });
+    notification.notify();
+}
+
+;// CONCATENATED MODULE: ./src/ui/Notifications/YoutubeDownloadStartedNotification.ts
+
+function notifyYoutubeDownloadStarted(args) {
+    const { title, onCancelClicked } = args;
+    const notification = createBasicNotification({
+        notificationText: `Downloading ${title} ...`,
+    });
+    const cancelBtnId = 'cancelBtn';
+    notification.addButton(cancelBtnId, 'Cancel');
+    notification.connect('action-invoked', (actor, id) => {
+        if (id === cancelBtnId)
+            onCancelClicked();
+    });
+    notification.notify();
+}
+
+;// CONCATENATED MODULE: ./src/services/youtubeDownload/YoutubeDl.ts
+const { spawnCommandLineAsyncIO } = imports.misc.util;
+function downloadWithYoutubeDl(props) {
+    const { downloadDir, title, onFinished, onSuccess, onError } = props;
+    let hasBeenCancelled = false;
+    // ytsearch option found here https://askubuntu.com/a/731511/1013434 (not given in the youtube-dl docs ...)
+    const downloadCommand = `youtube-dl --output "${downloadDir}/%(title)s.%(ext)s" --extract-audio --audio-format mp3 ytsearch1:"${title.replaceAll('"', '\\\"')}" --add-metadata --embed-thumbnail`;
+    const process = spawnCommandLineAsyncIO(downloadCommand, (stdout, stderr) => {
+        onFinished();
+        if (hasBeenCancelled) {
+            hasBeenCancelled = false;
+            return;
+        }
+        if (stdout) {
+            const downloadPath = getDownloadPath(stdout);
+            if (!downloadPath) {
+                onError('downloadPath could not be determined from stdout. Most likely the download has failed', downloadCommand);
+                return;
+            }
+            onSuccess(downloadPath);
+            return;
+        }
+        if (stderr) {
+            onError(stderr, downloadCommand);
+            return;
+        }
+    });
+    function cancel() {
+        hasBeenCancelled = true;
+        // it seems to be no problem to call this even after the process has already finished
+        process.force_exit();
+    }
+    return { cancel };
+}
+function getDownloadPath(stdout) {
+    var _a;
+    const arrayOfLines = stdout.match(/[^\r\n]+/g);
+    // there is only one line in stdout which gives the path of the downloaded mp3. This start with [ffmpeg] Destination ...
+    const searchString = '[ffmpeg] Destination: ';
+    return (_a = arrayOfLines === null || arrayOfLines === void 0 ? void 0 : arrayOfLines.find(line => line.includes(searchString))) === null || _a === void 0 ? void 0 : _a.split(searchString)[1];
+}
+
+;// CONCATENATED MODULE: ./src/services/youtubeDownload/YtDlp.ts
+const { spawnCommandLineAsyncIO: YtDlp_spawnCommandLineAsyncIO } = imports.misc.util;
+function downloadWithYtDlp(props) {
+    const { downloadDir, title, onFinished, onSuccess, onError } = props;
+    let hasBeenCancelled = false;
+    const downloadCommand = `yt-dlp --output "${downloadDir}/%(title)s.%(ext)s" --extract-audio --audio-format mp3 ytsearch1:"${title.replaceAll('"', '\\\"')}" --add-metadata --embed-thumbnail`;
+    const process = YtDlp_spawnCommandLineAsyncIO(downloadCommand, (stdout, stderr) => {
+        onFinished();
+        if (hasBeenCancelled) {
+            hasBeenCancelled = false;
+            return;
+        }
+        if (stdout) {
+            const downloadPath = YtDlp_getDownloadPath(stdout);
+            if (!downloadPath) {
+                onError('downloadPath could not be determined from stdout. Most likely the download has failed', downloadCommand);
+                return;
+            }
+            onSuccess(downloadPath);
+            return;
+        }
+        if (stderr) {
+            onError(stderr, downloadCommand);
+            return;
+        }
+    });
+    function cancel() {
+        hasBeenCancelled = true;
+        process.force_exit();
+    }
+    return { cancel };
+}
+function YtDlp_getDownloadPath(stdout) {
+    var _a;
+    const arrayOfLines = stdout.match(/[^\r\n]+/g);
+    const searchString = '[ExtractAudio] Destination: ';
+    return (_a = arrayOfLines === null || arrayOfLines === void 0 ? void 0 : arrayOfLines.find(line => line.includes(searchString))) === null || _a === void 0 ? void 0 : _a.split(searchString)[1];
+}
+
 ;// CONCATENATED MODULE: ./src/services/youtubeDownload/YoutubeDownloadManager.ts
+
+
+
+
+
 
 
 const { get_tmp_dir, get_home_dir: YoutubeDownloadManager_get_home_dir } = imports.gi.GLib;
@@ -4116,62 +4295,53 @@ function downloadSongFromYoutube() {
     const title = mpvHandler.getCurrentTitle();
     const downloadDir = configs.settingsObject.musicDownloadDir;
     const youtubeCli = configs.settingsObject.youtubeCli;
-    const music_dir_absolut = downloadDir.charAt(0) === '~' ? downloadDir.replace('~', YoutubeDownloadManager_get_home_dir()) : downloadDir;
-    try {
-        const tmpFile = File.new_for_path(`/tmp/High Score Girl Ending Full 「Etsuko Yakushimaru - AfterSchoolDi(e)stra(u)ction」.mp3`);
-        const fileName = tmpFile.get_basename();
-        const targetPath = `${music_dir_absolut}/${fileName}`;
-        // @ts-ignore
-        tmpFile.move(File.parse_name(`/home/jonathan/Tmp/dömmy/test.mp3`), FileCopyFlags.BACKUP, null, null);
-    }
-    catch (error) {
-        const errorMessage = error instanceof imports.gi.GLib.Error ? error.message : 'Unknown Error Type';
-        global.logError(`Failed to download from tmp dir. The following error occured: ${errorMessage}`);
-    }
-    // global.log('fileName', fileName)
-    // const targetPath = `${music_dir_absolut}/${fileName}`
-    // if (!title) return
-    // const sameSongIsDownloading = downloadingSongs.find(downloadingSong => {
-    //     return downloadingSong.title === title
-    // })
-    // if (sameSongIsDownloading)
-    //     return
-    // const downloadProps: YoutubeDownloadServiceProps = {
-    //     title,
-    //     downloadDir: get_tmp_dir(),
-    //     onError: (errorMessage, downloadCommand: string,) => {
-    //         global.logError(`The following error occured at youtube download attempt: ${errorMessage}. The used download Command was: ${downloadCommand}`)
-    //         notifyYoutubeDownloadFailed({ youtubeCli })
-    //     },
-    //     onFinished: () => {
-    //         downloadingSongs = downloadingSongs.filter(downloadingSong => downloadingSong.title !== title)
-    //         downloadingSongsChangedListener.forEach(listener => listener(downloadingSongs))
-    //     },
-    //     onSuccess: (downloadPath) => {
-    //         const tmpFile = File.new_for_path(downloadPath)
-    //         const fileName = tmpFile.get_basename()
-    //         const targetPath = `${music_dir_absolut}/${fileName}`
-    //         const targetFile = File.parse_name(targetPath)
-    //         if (targetFile.query_exists(null)) {
-    //             notifyYoutubeDownloadFinished({ downloadPath: targetPath, fileAlreadExist: true })
-    //             return
-    //         }
-    //         try {
-    //             // @ts-ignore
-    //             tmpFile.move(File.parse_name(targetPath), FileCopyFlags.BACKUP, null, null)
-    //             notifyYoutubeDownloadFinished({ downloadPath: targetPath })
-    //         } catch (error) {
-    //             notifyYoutubeDownloadFailed({youtubeCli})
-    //             global.logError('Failed to copy from tmp dir. The following error occured', error as imports.gi.GLib.Error)
-    //         }
-    //     }
-    // }
-    // const { cancel } = youtubeCli === 'youtube-dl' ?
-    //     downloadWithYoutubeDl(downloadProps) :
-    //     downloadWithYtDlp(downloadProps)
-    // notifyYoutubeDownloadStarted({ title, onCancelClicked: () => cancel() })
-    // downloadingSongs.push({ title, cancelDownload: cancel })
-    // downloadingSongsChangedListener.forEach(listener => listener(downloadingSongs))
+    const music_dir_absolut = downloadDir.charAt(0) === '~' ?
+        downloadDir.replace('~', YoutubeDownloadManager_get_home_dir()) : downloadDir;
+    if (!title)
+        return;
+    const sameSongIsDownloading = downloadingSongs.find(downloadingSong => {
+        return downloadingSong.title === title;
+    });
+    if (sameSongIsDownloading)
+        return;
+    const downloadProps = {
+        title,
+        downloadDir: get_tmp_dir(),
+        onError: (errorMessage, downloadCommand) => {
+            global.logError(`The following error occured at youtube download attempt: ${errorMessage}. The used download Command was: ${downloadCommand}`);
+            notifyYoutubeDownloadFailed({ youtubeCli });
+        },
+        onFinished: () => {
+            downloadingSongs = downloadingSongs.filter(downloadingSong => downloadingSong.title !== title);
+            downloadingSongsChangedListener.forEach(listener => listener(downloadingSongs));
+        },
+        onSuccess: (downloadPath) => {
+            const tmpFile = File.new_for_path(downloadPath);
+            const fileName = tmpFile.get_basename();
+            const targetPath = `${music_dir_absolut}/${fileName}`;
+            const targetFile = File.parse_name(targetPath);
+            if (targetFile.query_exists(null)) {
+                notifyYoutubeDownloadFinished({ downloadPath: targetPath, fileAlreadExist: true });
+                return;
+            }
+            try {
+                // @ts-ignore
+                tmpFile.move(File.parse_name(targetPath), FileCopyFlags.BACKUP, null, null);
+                notifyYoutubeDownloadFinished({ downloadPath: targetPath });
+            }
+            catch (error) {
+                notifyYoutubeDownloadFailed({ youtubeCli });
+                const errorMessage = error instanceof imports.gi.GLib.Error ? error.message : 'Unknown Error Type';
+                global.logError(`Failed to download from tmp dir. The following error occured: ${errorMessage}`);
+            }
+        }
+    };
+    const { cancel } = youtubeCli === 'youtube-dl' ?
+        downloadWithYoutubeDl(downloadProps) :
+        downloadWithYtDlp(downloadProps);
+    notifyYoutubeDownloadStarted({ title, onCancelClicked: () => cancel() });
+    downloadingSongs.push({ title, cancelDownload: cancel });
+    downloadingSongsChangedListener.forEach(listener => listener(downloadingSongs));
 }
 function addDownloadingSongsChangeListener(callback) {
     downloadingSongsChangedListener.push(callback);
@@ -4225,18 +4395,18 @@ function createRadioAppletTooltip(args) {
 }
 
 ;// CONCATENATED MODULE: ./src/lib/AppletIcon.ts
-const { Icon, IconType } = imports.gi.St;
+const { Icon: AppletIcon_Icon, IconType: AppletIcon_IconType } = imports.gi.St;
 const { Point } = imports.gi.Clutter;
 function createAppletIcon(props) {
-    const icon_type = (props === null || props === void 0 ? void 0 : props.icon_type) || IconType.SYMBOLIC;
+    const icon_type = (props === null || props === void 0 ? void 0 : props.icon_type) || AppletIcon_IconType.SYMBOLIC;
     const panel = __meta.panel;
     function getIconSize() {
         return panel.getPanelZoneIconSize(__meta.locationLabel, icon_type);
     }
     function getStyleClass() {
-        return icon_type === IconType.SYMBOLIC ? 'system-status-icon' : 'applet-icon';
+        return icon_type === AppletIcon_IconType.SYMBOLIC ? 'system-status-icon' : 'applet-icon';
     }
-    const icon = new Icon(Object.assign({ icon_type, style_class: getStyleClass(), icon_size: getIconSize(), pivot_point: new Point({ x: 0.5, y: 0.5 }) }, props));
+    const icon = new AppletIcon_Icon(Object.assign({ icon_type, style_class: getStyleClass(), icon_size: getIconSize(), pivot_point: new Point({ x: 0.5, y: 0.5 }) }, props));
     panel.connect('icon-size-changed', () => {
         icon.set_icon_size(getIconSize());
     });
@@ -5174,36 +5344,14 @@ function createRadioPopupMenu(props) {
 }
 
 ;// CONCATENATED MODULE: ./src/functions/promiseHelpers.ts
-const { spawnCommandLineAsyncIO } = imports.misc.util;
+const { spawnCommandLineAsyncIO: promiseHelpers_spawnCommandLineAsyncIO } = imports.misc.util;
 const spawnCommandLinePromise = function (command) {
     return new Promise((resolve, reject) => {
-        spawnCommandLineAsyncIO(command, (stdout, stderr, exitCode) => {
+        promiseHelpers_spawnCommandLineAsyncIO(command, (stdout, stderr, exitCode) => {
             (stdout) ? resolve([null, stdout, 0]) : resolve([stderr, null, exitCode]);
         });
     });
 };
-
-;// CONCATENATED MODULE: ./src/ui/Notifications/NotificationBase.ts
-const { SystemNotificationSource, Notification } = imports.ui.messageTray;
-const { messageTray } = imports.ui.main;
-const { Icon: NotificationBase_Icon, IconType: NotificationBase_IconType } = imports.gi.St;
-
-const messageSource = new SystemNotificationSource('Radio Applet');
-messageTray.add(messageSource);
-function createBasicNotification(args) {
-    const { notificationText, isMarkup = false, transient = true } = args;
-    const icon = new NotificationBase_Icon({
-        icon_type: NotificationBase_IconType.SYMBOLIC,
-        icon_name: RADIO_SYMBOLIC_ICON_NAME,
-        icon_size: 25
-    });
-    const notification = new Notification(messageSource, __meta.name, notificationText, { icon, bodyMarkup: isMarkup });
-    notification.setTransient(transient);
-    notification.notify = () => {
-        messageSource.notify(notification);
-    };
-    return notification;
-}
 
 ;// CONCATENATED MODULE: ./src/ui/Notifications/GenericNotification.ts
 

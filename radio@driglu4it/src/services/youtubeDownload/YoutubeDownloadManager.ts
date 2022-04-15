@@ -36,11 +36,8 @@ export function downloadSongFromYoutube() {
     const downloadDir = configs.settingsObject.musicDownloadDir
     const youtubeCli = configs.settingsObject.youtubeCli
 
-    let music_dir_absolut = downloadDir
-
-    if (music_dir_absolut.charAt(0) === '~') {
-        music_dir_absolut = downloadDir.replace('~', get_home_dir())
-    }
+    const music_dir_absolut = downloadDir.charAt(0) === '~' ? 
+        downloadDir.replace('~', get_home_dir()) : downloadDir
 
     if (!title) return
 
