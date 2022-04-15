@@ -43,13 +43,16 @@ const searchResultStore = new ListStore();
 searchResultStore.set_column_types([GObject.TYPE_STRING, GObject.TYPE_INT]);
 // @ts-ignore
 searchResultStore.insert_with_valuesv(-1, ["test", "test"], ["test", "test"]);
-// const treeView = new TreeView({
-//     model
-// })
+const tree = new Gtk.TreeView({
+    headers_visible: false,
+    vexpand: true,
+    hexpand: true,
+    model: searchResultStore
+});
 const addedAccountsList = new ListBox();
 // const addedGoogleAccount = createAddedAccountListRow()
 // addedAccountsList.add(addedGoogleAccount)
-mainBox.add(addedAccountsList);
+mainBox.add(tree);
 const addAcountLabel = new Label({
     use_markup: true,
     label: "<b>Add an account</b>",

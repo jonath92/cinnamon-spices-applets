@@ -16,6 +16,8 @@ const { spawn_command_line_async } = imports.gi.GLib;
 // TODO: this should throw an error!
 // import {getState} from '../applet/Store'
 
+// TODO: view this exmaple: https://github.com/optimisme/gjs-examples/blob/master/egList.js (important: remove first line)
+
 // @ts-ignore
 Gtk.init(null);
 
@@ -50,16 +52,20 @@ searchResultStore.set_column_types([GObject.TYPE_STRING, GObject.TYPE_INT]);
 // @ts-ignore
 searchResultStore.insert_with_valuesv(-1, ["test", "test"], ["test", "test"])
 
-// const treeView = new TreeView({
-//     model
-// })
+const tree = new Gtk.TreeView({
+  headers_visible: false,
+  vexpand: true,
+  hexpand: true,
+  model: searchResultStore
+});
+
 
 const addedAccountsList = new ListBox();
 
 // const addedGoogleAccount = createAddedAccountListRow()
 // addedAccountsList.add(addedGoogleAccount)
 
-mainBox.add(addedAccountsList);
+mainBox.add(tree);
 
 const addAcountLabel = new Label({
   use_markup: true,
