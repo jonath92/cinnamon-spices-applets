@@ -78,7 +78,7 @@ export function downloadSongFromYoutube() {
             } catch (error) {
                 notifyYoutubeDownloadFailed({youtubeCli})
                 const errorMessage = error instanceof imports.gi.GLib.Error ? error.message : 'Unknown Error Type'
-                global.logError(`Failed to download from tmp dir. The following error occured: ${errorMessage}`)
+                global.logError(`Failed to download from tmp dir. The following error occurred: ${errorMessage}`)
             }
 
         }

@@ -8,13 +8,13 @@ interface Arguments {
     initialText?: string | undefined,
     iconName?: string,
     onActivated?: () => void
-    maxCharNumber: number,
+    maxCharNumber?: number,
 }
 
-export function createIconMenuItem(args: Arguments) {
+export function createSimpleMenuItem(args: Arguments) {
 
     const {
-        initialText,
+        initialText = '',
         maxCharNumber,
         iconName,
         onActivated
@@ -29,7 +29,7 @@ export function createIconMenuItem(args: Arguments) {
     })
 
     const label = new Label({
-        text: limitString(initialText || '', maxCharNumber) 
+        text: maxCharNumber ? limitString(initialText, maxCharNumber) : initialText
     })
 
     const container = new BoxLayout({
@@ -53,7 +53,8 @@ export function createIconMenuItem(args: Arguments) {
     }
 
     function setText(text: string) {
-        label.set_text(limitString(text || ' ', maxCharNumber))
+        const visibleText = maxCharNumber ? limitString(text, maxCharNumber) : text 
+        label.set_text(visibleText)
     }
 
     onActivated && createActivWidget({ widget: container, onActivated });

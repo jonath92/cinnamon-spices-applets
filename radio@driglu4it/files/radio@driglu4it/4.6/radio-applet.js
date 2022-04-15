@@ -4332,7 +4332,7 @@ function downloadSongFromYoutube() {
             catch (error) {
                 notifyYoutubeDownloadFailed({ youtubeCli });
                 const errorMessage = error instanceof imports.gi.GLib.Error ? error.message : 'Unknown Error Type';
-                global.logError(`Failed to download from tmp dir. The following error occured: ${errorMessage}`);
+                global.logError(`Failed to download from tmp dir. The following error occurred: ${errorMessage}`);
             }
         }
     };
@@ -4709,24 +4709,24 @@ function limitString(text, maxCharNumber) {
     return [...text].slice(0, maxCharNumber - 3).join('') + '...';
 }
 
-;// CONCATENATED MODULE: ./src/lib/IconMenuItem.ts
+;// CONCATENATED MODULE: ./src/lib/SimpleMenuItem.ts
 
 
-const { Icon: IconMenuItem_Icon, IconType: IconMenuItem_IconType, Label: IconMenuItem_Label, BoxLayout: IconMenuItem_BoxLayout } = imports.gi.St;
-const { Point: IconMenuItem_Point } = imports.gi.Clutter;
-function createIconMenuItem(args) {
-    const { initialText, maxCharNumber, iconName, onActivated } = args;
-    const icon = new IconMenuItem_Icon({
-        icon_type: IconMenuItem_IconType.SYMBOLIC,
+const { Icon: SimpleMenuItem_Icon, IconType: SimpleMenuItem_IconType, Label: SimpleMenuItem_Label, BoxLayout: SimpleMenuItem_BoxLayout } = imports.gi.St;
+const { Point: SimpleMenuItem_Point } = imports.gi.Clutter;
+function createSimpleMenuItem(args) {
+    const { initialText = '', maxCharNumber, iconName, onActivated } = args;
+    const icon = new SimpleMenuItem_Icon({
+        icon_type: SimpleMenuItem_IconType.SYMBOLIC,
         style_class: 'popup-menu-icon',
-        pivot_point: new IconMenuItem_Point({ x: 0.5, y: 0.5 }),
+        pivot_point: new SimpleMenuItem_Point({ x: 0.5, y: 0.5 }),
         icon_name: iconName || '',
         visible: !!iconName
     });
-    const label = new IconMenuItem_Label({
-        text: limitString(initialText || '', maxCharNumber)
+    const label = new SimpleMenuItem_Label({
+        text: maxCharNumber ? limitString(initialText, maxCharNumber) : initialText
     });
-    const container = new IconMenuItem_BoxLayout({
+    const container = new SimpleMenuItem_BoxLayout({
         style_class: 'popup-menu-item'
     });
     container.add_child(icon);
@@ -4741,7 +4741,8 @@ function createIconMenuItem(args) {
         icon.visible = true;
     }
     function setText(text) {
-        label.set_text(limitString(text || ' ', maxCharNumber));
+        const visibleText = maxCharNumber ? limitString(text, maxCharNumber) : text;
+        label.set_text(visibleText);
     }
     onActivated && createActivWidget({ widget: container, onActivated });
     return {
@@ -4759,12 +4760,12 @@ function createIconMenuItem(args) {
 const { BoxLayout: InfoSection_BoxLayout } = imports.gi.St;
 function createInfoSection() {
     const { addChannelChangeHandler, addTitleChangeHandler, getCurrentChannelName, getCurrentTitle } = mpvHandler;
-    const channelInfoItem = createIconMenuItem({
+    const channelInfoItem = createSimpleMenuItem({
         iconName: RADIO_SYMBOLIC_ICON_NAME,
         initialText: getCurrentChannelName(),
         maxCharNumber: MAX_STRING_LENGTH
     });
-    const songInfoItem = createIconMenuItem({
+    const songInfoItem = createSimpleMenuItem({
         iconName: SONG_INFO_ICON_NAME,
         initialText: getCurrentTitle(),
         maxCharNumber: MAX_STRING_LENGTH
@@ -5079,7 +5080,7 @@ function createChannelMenuItem(args) {
         ["Loading", LOADING_ICON_NAME],
         ["Stopped", null]
     ]);
-    const iconMenuItem = createIconMenuItem({
+    const iconMenuItem = createSimpleMenuItem({
         maxCharNumber: MAX_STRING_LENGTH,
         initialText: channelName,
         onActivated: () => {
@@ -5313,7 +5314,17 @@ const createMediaControlToolbar = () => {
     return toolbar;
 };
 
+;// CONCATENATED MODULE: ./src/ui/RadioPopupMenu/UpdateStationsMenuItem.ts
+
+function createUpdateStationsMenuItem() {
+    return createSimpleMenuItem({
+        initialText: 'Update Radio Stationlist',
+        onActivated: () => global.log('todo')
+    }).actor;
+}
+
 ;// CONCATENATED MODULE: ./src/ui/RadioPopupMenu/RadioPopupMenu.ts
+
 
 
 
@@ -5337,6 +5348,7 @@ function createRadioPopupMenu(props) {
     });
     popupMenu.add_child(createChannelList());
     popupMenu.add_child(radioActiveSection);
+    popupMenu.add_child(createUpdateStationsMenuItem());
     addPlaybackStatusChangeHandler((newValue) => {
         radioActiveSection.visible = newValue !== 'Stopped';
     });
