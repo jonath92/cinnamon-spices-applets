@@ -5314,12 +5314,99 @@ const createMediaControlToolbar = () => {
     return toolbar;
 };
 
+;// CONCATENATED MODULE: ./src/lib/HttpHandler.ts
+const { Message, SessionAsync } = imports.gi.Soup;
+const httpSession = new SessionAsync();
+function isHttpError(x) {
+    return typeof x.reason_phrase === "string";
+}
+const ByteArray = imports.byteArray;
+function checkForHttpError(message) {
+    var _a;
+    const code = (message === null || message === void 0 ? void 0 : message.status_code) | 0;
+    const reason_phrase = (message === null || message === void 0 ? void 0 : message.reason_phrase) || "no network response";
+    let errMessage;
+    if (code < 100) {
+        errMessage = "no network response";
+    }
+    else if (code < 200 || code > 300) {
+        errMessage = "bad status code";
+    }
+    else if (!((_a = message.response_body) === null || _a === void 0 ? void 0 : _a.data)) {
+        errMessage = "no response body";
+    }
+    return errMessage
+        ? {
+            code,
+            reason_phrase,
+            message: errMessage,
+        }
+        : false;
+}
+function HttpHandler_makeJsonHttpRequest(args) {
+    const { url, method = "GET", bodyParams, queryParams, onErr, onSuccess, headers, } = args;
+    const uri = url;
+    // const uri = queryParams ? `${url}?${stringify(queryParams)}` : url
+    const message = Message.new(method, uri);
+    if (!message) {
+        throw new Error(`Message Object couldn't be created`);
+    }
+    headers &&
+        Object.entries(headers).forEach(([key, value]) => {
+            message.request_headers.append(key, value);
+        });
+    // if (bodyParams) {
+    //     const bodyParamsStringified = stringify(bodyParams)
+    //     message.request_body.append(ByteArray.fromString(bodyParamsStringified, 'UTF-8'))
+    // }
+    httpSession.queue_message(message, (session, msgResponse) => {
+        const error = checkForHttpError(msgResponse);
+        if (error) {
+            onErr(error);
+            return;
+        }
+        // TODO: We should actually check if this is really of type T1
+        const data = JSON.parse(msgResponse.response_body.data);
+        onSuccess(data);
+    });
+}
+
 ;// CONCATENATED MODULE: ./src/ui/RadioPopupMenu/UpdateStationsMenuItem.ts
 
+
+const saveStations = (stationsUnfiltered) => {
+    const filteredStations = stationsUnfiltered.flatMap(({ name, url }, index) => {
+        const isDuplicate = stationsUnfiltered.findIndex((val) => val.name === name && val.url === url) !== index;
+        if (isDuplicate)
+            return [];
+        return [{ name, url }];
+    });
+    global.log("filteredStatsion", filteredStations);
+};
+const updateRadioStations = () => {
+    makeJsonHttpRequest({
+        url: "http://de1.api.radio-browser.info/json/stations",
+        onSuccess: (resp) => saveStations(resp),
+        onErr: (err) => {
+            // TODO
+            global.logError(err);
+        },
+    });
+    // global.log('stationsUnfiltered', stationsUnfiltered)
+};
 function createUpdateStationsMenuItem() {
     return createSimpleMenuItem({
-        initialText: 'Update Radio Stationlist',
-        onActivated: () => global.log('todo')
+        initialText: "Update Radio Stationlist",
+        onActivated: () => {
+            HttpHandler_makeJsonHttpRequest({
+                url: "http://de1.api.radio-browser.info/json/stations",
+                onSuccess: (resp) => saveStations(resp),
+                onErr: (err) => {
+                    // TODO
+                    global.logError(err);
+                },
+            });
+        },
     }).actor;
 }
 
