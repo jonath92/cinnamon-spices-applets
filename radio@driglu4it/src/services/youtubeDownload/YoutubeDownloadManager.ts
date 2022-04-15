@@ -76,12 +76,12 @@ export function downloadSongFromYoutube() {
             try {
                 // @ts-ignore
                 tmpFile.move(File.parse_name(targetPath), FileCopyFlags.BACKUP, null, null)
-
                 notifyYoutubeDownloadFinished({ downloadPath: targetPath })
 
             } catch (error) {
                 notifyYoutubeDownloadFailed({youtubeCli})
-                global.logError('failed to copy from tmp dir. The following error occured', error as imports.gi.GLib.Error)
+                const errorMessage = error instanceof imports.gi.GLib.Error ? error.message : 'Unknown Error Type'
+                global.logError(`Failed to download from tmp dir. The following error occured: ${errorMessage}`)
             }
 
         }
