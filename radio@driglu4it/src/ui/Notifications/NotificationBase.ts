@@ -12,21 +12,19 @@ interface NotificationBtn {
     onClick: () => void
 }
 
-interface Arguments {
-    notificationText: string,
+interface NotifyOptions {
     isMarkup?: boolean
     transient?: boolean
     buttons?: NotificationBtn[]
 }
 
-export function createBasicNotification(args: Arguments) {
+export function notify(text: string, options?: NotifyOptions) {
 
     const {
-        notificationText,
         isMarkup = false,
         transient = true,
         buttons
-    } = args
+    } = options || {}
 
     const icon = new Icon({
         icon_type: IconType.SYMBOLIC,
@@ -37,7 +35,7 @@ export function createBasicNotification(args: Arguments) {
     const notification = new Notification(
         messageSource,
         __meta.name,
-        notificationText,
+        text,
         { icon })
 
     notification.setTransient(transient)
@@ -49,12 +47,12 @@ export function createBasicNotification(args: Arguments) {
 
         notification.connect('action-invoked', (_, id) => {
             const clickedBtn = buttons.find(({ text }) => text === id)
-            clickedBtn?.onClick
+            clickedBtn?.onClick()
         })
     }
 
     // workaround to remove the underline of the downloadPath
-    isMarkup && notification["_bodyUrlHighlighter"].actor.clutter_text.set_markup(notificationText)
+    isMarkup && notification["_bodyUrlHighlighter"].actor.clutter_text.set_markup(text)
 
     messageSource.notify(notification)
 }

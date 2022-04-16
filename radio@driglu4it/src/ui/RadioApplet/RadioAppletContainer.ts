@@ -7,8 +7,8 @@ import { createRadioAppletIcon } from "./RadioAppletIcon"
 import { APPLET_SITE, MPRIS_PLUGIN_PATH, VOLUME_DELTA } from "../../consts"
 import { createRadioPopupMenu } from "../RadioPopupMenu/RadioPopupMenu"
 import { installMpvWithMpris } from "../../services/mpv/CheckInstallation"
-import { notify } from "../Notifications/GenericNotification"
 import { createYoutubeDownloadIcon } from "./YoutubeDownloadIcon"
+import { notify } from "../Notifications/NotificationBase"
 
 const { ScrollDirection } = imports.gi.Clutter;
 
@@ -59,7 +59,7 @@ export function createRadioAppletContainer() {
             const notificationText =
                 `Couldn't start the applet. Make sure mpv is installed and the mpv mpris plugin is located at ${MPRIS_PLUGIN_PATH} and correctly compiled for your environment. Refer to ${APPLET_SITE} (section Known Issues)`
 
-            notify({ text: notificationText, transient: false })
+            notify(notificationText, {transient: false })
             global.logError(error)
         } finally {
             installationInProgress = false

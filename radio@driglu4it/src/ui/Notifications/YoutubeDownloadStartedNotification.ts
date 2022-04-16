@@ -1,4 +1,4 @@
-import { createBasicNotification } from "./NotificationBase";
+import { notify } from "./NotificationBase";
 
 interface Arguments {
     title: string,
@@ -12,13 +12,15 @@ export function notifyYoutubeDownloadStarted(args: Arguments) {
         onCancelClicked
     } = args
 
-    createBasicNotification({
-        notificationText: `Downloading ${title} ...`,
-        buttons: [
-            {
-                text: 'Cancel',
-                onClick: onCancelClicked
-            }
-        ]
-    })
+    notify(
+        `Downloading ${title} ...`,
+        {
+            buttons: [
+                {
+                    text: 'Cancel',
+                    onClick: onCancelClicked
+                }
+            ]
+        }
+    )
 }

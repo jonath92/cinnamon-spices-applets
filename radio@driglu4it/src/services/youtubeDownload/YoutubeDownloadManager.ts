@@ -36,7 +36,7 @@ export function downloadSongFromYoutube() {
     const downloadDir = configs.settingsObject.musicDownloadDir
     const youtubeCli = configs.settingsObject.youtubeCli
 
-    const music_dir_absolut = downloadDir.charAt(0) === '~' ? 
+    const music_dir_absolut = downloadDir.charAt(0) === '~' ?
         downloadDir.replace('~', get_home_dir()) : downloadDir
 
     if (!title) return
@@ -76,7 +76,7 @@ export function downloadSongFromYoutube() {
                 notifyYoutubeDownloadFinished({ downloadPath: targetPath })
 
             } catch (error) {
-                notifyYoutubeDownloadFailed({youtubeCli})
+                notifyYoutubeDownloadFailed({ youtubeCli })
                 const errorMessage = error instanceof imports.gi.GLib.Error ? error.message : 'Unknown Error Type'
                 global.logError(`Failed to download from tmp dir. The following error occurred: ${errorMessage}`)
             }
@@ -88,7 +88,10 @@ export function downloadSongFromYoutube() {
         downloadWithYoutubeDl(downloadProps) :
         downloadWithYtDlp(downloadProps)
 
-    notifyYoutubeDownloadStarted({ title, onCancelClicked: () => cancel() })
+    notifyYoutubeDownloadStarted({
+        title, onCancelClicked: cancel
+    })
+
     downloadingSongs.push({ title, cancelDownload: cancel })
     downloadingSongsChangedListener.forEach(listener => listener(downloadingSongs))
 }

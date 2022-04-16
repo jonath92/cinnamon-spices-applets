@@ -1,6 +1,6 @@
 import { makeJsonHttpRequest } from "../../lib/HttpHandler";
 import { createSimpleMenuItem } from "../../lib/SimpleMenuItem";
-import { notify } from "../Notifications/GenericNotification";
+import { notify } from "../Notifications/NotificationBase";
 const { File, FileCreateFlags } = imports.gi.Gio
 
 const { Bytes } = imports.gi.GLib
@@ -38,7 +38,7 @@ const saveStations = (stationsUnfiltered: RadioStation[]) => {
     FileCreateFlags.REPLACE_DESTINATION,
     null,
     (file, result) => {
-      notify({ text: 'Stations updated successfully' })
+      notify('Stations updated successfully')
     }
   )
 };
@@ -60,9 +60,12 @@ export function createUpdateStationsMenuItem() {
         url: "http://de1.api.radio-browser.info/json/stations?limit=100",
         onSuccess: (resp) => saveStations(resp),
         onErr: (err) => {
-          const notificationText = `Couldn't update the station list due to an error. Make sure you are connected to the internet and try again. Don't hesitate to open an issue on github if the problem remains.`
 
-          
+
+          notify(
+            `Couldn't update the station list due to an error. Make sure you are connected to the internet and try again. Don't hesitate to open an issue on github if the problem remains.`
+          )
+
           // TODO
           global.logError(err);
         },

@@ -4112,14 +4112,14 @@ const { Icon, IconType } = imports.gi.St;
 
 const messageSource = new SystemNotificationSource('Radio Applet');
 messageTray.add(messageSource);
-function createBasicNotification(args) {
-    const { notificationText, isMarkup = false, transient = true, buttons } = args;
+function notify(text, options) {
+    const { isMarkup = false, transient = true, buttons } = options || {};
     const icon = new Icon({
         icon_type: IconType.SYMBOLIC,
         icon_name: RADIO_SYMBOLIC_ICON_NAME,
         icon_size: 25
     });
-    const notification = new Notification(messageSource, __meta.name, notificationText, { icon });
+    const notification = new Notification(messageSource, __meta.name, text, { icon });
     notification.setTransient(transient);
     if (buttons) {
         buttons.forEach(({ text }) => {
@@ -4127,11 +4127,11 @@ function createBasicNotification(args) {
         });
         notification.connect('action-invoked', (_, id) => {
             const clickedBtn = buttons.find(({ text }) => text === id);
-            clickedBtn === null || clickedBtn === void 0 ? void 0 : clickedBtn.onClick;
+            clickedBtn === null || clickedBtn === void 0 ? void 0 : clickedBtn.onClick();
         });
     }
     // workaround to remove the underline of the downloadPath
-    isMarkup && notification["_bodyUrlHighlighter"].actor.clutter_text.set_markup(notificationText);
+    isMarkup && notification["_bodyUrlHighlighter"].actor.clutter_text.set_markup(text);
     messageSource.notify(notification);
 }
 
@@ -4142,11 +4142,9 @@ const { spawnCommandLine: YoutubeDownloadFailedNotification_spawnCommandLine } =
 const { get_home_dir: YoutubeDownloadFailedNotification_get_home_dir } = imports.gi.GLib;
 function notifyYoutubeDownloadFailed(props) {
     const { youtubeCli } = props;
-    const notificationText = `Couldn't download Song from Youtube due to an Error. Make Sure you have the newest version of ${youtubeCli} installed. 
+    notify(`Couldn't download Song from Youtube due to an Error. Make Sure you have the newest version of ${youtubeCli} installed. 
         \n<b>Important:</b> Don't use apt for the installation but follow the installation instruction given on the Radio Applet Site in the Cinnamon Store instead
-        \nFor more information see the logs`;
-    createBasicNotification({
-        notificationText,
+        \nFor more information see the logs`, {
         isMarkup: true,
         transient: false,
         buttons: [
@@ -4167,11 +4165,9 @@ function notifyYoutubeDownloadFailed(props) {
 const { spawnCommandLine: YoutubeDownloadFinishedNotification_spawnCommandLine } = imports.misc.util;
 function notifyYoutubeDownloadFinished(args) {
     const { downloadPath, fileAlreadExist = false } = args;
-    const notificationText = fileAlreadExist ?
+    notify(fileAlreadExist ?
         'Downloaded Song not saved as a file with the same name already exists' :
-        `Download finished. File saved to ${downloadPath}`;
-    createBasicNotification({
-        notificationText,
+        `Download finished. File saved to ${downloadPath}`, {
         isMarkup: true,
         transient: false,
         buttons: [
@@ -4187,8 +4183,7 @@ function notifyYoutubeDownloadFinished(args) {
 
 function notifyYoutubeDownloadStarted(args) {
     const { title, onCancelClicked } = args;
-    createBasicNotification({
-        notificationText: `Downloading ${title} ...`,
+    notify(`Downloading ${title} ...`, {
         buttons: [
             {
                 text: 'Cancel',
@@ -4339,7 +4334,9 @@ function downloadSongFromYoutube() {
     const { cancel } = youtubeCli === 'youtube-dl' ?
         downloadWithYoutubeDl(downloadProps) :
         downloadWithYtDlp(downloadProps);
-    notifyYoutubeDownloadStarted({ title, onCancelClicked: () => cancel() });
+    notifyYoutubeDownloadStarted({
+        title, onCancelClicked: cancel
+    });
     downloadingSongs.push({ title, cancelDownload: cancel });
     downloadingSongsChangedListener.forEach(listener => listener(downloadingSongs));
 }
@@ -5373,18 +5370,6 @@ function makeJsonHttpRequest(args) {
     });
 }
 
-;// CONCATENATED MODULE: ./src/ui/Notifications/GenericNotification.ts
-
-function notify(args) {
-    const { text, isMarkup = false, transient = true } = args;
-    const notification = createBasicNotification({
-        notificationText: text,
-        isMarkup,
-        transient
-    });
-    // notification.notify()
-}
-
 ;// CONCATENATED MODULE: ./src/ui/RadioPopupMenu/UpdateStationsMenuItem.ts
 
 
@@ -5403,7 +5388,7 @@ const saveStations = (stationsUnfiltered) => {
         file.create(FileCreateFlags.NONE, null);
     }
     file.replace_contents_bytes_async(new Bytes(JSON.stringify(filteredStations)), null, false, FileCreateFlags.REPLACE_DESTINATION, null, (file, result) => {
-        notify({ text: 'Stations updated successfully' });
+        notify('Stations updated successfully');
     });
 };
 function createUpdateStationsMenuItem() {
@@ -5420,7 +5405,7 @@ function createUpdateStationsMenuItem() {
                 url: "http://de1.api.radio-browser.info/json/stations?limit=100",
                 onSuccess: (resp) => saveStations(resp),
                 onErr: (err) => {
-                    const notificationText = `Couldn't update the station list due to an error. Make sure you are connected to the internet and try again. Don't hesitate to open an issue on github if the problem remains.`;
+                    notify(`Couldn't update the station list due to an error. Make sure you are connected to the internet and try again. Don't hesitate to open an issue on github if the problem remains.`);
                     // TODO
                     global.logError(err);
                 },
@@ -5487,7 +5472,7 @@ async function installMpvWithMpris() {
     !mprisPluginDownloaded && await downloadMrisPluginInteractive();
     if (!mpvInstalled) {
         const notificationText = `Please ${mprisPluginDownloaded ? '' : 'also'} install the mpv package.`;
-        notify({ text: notificationText });
+        notify(notificationText);
         await installMpvInteractive();
     }
 }
@@ -5589,7 +5574,7 @@ function createRadioAppletContainer() {
         }
         catch (error) {
             const notificationText = `Couldn't start the applet. Make sure mpv is installed and the mpv mpris plugin is located at ${MPRIS_PLUGIN_PATH} and correctly compiled for your environment. Refer to ${APPLET_SITE} (section Known Issues)`;
-            notify({ text: notificationText, transient: false });
+            notify(notificationText, { transient: false });
             global.logError(error);
         }
         finally {
