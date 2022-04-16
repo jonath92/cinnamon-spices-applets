@@ -1,5 +1,8 @@
 import { makeJsonHttpRequest } from "../../lib/HttpHandler";
 import { createSimpleMenuItem } from "../../lib/SimpleMenuItem";
+const { File, FileCreateFlags } = imports.gi.Gio
+
+const { Bytes } = imports.gi.GLib
 
 interface RadioStation {
   url: string;
@@ -17,24 +20,29 @@ const saveStations = (stationsUnfiltered: RadioStation[]) => {
 
       if (isDuplicate) return [];
 
-      return [{ name, url }];
+      return [[name.trim(), url.trim()]];
     }
   );
 
-  global.log("filteredStatsion", filteredStations);
-};
+  const file = File.new_for_path(`${__meta.path}/allStations.json`)
 
-const updateRadioStations = () => {
-  makeJsonHttpRequest<RadioStation[]>({
-    url: "http://de1.api.radio-browser.info/json/stations",
-    onSuccess: (resp) => saveStations(resp),
-    onErr: (err) => {
+
+  if (!file.query_exists(null)) {
+    file.create(FileCreateFlags.NONE, null)
+  }
+
+  file.replace_contents_bytes_async(
+    new Bytes(JSON.stringify(filteredStations)),
+    null,
+    false,
+    FileCreateFlags.REPLACE_DESTINATION,
+    null,
+    (file, result) => {
       // TODO
-      global.logError(err);
-    },
-  });
+    }
+  )
 
-  // global.log('stationsUnfiltered', stationsUnfiltered)
+  global.log("filteredStatsion", filteredStations);
 };
 
 export function createUpdateStationsMenuItem() {
