@@ -4744,13 +4744,14 @@ function createSimpleMenuItem(args) {
         const visibleText = maxCharNumber ? limitString(text, maxCharNumber) : text;
         label.set_text(visibleText);
     }
-    onActivated && createActivWidget({ widget: container, onActivated });
-    return {
+    const menuItem = {
         actor: container,
         setIconName,
         setText,
         getIcon: () => icon
     };
+    onActivated && createActivWidget({ widget: container, onActivated: () => onActivated(menuItem) });
+    return menuItem;
 }
 
 ;// CONCATENATED MODULE: ./src/ui/InfoSection.ts
@@ -5344,7 +5345,7 @@ function checkForHttpError(message) {
         : false;
 }
 function makeJsonHttpRequest(args) {
-    const { url, method = "GET", bodyParams, queryParams, onErr, onSuccess, headers, } = args;
+    const { url, method = "GET", bodyParams, queryParams, onErr, onSuccess, onSettled, headers, } = args;
     const uri = url;
     // const uri = queryParams ? `${url}?${stringify(queryParams)}` : url
     const message = Message.new(method, uri);
@@ -5360,6 +5361,7 @@ function makeJsonHttpRequest(args) {
     //     message.request_body.append(ByteArray.fromString(bodyParamsStringified, 'UTF-8'))
     // }
     httpSession.queue_message(message, (session, msgResponse) => {
+        onSettled === null || onSettled === void 0 ? void 0 : onSettled();
         const error = checkForHttpError(msgResponse);
         if (error) {
             onErr(error);
@@ -5371,12 +5373,161 @@ function makeJsonHttpRequest(args) {
     });
 }
 
+;// CONCATENATED MODULE: ./src/lib/HttpLib.ts
+const { Message: HttpLib_Message, ProxyResolverDefault, SessionAsync: HttpLib_SessionAsync, MessageHeaders, MessageHeadersType } = imports.gi.Soup;
+class HttpLib {
+    constructor() {
+        /** Soup session (see https://bugzilla.gnome.org/show_bug.cgi?id=661323#c64) */
+        this._httpSession = new HttpLib_SessionAsync();
+        this._httpSession.user_agent = "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:37.0) Gecko/20100101 Firefox/37.0"; // ipapi blocks non-browsers agents, imitating browser
+        this._httpSession.timeout = 10;
+        this._httpSession.idle_timeout = 10;
+        this._httpSession.add_feature(new ProxyResolverDefault());
+    }
+    /** Single instance of log */
+    static get Instance() {
+        if (this.instance == null)
+            this.instance = new HttpLib();
+        return this.instance;
+    }
+    /**
+     * Handles obtaining JSON over http.
+     */
+    async LoadJsonAsync(url, params, headers, method = "GET") {
+        const response = await this.LoadAsync(url, params, headers, method);
+        try {
+            const payload = JSON.parse(response.Data);
+            response.Data = payload;
+        }
+        catch (e) { // Payload is not JSON
+            if (e instanceof Error)
+                global.log("Error: API response is not JSON. The response: " + response.Data, e);
+            // Only care about JSON parse errors if the request was successful before
+            if (response.Success) {
+                response.Success = false;
+                response.ErrorData = {
+                    code: -1,
+                    message: "bad api response - non json",
+                    reason_phrase: "",
+                };
+            }
+        }
+        finally {
+            return response;
+        }
+    }
+    /**
+     * Handles obtaining data over http.
+     */
+    async LoadAsync(url, params, headers, method = "GET") {
+        var _a, _b, _c, _d, _e, _f;
+        const message = await this.Send(url, params, headers, method);
+        let error = undefined;
+        // Error generation
+        if (!message) {
+            error = {
+                code: 0,
+                message: "no network response",
+                reason_phrase: "no network response",
+                response: undefined
+            };
+        }
+        // network or DNS error
+        else if (message.status_code < 100 && message.status_code >= 0) {
+            error = {
+                code: message.status_code,
+                message: "no network response",
+                reason_phrase: message.reason_phrase,
+                response: message
+            };
+        }
+        else if (message.status_code > 300 || message.status_code < 200) {
+            error = {
+                code: message.status_code,
+                message: "bad status code",
+                reason_phrase: message.reason_phrase,
+                response: message
+            };
+        }
+        else if (!message.response_body) {
+            error = {
+                code: message.status_code,
+                message: "no response body",
+                reason_phrase: message.reason_phrase,
+                response: message
+            };
+        }
+        else if (!message.response_body.data) {
+            error = {
+                code: message.status_code,
+                message: "no response data",
+                reason_phrase: message.reason_phrase,
+                response: message
+            };
+        }
+        const responseHeaders = {};
+        (_a = message === null || message === void 0 ? void 0 : message.response_headers) === null || _a === void 0 ? void 0 : _a.foreach((name, val) => {
+            responseHeaders[name] = val;
+        });
+        if (((_b = message === null || message === void 0 ? void 0 : message.status_code) !== null && _b !== void 0 ? _b : -1) > 200 && ((_c = message === null || message === void 0 ? void 0 : message.status_code) !== null && _c !== void 0 ? _c : -1) < 300) {
+            global.log("Warning: API returned non-OK status code '" + (message === null || message === void 0 ? void 0 : message.status_code) + "'");
+        }
+        //Logger.Verbose("API full response: " + message?.response_body?.data?.toString());
+        if (error != null)
+            global.log("Error calling URL: " + error.reason_phrase + ", " + ((_e = (_d = error === null || error === void 0 ? void 0 : error.response) === null || _d === void 0 ? void 0 : _d.response_body) === null || _e === void 0 ? void 0 : _e.data));
+        return {
+            Success: (error == null),
+            Data: (_f = message === null || message === void 0 ? void 0 : message.response_body) === null || _f === void 0 ? void 0 : _f.data,
+            ResponseHeaders: responseHeaders,
+            ErrorData: error,
+            Response: message
+        };
+    }
+    /**
+     * Send a http request
+     * @param url
+     * @param params
+     * @param method
+     */
+    async Send(url, params, headers, method = "GET") {
+        // Add params to url
+        if (params != null) {
+            const items = Object.keys(params);
+            for (const [index, item] of items.entries()) {
+                url += (index == 0) ? "?" : "&";
+                url += (item) + "=" + params[item];
+            }
+        }
+        const query = encodeURI(url);
+        global.log("URL called: " + query);
+        const data = await new Promise((resolve, reject) => {
+            const message = HttpLib_Message.new(method, query);
+            if (message == null) {
+                resolve(null);
+            }
+            else {
+                if (headers != null) {
+                    for (const key in headers) {
+                        message.request_headers.append(key, headers[key]);
+                    }
+                }
+                this._httpSession.queue_message(message, (session, message) => {
+                    resolve(message);
+                });
+            }
+        });
+        return data;
+    }
+}
+
 ;// CONCATENATED MODULE: ./src/ui/RadioPopupMenu/UpdateStationsMenuItem.ts
+
 
 
 const { File: UpdateStationsMenuItem_File, FileCreateFlags } = imports.gi.Gio;
 const { Bytes } = imports.gi.GLib;
 const saveStations = (stationsUnfiltered) => {
+    global.log('saveStations called');
     const filteredStations = stationsUnfiltered.flatMap(({ name, url }, index) => {
         const isDuplicate = stationsUnfiltered.findIndex((val) => val.name === name && val.url === url) !== index;
         if (isDuplicate)
@@ -5393,19 +5544,31 @@ const saveStations = (stationsUnfiltered) => {
     global.log("filteredStatsion", filteredStations);
 };
 function createUpdateStationsMenuItem() {
-    return createSimpleMenuItem({
-        initialText: "Update Radio Stationlist",
-        onActivated: () => {
+    const defaultText = 'Update Radio Stationlist';
+    const httpLib = HttpLib.Instance;
+    let isLoading = false;
+    const menuItem = createSimpleMenuItem({
+        initialText: defaultText,
+        onActivated: async (self) => {
+            if (isLoading)
+                return;
+            isLoading = true;
+            self.setText('Loading ...');
             makeJsonHttpRequest({
-                url: "http://de1.api.radio-browser.info/json/stations",
+                url: "http://de1.api.radio-browser.info/json/stations?limit=100",
                 onSuccess: (resp) => saveStations(resp),
                 onErr: (err) => {
                     // TODO
                     global.logError(err);
                 },
+                onSettled: () => {
+                    self.setText(defaultText);
+                    isLoading = false;
+                }
             });
         },
-    }).actor;
+    });
+    return menuItem.actor;
 }
 
 ;// CONCATENATED MODULE: ./src/ui/RadioPopupMenu/RadioPopupMenu.ts

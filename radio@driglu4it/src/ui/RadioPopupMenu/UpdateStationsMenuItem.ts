@@ -11,6 +11,7 @@ interface RadioStation {
 }
 
 const saveStations = (stationsUnfiltered: RadioStation[]) => {
+  global.log('saveStations called')
   const filteredStations = stationsUnfiltered.flatMap(
     ({ name, url }, index) => {
       const isDuplicate =
@@ -46,17 +47,33 @@ const saveStations = (stationsUnfiltered: RadioStation[]) => {
 };
 
 export function createUpdateStationsMenuItem() {
-  return createSimpleMenuItem({
-    initialText: "Update Radio Stationlist",
-    onActivated: () => {
+
+  const defaultText = 'Update Radio Stationlist'
+
+  let isLoading = false
+
+  const menuItem = createSimpleMenuItem({
+    initialText: defaultText,
+    onActivated: async (self) => {
+      if (isLoading) return
+      isLoading = true
+      self.setText('Loading ...')
+
       makeJsonHttpRequest<RadioStation[]>({
-        url: "http://de1.api.radio-browser.info/json/stations",
+        url: "http://de1.api.radio-browser.info/json/stations?limit=100",
         onSuccess: (resp) => saveStations(resp),
         onErr: (err) => {
           // TODO
           global.logError(err);
         },
+        onSettled: () => {
+          self.setText(defaultText)
+          isLoading = false
+        }
       });
     },
-  }).actor;
+  });
+
+
+  return menuItem.actor
 }

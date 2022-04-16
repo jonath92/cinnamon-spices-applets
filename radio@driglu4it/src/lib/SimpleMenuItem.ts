@@ -4,10 +4,12 @@ import { limitString } from "../functions/limitString"
 const { Icon, IconType, Label, BoxLayout } = imports.gi.St
 const { Point } = imports.gi.Clutter
 
+type SimpleMenuItem = ReturnType<typeof createSimpleMenuItem>
+
 interface Arguments {
     initialText?: string | undefined,
     iconName?: string,
-    onActivated?: () => void
+    onActivated?: (self: SimpleMenuItem) => void
     maxCharNumber?: number,
 }
 
@@ -23,8 +25,8 @@ export function createSimpleMenuItem(args: Arguments) {
     const icon = new Icon({
         icon_type: IconType.SYMBOLIC,
         style_class: 'popup-menu-icon',
-        pivot_point: new Point({ x: 0.5, y: 0.5 }), 
-        icon_name: iconName || '', 
+        pivot_point: new Point({ x: 0.5, y: 0.5 }),
+        icon_name: iconName || '',
         visible: !!iconName
     })
 
@@ -49,22 +51,24 @@ export function createSimpleMenuItem(args: Arguments) {
 
         icon.icon_name = name
         icon.visible = true
- 
+
     }
 
     function setText(text: string) {
-        const visibleText = maxCharNumber ? limitString(text, maxCharNumber) : text 
+        const visibleText = maxCharNumber ? limitString(text, maxCharNumber) : text
         label.set_text(visibleText)
     }
 
-    onActivated && createActivWidget({ widget: container, onActivated });
-
-    return {
+    const menuItem = {
         actor: container,
         setIconName,
         setText,
         getIcon: () => icon
     }
+
+    onActivated && createActivWidget({ widget: container, onActivated: () => onActivated(menuItem) });
+
+    return menuItem
 
 
 }

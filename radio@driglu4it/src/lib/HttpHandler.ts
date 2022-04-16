@@ -33,6 +33,7 @@ export interface LoadJsonArgs<T1, T2 = HTTPParams> {
   headers?: Headers;
   onSuccess: (resp: T1) => void;
   onErr: (err: HttpError) => void;
+  onSettled?: () => void
 }
 
 const ByteArray = imports.byteArray;
@@ -55,10 +56,10 @@ function checkForHttpError(
 
   return errMessage
     ? {
-        code,
-        reason_phrase,
-        message: errMessage,
-      }
+      code,
+      reason_phrase,
+      message: errMessage,
+    }
     : false;
 }
 
@@ -70,6 +71,7 @@ export function makeJsonHttpRequest<T1>(args: LoadJsonArgs<T1>) {
     queryParams,
     onErr,
     onSuccess,
+    onSettled,
     headers,
   } = args;
 
@@ -92,6 +94,7 @@ export function makeJsonHttpRequest<T1>(args: LoadJsonArgs<T1>) {
   // }
 
   httpSession.queue_message(message, (session, msgResponse) => {
+    onSettled?.()
     const error = checkForHttpError(msgResponse);
 
     if (error) {
