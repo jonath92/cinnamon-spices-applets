@@ -4113,18 +4113,26 @@ const { Icon, IconType } = imports.gi.St;
 const messageSource = new SystemNotificationSource('Radio Applet');
 messageTray.add(messageSource);
 function createBasicNotification(args) {
-    const { notificationText, isMarkup = false, transient = true } = args;
+    const { notificationText, isMarkup = false, transient = true, buttons } = args;
     const icon = new Icon({
         icon_type: IconType.SYMBOLIC,
         icon_name: RADIO_SYMBOLIC_ICON_NAME,
         icon_size: 25
     });
-    const notification = new Notification(messageSource, __meta.name, notificationText, { icon, bodyMarkup: isMarkup });
+    const notification = new Notification(messageSource, __meta.name, notificationText, { icon });
     notification.setTransient(transient);
-    notification.notify = () => {
-        messageSource.notify(notification);
-    };
-    return notification;
+    if (buttons) {
+        buttons.forEach(({ text }) => {
+            notification.addButton(text, text);
+        });
+        notification.connect('action-invoked', (_, id) => {
+            const clickedBtn = buttons.find(({ text }) => text === id);
+            clickedBtn === null || clickedBtn === void 0 ? void 0 : clickedBtn.onClick;
+        });
+    }
+    // workaround to remove the underline of the downloadPath
+    isMarkup && notification["_bodyUrlHighlighter"].actor.clutter_text.set_markup(notificationText);
+    messageSource.notify(notification);
 }
 
 ;// CONCATENATED MODULE: ./src/ui/Notifications/YoutubeDownloadFailedNotification.ts
@@ -4137,24 +4145,21 @@ function notifyYoutubeDownloadFailed(props) {
     const notificationText = `Couldn't download Song from Youtube due to an Error. Make Sure you have the newest version of ${youtubeCli} installed. 
         \n<b>Important:</b> Don't use apt for the installation but follow the installation instruction given on the Radio Applet Site in the Cinnamon Store instead
         \nFor more information see the logs`;
-    const notification = createBasicNotification({
+    createBasicNotification({
         notificationText,
         isMarkup: true,
-        transient: false
+        transient: false,
+        buttons: [
+            {
+                text: 'View Installation Instruction',
+                onClick: () => YoutubeDownloadFailedNotification_spawnCommandLine(`xdg-open ${APPLET_SITE} `)
+            },
+            {
+                text: 'View Logs',
+                onClick: () => YoutubeDownloadFailedNotification_spawnCommandLine(`xdg-open ${YoutubeDownloadFailedNotification_get_home_dir()}/.xsession-errors`)
+            }
+        ]
     });
-    const viewStoreBtnId = 'viewStoreBtn';
-    const viewLogBtnId = 'viewLogBtn';
-    notification.addButton(viewStoreBtnId, 'View Installation Instruction');
-    notification.addButton(viewLogBtnId, "View Logs");
-    notification.connect('action-invoked', (actor, id) => {
-        if (id === viewStoreBtnId) {
-            YoutubeDownloadFailedNotification_spawnCommandLine(`xdg-open ${APPLET_SITE} `);
-        }
-        if (id === viewLogBtnId) {
-            YoutubeDownloadFailedNotification_spawnCommandLine(`xdg-open ${YoutubeDownloadFailedNotification_get_home_dir()}/.xsession-errors`);
-        }
-    });
-    notification.notify();
 }
 
 ;// CONCATENATED MODULE: ./src/ui/Notifications/YoutubeDownloadFinishedNotification.ts
@@ -4165,37 +4170,32 @@ function notifyYoutubeDownloadFinished(args) {
     const notificationText = fileAlreadExist ?
         'Downloaded Song not saved as a file with the same name already exists' :
         `Download finished. File saved to ${downloadPath}`;
-    const notification = createBasicNotification({
+    createBasicNotification({
         notificationText,
-        isMarkup: false,
-        transient: false
+        isMarkup: true,
+        transient: false,
+        buttons: [
+            {
+                text: 'Play',
+                onClick: () => YoutubeDownloadFinishedNotification_spawnCommandLine(`xdg-open '${downloadPath}'`)
+            }
+        ]
     });
-    // workaround to remove the underline of the downloadPath
-    notification["_bodyUrlHighlighter"].actor.clutter_text.set_markup(notificationText);
-    const playBtnId = 'openBtn';
-    notification.addButton(playBtnId, 'Play');
-    notification.connect('action-invoked', (actor, id) => {
-        if (id === playBtnId) {
-            YoutubeDownloadFinishedNotification_spawnCommandLine(`xdg-open '${downloadPath}'`);
-        }
-    });
-    notification.notify();
 }
 
 ;// CONCATENATED MODULE: ./src/ui/Notifications/YoutubeDownloadStartedNotification.ts
 
 function notifyYoutubeDownloadStarted(args) {
     const { title, onCancelClicked } = args;
-    const notification = createBasicNotification({
+    createBasicNotification({
         notificationText: `Downloading ${title} ...`,
+        buttons: [
+            {
+                text: 'Cancel',
+                onClick: onCancelClicked
+            }
+        ]
     });
-    const cancelBtnId = 'cancelBtn';
-    notification.addButton(cancelBtnId, 'Cancel');
-    notification.connect('action-invoked', (actor, id) => {
-        if (id === cancelBtnId)
-            onCancelClicked();
-    });
-    notification.notify();
 }
 
 ;// CONCATENATED MODULE: ./src/services/youtubeDownload/YoutubeDl.ts
@@ -5373,151 +5373,16 @@ function makeJsonHttpRequest(args) {
     });
 }
 
-;// CONCATENATED MODULE: ./src/lib/HttpLib.ts
-const { Message: HttpLib_Message, ProxyResolverDefault, SessionAsync: HttpLib_SessionAsync, MessageHeaders, MessageHeadersType } = imports.gi.Soup;
-class HttpLib {
-    constructor() {
-        /** Soup session (see https://bugzilla.gnome.org/show_bug.cgi?id=661323#c64) */
-        this._httpSession = new HttpLib_SessionAsync();
-        this._httpSession.user_agent = "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:37.0) Gecko/20100101 Firefox/37.0"; // ipapi blocks non-browsers agents, imitating browser
-        this._httpSession.timeout = 10;
-        this._httpSession.idle_timeout = 10;
-        this._httpSession.add_feature(new ProxyResolverDefault());
-    }
-    /** Single instance of log */
-    static get Instance() {
-        if (this.instance == null)
-            this.instance = new HttpLib();
-        return this.instance;
-    }
-    /**
-     * Handles obtaining JSON over http.
-     */
-    async LoadJsonAsync(url, params, headers, method = "GET") {
-        const response = await this.LoadAsync(url, params, headers, method);
-        try {
-            const payload = JSON.parse(response.Data);
-            response.Data = payload;
-        }
-        catch (e) { // Payload is not JSON
-            if (e instanceof Error)
-                global.log("Error: API response is not JSON. The response: " + response.Data, e);
-            // Only care about JSON parse errors if the request was successful before
-            if (response.Success) {
-                response.Success = false;
-                response.ErrorData = {
-                    code: -1,
-                    message: "bad api response - non json",
-                    reason_phrase: "",
-                };
-            }
-        }
-        finally {
-            return response;
-        }
-    }
-    /**
-     * Handles obtaining data over http.
-     */
-    async LoadAsync(url, params, headers, method = "GET") {
-        var _a, _b, _c, _d, _e, _f;
-        const message = await this.Send(url, params, headers, method);
-        let error = undefined;
-        // Error generation
-        if (!message) {
-            error = {
-                code: 0,
-                message: "no network response",
-                reason_phrase: "no network response",
-                response: undefined
-            };
-        }
-        // network or DNS error
-        else if (message.status_code < 100 && message.status_code >= 0) {
-            error = {
-                code: message.status_code,
-                message: "no network response",
-                reason_phrase: message.reason_phrase,
-                response: message
-            };
-        }
-        else if (message.status_code > 300 || message.status_code < 200) {
-            error = {
-                code: message.status_code,
-                message: "bad status code",
-                reason_phrase: message.reason_phrase,
-                response: message
-            };
-        }
-        else if (!message.response_body) {
-            error = {
-                code: message.status_code,
-                message: "no response body",
-                reason_phrase: message.reason_phrase,
-                response: message
-            };
-        }
-        else if (!message.response_body.data) {
-            error = {
-                code: message.status_code,
-                message: "no response data",
-                reason_phrase: message.reason_phrase,
-                response: message
-            };
-        }
-        const responseHeaders = {};
-        (_a = message === null || message === void 0 ? void 0 : message.response_headers) === null || _a === void 0 ? void 0 : _a.foreach((name, val) => {
-            responseHeaders[name] = val;
-        });
-        if (((_b = message === null || message === void 0 ? void 0 : message.status_code) !== null && _b !== void 0 ? _b : -1) > 200 && ((_c = message === null || message === void 0 ? void 0 : message.status_code) !== null && _c !== void 0 ? _c : -1) < 300) {
-            global.log("Warning: API returned non-OK status code '" + (message === null || message === void 0 ? void 0 : message.status_code) + "'");
-        }
-        //Logger.Verbose("API full response: " + message?.response_body?.data?.toString());
-        if (error != null)
-            global.log("Error calling URL: " + error.reason_phrase + ", " + ((_e = (_d = error === null || error === void 0 ? void 0 : error.response) === null || _d === void 0 ? void 0 : _d.response_body) === null || _e === void 0 ? void 0 : _e.data));
-        return {
-            Success: (error == null),
-            Data: (_f = message === null || message === void 0 ? void 0 : message.response_body) === null || _f === void 0 ? void 0 : _f.data,
-            ResponseHeaders: responseHeaders,
-            ErrorData: error,
-            Response: message
-        };
-    }
-    /**
-     * Send a http request
-     * @param url
-     * @param params
-     * @param method
-     */
-    async Send(url, params, headers, method = "GET") {
-        // Add params to url
-        if (params != null) {
-            const items = Object.keys(params);
-            for (const [index, item] of items.entries()) {
-                url += (index == 0) ? "?" : "&";
-                url += (item) + "=" + params[item];
-            }
-        }
-        const query = encodeURI(url);
-        global.log("URL called: " + query);
-        const data = await new Promise((resolve, reject) => {
-            const message = HttpLib_Message.new(method, query);
-            if (message == null) {
-                resolve(null);
-            }
-            else {
-                if (headers != null) {
-                    for (const key in headers) {
-                        message.request_headers.append(key, headers[key]);
-                    }
-                }
-                this._httpSession.queue_message(message, (session, message) => {
-                    resolve(message);
-                });
-            }
-        });
-        return data;
-    }
+;// CONCATENATED MODULE: ./src/ui/Notifications/GenericNotification.ts
+
+function notify(args) {
+    const { text, isMarkup = false, transient = true } = args;
+    const notification = createBasicNotification({
+        notificationText: text,
+        isMarkup,
+        transient
+    });
+    // notification.notify()
 }
 
 ;// CONCATENATED MODULE: ./src/ui/RadioPopupMenu/UpdateStationsMenuItem.ts
@@ -5527,7 +5392,6 @@ class HttpLib {
 const { File: UpdateStationsMenuItem_File, FileCreateFlags } = imports.gi.Gio;
 const { Bytes } = imports.gi.GLib;
 const saveStations = (stationsUnfiltered) => {
-    global.log('saveStations called');
     const filteredStations = stationsUnfiltered.flatMap(({ name, url }, index) => {
         const isDuplicate = stationsUnfiltered.findIndex((val) => val.name === name && val.url === url) !== index;
         if (isDuplicate)
@@ -5539,13 +5403,11 @@ const saveStations = (stationsUnfiltered) => {
         file.create(FileCreateFlags.NONE, null);
     }
     file.replace_contents_bytes_async(new Bytes(JSON.stringify(filteredStations)), null, false, FileCreateFlags.REPLACE_DESTINATION, null, (file, result) => {
-        // TODO
+        notify({ text: 'Stations updated successfully' });
     });
-    global.log("filteredStatsion", filteredStations);
 };
 function createUpdateStationsMenuItem() {
     const defaultText = 'Update Radio Stationlist';
-    const httpLib = HttpLib.Instance;
     let isLoading = false;
     const menuItem = createSimpleMenuItem({
         initialText: defaultText,
@@ -5558,6 +5420,7 @@ function createUpdateStationsMenuItem() {
                 url: "http://de1.api.radio-browser.info/json/stations?limit=100",
                 onSuccess: (resp) => saveStations(resp),
                 onErr: (err) => {
+                    const notificationText = `Couldn't update the station list due to an error. Make sure you are connected to the internet and try again. Don't hesitate to open an issue on github if the problem remains.`;
                     // TODO
                     global.logError(err);
                 },
@@ -5612,18 +5475,6 @@ const spawnCommandLinePromise = function (command) {
         });
     });
 };
-
-;// CONCATENATED MODULE: ./src/ui/Notifications/GenericNotification.ts
-
-function notify(args) {
-    const { text, isMarkup = false, transient = true } = args;
-    const notification = createBasicNotification({
-        notificationText: text,
-        isMarkup,
-        transient
-    });
-    notification.notify();
-}
 
 ;// CONCATENATED MODULE: ./src/services/mpv/CheckInstallation.ts
 

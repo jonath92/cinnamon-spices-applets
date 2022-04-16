@@ -7,14 +7,16 @@ import { RADIO_SYMBOLIC_ICON_NAME } from "../../consts";
 const messageSource = new SystemNotificationSource('Radio Applet')
 messageTray.add(messageSource)
 
+interface NotificationBtn {
+    text: string
+    onClick: () => void
+}
+
 interface Arguments {
     notificationText: string,
     isMarkup?: boolean
     transient?: boolean
-}
-
-interface CustomNotification extends imports.ui.messageTray.Notification {
-    notify: () => void
+    buttons?: NotificationBtn[]
 }
 
 export function createBasicNotification(args: Arguments) {
@@ -22,7 +24,8 @@ export function createBasicNotification(args: Arguments) {
     const {
         notificationText,
         isMarkup = false,
-        transient = true
+        transient = true,
+        buttons
     } = args
 
     const icon = new Icon({
@@ -35,13 +38,23 @@ export function createBasicNotification(args: Arguments) {
         messageSource,
         __meta.name,
         notificationText,
-        { icon, bodyMarkup: isMarkup }) as CustomNotification
+        { icon })
 
     notification.setTransient(transient)
 
-    notification.notify = () => {
-        messageSource.notify(notification)
+    if (buttons) {
+        buttons.forEach(({ text }) => {
+            notification.addButton(text, text)
+        })
+
+        notification.connect('action-invoked', (_, id) => {
+            const clickedBtn = buttons.find(({ text }) => text === id)
+            clickedBtn?.onClick
+        })
     }
 
-    return notification
+    // workaround to remove the underline of the downloadPath
+    isMarkup && notification["_bodyUrlHighlighter"].actor.clutter_text.set_markup(notificationText)
+
+    messageSource.notify(notification)
 }

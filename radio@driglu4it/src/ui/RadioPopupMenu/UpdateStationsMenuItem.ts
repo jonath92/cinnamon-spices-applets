@@ -1,5 +1,6 @@
 import { makeJsonHttpRequest } from "../../lib/HttpHandler";
 import { createSimpleMenuItem } from "../../lib/SimpleMenuItem";
+import { notify } from "../Notifications/GenericNotification";
 const { File, FileCreateFlags } = imports.gi.Gio
 
 const { Bytes } = imports.gi.GLib
@@ -11,7 +12,6 @@ interface RadioStation {
 }
 
 const saveStations = (stationsUnfiltered: RadioStation[]) => {
-  global.log('saveStations called')
   const filteredStations = stationsUnfiltered.flatMap(
     ({ name, url }, index) => {
       const isDuplicate =
@@ -27,7 +27,6 @@ const saveStations = (stationsUnfiltered: RadioStation[]) => {
 
   const file = File.new_for_path(`${__meta.path}/allStations.json`)
 
-
   if (!file.query_exists(null)) {
     file.create(FileCreateFlags.NONE, null)
   }
@@ -39,11 +38,9 @@ const saveStations = (stationsUnfiltered: RadioStation[]) => {
     FileCreateFlags.REPLACE_DESTINATION,
     null,
     (file, result) => {
-      // TODO
+      notify({ text: 'Stations updated successfully' })
     }
   )
-
-  global.log("filteredStatsion", filteredStations);
 };
 
 export function createUpdateStationsMenuItem() {
@@ -63,6 +60,9 @@ export function createUpdateStationsMenuItem() {
         url: "http://de1.api.radio-browser.info/json/stations?limit=100",
         onSuccess: (resp) => saveStations(resp),
         onErr: (err) => {
+          const notificationText = `Couldn't update the station list due to an error. Make sure you are connected to the internet and try again. Don't hesitate to open an issue on github if the problem remains.`
+
+          
           // TODO
           global.logError(err);
         },

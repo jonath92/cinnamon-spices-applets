@@ -12,16 +12,13 @@ export function notifyYoutubeDownloadStarted(args: Arguments) {
         onCancelClicked
     } = args
 
-    const notification = createBasicNotification({
+    createBasicNotification({
         notificationText: `Downloading ${title} ...`,
+        buttons: [
+            {
+                text: 'Cancel',
+                onClick: onCancelClicked
+            }
+        ]
     })
-
-    const cancelBtnId = 'cancelBtn'
-    notification.addButton(cancelBtnId, 'Cancel')
-
-    notification.connect('action-invoked', (actor, id) => {
-        if (id === cancelBtnId) onCancelClicked()
-    })
-
-    notification.notify()
 }
