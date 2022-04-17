@@ -1,10 +1,14 @@
-import { notifyYoutubeDownloadFailed } from "../../ui/Notifications/YoutubeDownloadFailedNotification";
+import { APPLET_SITE } from "../../consts";
+import { notifyError } from "../../lib/notify";
+import { YoutubeClis } from "../../types";
 import { notifyYoutubeDownloadFinished } from "../../ui/Notifications/YoutubeDownloadFinishedNotification";
 import { notifyYoutubeDownloadStarted } from "../../ui/Notifications/YoutubeDownloadStartedNotification";
 import { configs } from "../Config";
 import { mpvHandler } from "../mpv/MpvHandler";
 import { downloadWithYoutubeDl } from "./YoutubeDl";
 import { downloadWithYtDlp } from "./YtDlp";
+const { spawnCommandLine } = imports.misc.util
+
 
 const { get_tmp_dir, get_home_dir } = imports.gi.GLib
 const { File, FileCopyFlags } = imports.gi.Gio
@@ -24,6 +28,21 @@ export interface YoutubeDownloadServiceReturnType {
 interface DownloadingSong {
     title: string,
     cancelDownload: () => void
+}
+
+const notifyYoutubeDownloadFailed = (props: { youtubeCli: YoutubeClis, errorMessage: string }) => {
+
+    const { youtubeCli, errorMessage } = props
+
+    notifyError(`Couldn't download Song from Youtube due to an Error. Make Sure you have the newest version of ${youtubeCli} installed. 
+    \n<b>Important:</b> Don't use apt for the installation but follow the installation instruction given on the Radio Applet Site in the Cinnamon Store instead`, errorMessage, {
+        additionalBtns: [
+            {
+                text: 'View Installation Instruction',
+                onClick: () => spawnCommandLine(`xdg-open ${APPLET_SITE} `)
+            }
+        ]
+    })
 }
 
 export let downloadingSongs: DownloadingSong[] = []
@@ -52,8 +71,7 @@ export function downloadSongFromYoutube() {
         title,
         downloadDir: get_tmp_dir(),
         onError: (errorMessage, downloadCommand: string,) => {
-            global.logError(`The following error occured at youtube download attempt: ${errorMessage}. The used download Command was: ${downloadCommand}`)
-            notifyYoutubeDownloadFailed({ youtubeCli })
+            notifyYoutubeDownloadFailed({ youtubeCli, errorMessage: `The following error occured at youtube download attempt: ${errorMessage}. The used download Command was: ${downloadCommand}` })
         },
         onFinished: () => {
             downloadingSongs = downloadingSongs.filter(downloadingSong => downloadingSong.title !== title)
@@ -76,9 +94,8 @@ export function downloadSongFromYoutube() {
                 notifyYoutubeDownloadFinished({ downloadPath: targetPath })
 
             } catch (error) {
-                notifyYoutubeDownloadFailed({ youtubeCli })
                 const errorMessage = error instanceof imports.gi.GLib.Error ? error.message : 'Unknown Error Type'
-                global.logError(`Failed to download from tmp dir. The following error occurred: ${errorMessage}`)
+                notifyYoutubeDownloadFailed({ youtubeCli, errorMessage: `Failed to copy download from tmp dir. The following error occurred: ${errorMessage}` })
             }
 
         }

@@ -4106,15 +4106,19 @@ function createRadioAppletLabel() {
     return label;
 }
 
-;// CONCATENATED MODULE: ./src/ui/Notifications/NotificationBase.ts
+;// CONCATENATED MODULE: ./src/lib/notify.ts
 const { SystemNotificationSource, Notification } = imports.ui.messageTray;
 const { messageTray } = imports.ui.main;
 const { Icon, IconType } = imports.gi.St;
+const { spawnCommandLine: notify_spawnCommandLine } = imports.misc.util;
+const { get_home_dir: notify_get_home_dir } = imports.gi.GLib;
 
 const messageSource = new SystemNotificationSource('Radio Applet');
 messageTray.add(messageSource);
 function notify(text, options) {
-    const { isMarkup = false, transient = true, buttons } = options || {};
+    const { 
+    // TODO: is there a reason to ever set this to false??
+    isMarkup = true, transient = true, buttons } = options || {};
     const icon = new Icon({
         icon_type: IconType.SYMBOLIC,
         icon_name: RADIO_SYMBOLIC_ICON_NAME,
@@ -4122,7 +4126,7 @@ function notify(text, options) {
     });
     const notification = new Notification(messageSource, __meta.name, text, { icon });
     notification.setTransient(transient);
-    if (buttons) {
+    if (buttons && buttons.length > 0) {
         buttons.forEach(({ text }) => {
             notification.addButton(text, text);
         });
@@ -4135,6 +4139,31 @@ function notify(text, options) {
     isMarkup && notification["_bodyUrlHighlighter"].actor.clutter_text.set_markup(text);
     messageSource.notify(notification);
 }
+function notifyError(prefix, errMessage, options) {
+    const { showInternetInfo, showViewLogBtn = true, additionalBtns = [] } = options || {};
+    global.logError(errMessage);
+    const notificationSentences = [prefix];
+    if (showInternetInfo) {
+        notificationSentences.push('Make sure you are connected to the internet and try again');
+    }
+    notificationSentences.push("Don't hesitate to open an issue on github if the problem remains.");
+    if (showViewLogBtn) {
+        notificationSentences.push(`\n\nFor more information see the logs`);
+    }
+    const notificationText = notificationSentences.join('');
+    const buttons = [];
+    if (showViewLogBtn) {
+        buttons.push({
+            text: 'View Logs',
+            onClick: () => notify_spawnCommandLine(`xdg-open ${notify_get_home_dir()}/.xsession-errors`)
+        });
+    }
+    additionalBtns.forEach((additionalBtn) => buttons.push(additionalBtn));
+    return notify(notificationText, {
+        buttons,
+        transient: false
+    });
+}
 
 ;// CONCATENATED MODULE: ./src/ui/Notifications/YoutubeDownloadFailedNotification.ts
 
@@ -4142,7 +4171,16 @@ function notify(text, options) {
 const { spawnCommandLine: YoutubeDownloadFailedNotification_spawnCommandLine } = imports.misc.util;
 const { get_home_dir: YoutubeDownloadFailedNotification_get_home_dir } = imports.gi.GLib;
 function notifyYoutubeDownloadFailed(props) {
-    const { youtubeCli } = props;
+    const { youtubeCli, errorMessage } = props;
+    notifyError(`Couldn't download Song from Youtube due to an Error. Make Sure you have the newest version of ${youtubeCli} installed. 
+    \n<b>Important:</b> Don't use apt for the installation but follow the installation instruction given on the Radio Applet Site in the Cinnamon Store instead`, errorMessage, {
+        additionalBtns: [
+            {
+                text: 'View Installation Instruction',
+                onClick: () => YoutubeDownloadFailedNotification_spawnCommandLine(`xdg-open ${APPLET_SITE} `)
+            }
+        ]
+    });
     notify(`Couldn't download Song from Youtube due to an Error. Make Sure you have the newest version of ${youtubeCli} installed. 
         \n<b>Important:</b> Don't use apt for the installation but follow the installation instruction given on the Radio Applet Site in the Cinnamon Store instead
         \nFor more information see the logs`, {
@@ -4304,8 +4342,7 @@ function downloadSongFromYoutube() {
         title,
         downloadDir: get_tmp_dir(),
         onError: (errorMessage, downloadCommand) => {
-            global.logError(`The following error occured at youtube download attempt: ${errorMessage}. The used download Command was: ${downloadCommand}`);
-            notifyYoutubeDownloadFailed({ youtubeCli });
+            notifyYoutubeDownloadFailed({ youtubeCli, errorMessage: `The following error occured at youtube download attempt: ${errorMessage}. The used download Command was: ${downloadCommand}` });
         },
         onFinished: () => {
             downloadingSongs = downloadingSongs.filter(downloadingSong => downloadingSong.title !== title);
@@ -4326,9 +4363,8 @@ function downloadSongFromYoutube() {
                 notifyYoutubeDownloadFinished({ downloadPath: targetPath });
             }
             catch (error) {
-                notifyYoutubeDownloadFailed({ youtubeCli });
                 const errorMessage = error instanceof imports.gi.GLib.Error ? error.message : 'Unknown Error Type';
-                global.logError(`Failed to download from tmp dir. The following error occurred: ${errorMessage}`);
+                notifyYoutubeDownloadFailed({ youtubeCli, errorMessage: `Failed to copy download from tmp dir. The following error occurred: ${errorMessage}` });
             }
         }
     };
@@ -5313,122 +5349,7 @@ const createMediaControlToolbar = () => {
     return toolbar;
 };
 
-;// CONCATENATED MODULE: ./src/lib/HttpHandler.ts
-const { Message, SessionAsync } = imports.gi.Soup;
-const httpSession = new SessionAsync();
-function isHttpError(x) {
-    return typeof x.reason_phrase === "string";
-}
-const ByteArray = imports.byteArray;
-function checkForHttpError(message) {
-    var _a;
-    const code = (message === null || message === void 0 ? void 0 : message.status_code) | 0;
-    const reason_phrase = (message === null || message === void 0 ? void 0 : message.reason_phrase) || "no network response";
-    let errMessage;
-    if (code < 100) {
-        errMessage = "no network response";
-    }
-    else if (code < 200 || code > 300) {
-        errMessage = "bad status code";
-    }
-    else if (!((_a = message.response_body) === null || _a === void 0 ? void 0 : _a.data)) {
-        errMessage = "no response body";
-    }
-    return errMessage
-        ? {
-            code,
-            reason_phrase,
-            message: errMessage,
-        }
-        : false;
-}
-function makeJsonHttpRequest(args) {
-    const { url, method = "GET", bodyParams, queryParams, onErr, onSuccess, onSettled, headers, } = args;
-    const uri = url;
-    // const uri = queryParams ? `${url}?${stringify(queryParams)}` : url
-    const message = Message.new(method, uri);
-    if (!message) {
-        throw new Error(`Message Object couldn't be created`);
-    }
-    headers &&
-        Object.entries(headers).forEach(([key, value]) => {
-            message.request_headers.append(key, value);
-        });
-    // if (bodyParams) {
-    //     const bodyParamsStringified = stringify(bodyParams)
-    //     message.request_body.append(ByteArray.fromString(bodyParamsStringified, 'UTF-8'))
-    // }
-    httpSession.queue_message(message, (session, msgResponse) => {
-        onSettled === null || onSettled === void 0 ? void 0 : onSettled();
-        const error = checkForHttpError(msgResponse);
-        if (error) {
-            onErr(error);
-            return;
-        }
-        // TODO: We should actually check if this is really of type T1
-        const data = JSON.parse(msgResponse.response_body.data);
-        onSuccess(data);
-    });
-}
-
-;// CONCATENATED MODULE: ./src/ui/RadioPopupMenu/UpdateStationsMenuItem.ts
-
-
-
-const { File: UpdateStationsMenuItem_File, FileCreateFlags } = imports.gi.Gio;
-const { Bytes } = imports.gi.GLib;
-const saveStations = (stationsUnfiltered) => {
-    const filteredStations = stationsUnfiltered.flatMap(({ name, url }, index) => {
-        const isDuplicate = stationsUnfiltered.findIndex((val) => val.name === name && val.url === url) !== index;
-        if (isDuplicate)
-            return [];
-        if (name.length > 200 || url.length > 200) {
-            // some stations have unnormal long names/urls - probably due to some encoding issue on radio browser api side or so. 
-            return [];
-        }
-        return [[name.trim(), url.trim()]];
-    })
-        // We need to sort our self - even though they should already be sorted - because some stations are wrongly shown first due to leading spaces
-        .sort((a, b) => a[0].localeCompare(b[0]));
-    const file = UpdateStationsMenuItem_File.new_for_path(`${__meta.path}/allStations.json`);
-    if (!file.query_exists(null)) {
-        file.create(FileCreateFlags.NONE, null);
-    }
-    file.replace_contents_bytes_async(new Bytes(JSON.stringify(filteredStations)), null, false, FileCreateFlags.REPLACE_DESTINATION, null, (file, result) => {
-        notify('Stations updated successfully');
-    });
-};
-function createUpdateStationsMenuItem() {
-    const defaultText = 'Update Radio Stationlist';
-    let isLoading = false;
-    const menuItem = createSimpleMenuItem({
-        text: defaultText,
-        onActivated: async (self) => {
-            if (isLoading)
-                return;
-            isLoading = true;
-            self.setText('Updating Radio stations...');
-            notify('Upating Radio stations... \n\nThis can take several minutes!');
-            makeJsonHttpRequest({
-                url: "http://de1.api.radio-browser.info/json/stations",
-                onSuccess: (resp) => saveStations(resp),
-                onErr: (err) => {
-                    notify(`Couldn't update the station list due to an error. Make sure you are connected to the internet and try again. Don't hesitate to open an issue on github if the problem remains.`);
-                    // TODO
-                    global.logError(err);
-                },
-                onSettled: () => {
-                    self.setText(defaultText);
-                    isLoading = false;
-                }
-            });
-        },
-    });
-    return menuItem.actor;
-}
-
 ;// CONCATENATED MODULE: ./src/ui/RadioPopupMenu/RadioPopupMenu.ts
-
 
 
 
@@ -5452,7 +5373,6 @@ function createRadioPopupMenu(props) {
     });
     popupMenu.add_child(createChannelList());
     popupMenu.add_child(radioActiveSection);
-    popupMenu.add_child(createUpdateStationsMenuItem());
     addPlaybackStatusChangeHandler((newValue) => {
         radioActiveSection.visible = newValue !== 'Stopped';
     });
@@ -5532,6 +5452,115 @@ function createYoutubeDownloadIcon() {
         downloadingSongs.length !== 0 ? icon.visible = true : icon.visible = false;
     });
     return icon;
+}
+
+;// CONCATENATED MODULE: ./src/lib/HttpHandler.ts
+const { Message, SessionAsync } = imports.gi.Soup;
+const httpSession = new SessionAsync();
+function isHttpError(x) {
+    return typeof x.reason_phrase === "string";
+}
+function checkForHttpError(message) {
+    var _a;
+    const code = (message === null || message === void 0 ? void 0 : message.status_code) | 0;
+    const reason_phrase = (message === null || message === void 0 ? void 0 : message.reason_phrase) || "no network response";
+    let errMessage;
+    if (code < 100) {
+        errMessage = "no network response";
+    }
+    else if (code < 200 || code > 300) {
+        errMessage = "bad status code";
+    }
+    else if (!((_a = message.response_body) === null || _a === void 0 ? void 0 : _a.data)) {
+        errMessage = "no response body";
+    }
+    return errMessage
+        ? {
+            code,
+            reason_phrase,
+            message: errMessage,
+        }
+        : false;
+}
+function makeJsonHttpRequest(args) {
+    const { url, method = "GET", onErr, onSuccess, onSettled, headers, } = args;
+    const uri = url;
+    // const uri = queryParams ? `${url}?${stringify(queryParams)}` : url
+    const message = Message.new(method, uri);
+    if (!message) {
+        throw new Error(`Message Object couldn't be created`);
+    }
+    headers &&
+        Object.entries(headers).forEach(([key, value]) => {
+            message.request_headers.append(key, value);
+        });
+    httpSession.queue_message(message, (session, msgResponse) => {
+        onSettled === null || onSettled === void 0 ? void 0 : onSettled();
+        const error = checkForHttpError(msgResponse);
+        if (error) {
+            onErr(error);
+            return;
+        }
+        // TODO: We should actually check if this is really of type T1
+        const data = JSON.parse(msgResponse.response_body.data);
+        onSuccess(data);
+    });
+}
+
+;// CONCATENATED MODULE: ./src/ui/RadioPopupMenu/UpdateStationsMenuItem.ts
+
+
+
+
+const { File: UpdateStationsMenuItem_File, FileCreateFlags } = imports.gi.Gio;
+const { Bytes } = imports.gi.GLib;
+const saveStations = (stationsUnfiltered) => {
+    const filteredStations = stationsUnfiltered.flatMap(({ name, url }, index) => {
+        const isDuplicate = stationsUnfiltered.findIndex((val) => val.name === name && val.url === url) !== index;
+        if (isDuplicate)
+            return [];
+        if (name.length > 200 || url.length > 200) {
+            // some stations have unnormal long names/urls - probably due to some encoding issue on radio browser api side or so. 
+            return [];
+        }
+        return [[name.trim(), url.trim()]];
+    })
+        // We need to sort our self - even though they should already be sorted - because some stations are wrongly shown first due to leading spaces
+        .sort((a, b) => a[0].localeCompare(b[0]));
+    const file = UpdateStationsMenuItem_File.new_for_path(`${__meta.path}/allStations.json`);
+    if (!file.query_exists(null)) {
+        file.create(FileCreateFlags.NONE, null);
+    }
+    file.replace_contents_bytes_async(new Bytes(JSON.stringify(filteredStations)), null, false, FileCreateFlags.REPLACE_DESTINATION, null, (file, result) => {
+        notify('Stations updated successfully');
+    });
+};
+function createUpdateStationsMenuItem() {
+    const defaultText = 'Update Radio Stationlist';
+    let isLoading = false;
+    const menuItem = createSimpleMenuItem({
+        text: defaultText,
+        onActivated: async (self) => {
+            if (isLoading)
+                return;
+            isLoading = true;
+            self.setText('Updating Radio stations...');
+            notify('Upating Radio stations... \n\nThis can take several minutes!');
+            notifyYoutubeDownloadFailed({ youtubeCli: 'youtube-dl', errorMessage: 'some error' });
+            makeJsonHttpRequest({
+                url: "http://de1.api.radio-browser.info/json/stations",
+                onSuccess: (resp) => saveStations(resp),
+                onErr: (err) => {
+                    notifyError(`Couldn't update the station list due to an error`, err.reason_phrase, { showInternetInfo: true });
+                },
+                onSettled: () => {
+                    self.setText(defaultText);
+                    isLoading = false;
+                }
+            });
+        },
+    });
+    return menuItem.actor;
 }
 
 ;// CONCATENATED MODULE: ./src/ui/RadioContextMenu.ts

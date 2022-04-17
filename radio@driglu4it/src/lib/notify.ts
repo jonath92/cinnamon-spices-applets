@@ -23,7 +23,8 @@ interface NotifyOptions {
 export function notify(text: string, options?: NotifyOptions) {
 
     const {
-        isMarkup = false,
+        // TODO: is there a reason to ever set this to false??
+        isMarkup = true,
         transient = true,
         buttons
     } = options || {}
@@ -42,7 +43,7 @@ export function notify(text: string, options?: NotifyOptions) {
 
     notification.setTransient(transient)
 
-    if (buttons) {
+    if (buttons && buttons.length > 0) {
         buttons.forEach(({ text }) => {
             notification.addButton(text, text)
         })
@@ -62,22 +63,43 @@ export function notify(text: string, options?: NotifyOptions) {
 interface NotifcationErrorOptions {
     /** if set to true, it is added a prefix that the user needs to be connted to the internet */
     showInternetInfo?: boolean
+    showViewLogBtn?: boolean
+    additionalBtns?: NotificationBtn[]
 }
 
 export function notifyError(prefix: string, errMessage: string, options?: NotifcationErrorOptions) {
 
-    const { showInternetInfo } = options || {}
+    const { showInternetInfo, showViewLogBtn = true, additionalBtns = [] } = options || {}
 
     global.logError(errMessage);
 
-    const notificationText = `${prefix} ${showInternetInfo ? 'Make sure you are connected to the internet and try again' : ''} ${"Don't hesitate to open an issue on github if the problem remains."}`
+    const notificationSentences: string[] = [prefix]
+
+    if (showInternetInfo) {
+        notificationSentences.push('Make sure you are connected to the internet and try again')
+    }
+
+    notificationSentences.push("Don't hesitate to open an issue on github if the problem remains.")
+
+    if (showViewLogBtn) {
+        notificationSentences.push(`\n\nFor more information see the logs`)
+    }
+
+    const notificationText = notificationSentences.join('')
+
+    const buttons: NotificationBtn[] = []
+
+    if (showViewLogBtn) {
+        buttons.push({
+            text: 'View Logs',
+            onClick: () => spawnCommandLine(`xdg-open ${get_home_dir()}/.xsession-errors`)
+        })
+    }
+
+    additionalBtns.forEach((additionalBtn) => buttons.push(additionalBtn))
 
     return notify(notificationText, {
-        buttons: [
-            {
-                text: 'View Logs',
-                onClick: () => spawnCommandLine(`xdg-open ${get_home_dir()}/.xsession-errors`)
-            }
-        ]
+        buttons,
+        transient: false
     })
 }

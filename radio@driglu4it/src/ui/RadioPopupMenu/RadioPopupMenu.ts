@@ -35,8 +35,6 @@ export function createRadioPopupMenu(props: { launcher: imports.gi.St.BoxLayout 
     popupMenu.add_child(createChannelList())
     popupMenu.add_child(radioActiveSection)
 
-    popupMenu.add_child(createUpdateStationsMenuItem())
-
     addPlaybackStatusChangeHandler((newValue) => {
         radioActiveSection.visible = newValue !== 'Stopped'
     })
