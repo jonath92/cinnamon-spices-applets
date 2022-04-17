@@ -15,13 +15,13 @@ export function createInfoSection() {
 
     const channelInfoItem = createSimpleMenuItem({
         iconName: RADIO_SYMBOLIC_ICON_NAME,
-        initialText: getCurrentChannelName(),
+        text: getCurrentChannelName(),
         maxCharNumber: MAX_STRING_LENGTH
     })
 
     const songInfoItem = createSimpleMenuItem({
         iconName: SONG_INFO_ICON_NAME,
-        initialText: getCurrentTitle(),
+        text: getCurrentTitle(),
         maxCharNumber: MAX_STRING_LENGTH
     })
 

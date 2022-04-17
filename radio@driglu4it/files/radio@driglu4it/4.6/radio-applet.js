@@ -4064,6 +4064,7 @@ function createAppletContainer(args) {
             return false;
         if (event.get_button() === 3) {
             onRightClick();
+            return true;
         }
         return false;
     });
@@ -4712,7 +4713,7 @@ function limitString(text, maxCharNumber) {
 const { Icon: SimpleMenuItem_Icon, IconType: SimpleMenuItem_IconType, Label: SimpleMenuItem_Label, BoxLayout: SimpleMenuItem_BoxLayout } = imports.gi.St;
 const { Point: SimpleMenuItem_Point } = imports.gi.Clutter;
 function createSimpleMenuItem(args) {
-    const { initialText = '', maxCharNumber, iconName, onActivated } = args;
+    const { text: initialText = '', maxCharNumber, iconName, onActivated } = args;
     const icon = new SimpleMenuItem_Icon({
         icon_type: SimpleMenuItem_IconType.SYMBOLIC,
         style_class: 'popup-menu-icon',
@@ -4760,12 +4761,12 @@ function createInfoSection() {
     const { addChannelChangeHandler, addTitleChangeHandler, getCurrentChannelName, getCurrentTitle } = mpvHandler;
     const channelInfoItem = createSimpleMenuItem({
         iconName: RADIO_SYMBOLIC_ICON_NAME,
-        initialText: getCurrentChannelName(),
+        text: getCurrentChannelName(),
         maxCharNumber: MAX_STRING_LENGTH
     });
     const songInfoItem = createSimpleMenuItem({
         iconName: SONG_INFO_ICON_NAME,
-        initialText: getCurrentTitle(),
+        text: getCurrentTitle(),
         maxCharNumber: MAX_STRING_LENGTH
     });
     const infoSection = new InfoSection_BoxLayout({
@@ -5080,7 +5081,7 @@ function createChannelMenuItem(args) {
     ]);
     const iconMenuItem = createSimpleMenuItem({
         maxCharNumber: MAX_STRING_LENGTH,
-        initialText: channelName,
+        text: channelName,
         onActivated: () => {
             onActivated(channelName);
         }
@@ -5395,7 +5396,7 @@ function createUpdateStationsMenuItem() {
     const defaultText = 'Update Radio Stationlist';
     let isLoading = false;
     const menuItem = createSimpleMenuItem({
-        initialText: defaultText,
+        text: defaultText,
         onActivated: async (self) => {
             if (isLoading)
                 return;
@@ -5526,7 +5527,51 @@ function createYoutubeDownloadIcon() {
     return icon;
 }
 
+;// CONCATENATED MODULE: ./src/ui/RadioContextMenu.ts
+
+
+const { spawnCommandLine: RadioContextMenu_spawnCommandLine, spawnCommandLineAsyncIO: RadioContextMenu_spawnCommandLineAsyncIO } = imports.misc.util;
+function createRadioContextMenu(args) {
+    const contextMenu = createPopupMenu(args);
+    const spawnCommandLineWithErrorLogging = (command) => {
+        RadioContextMenu_spawnCommandLineAsyncIO(command, (stdout, stderr) => {
+            if (stderr) {
+                global.logError(`Failed executing: ${command}. The following error occured: ${stderr}`);
+            }
+        });
+    };
+    const menuArgs = [
+        {
+            iconName: 'dialog-question',
+            text: 'About...',
+            onActivated: () => {
+                spawnCommandLineWithErrorLogging(`xlet-about-dialog applets ${__meta.uuid}`);
+            }
+        },
+        {
+            iconName: 'system-run',
+            text: 'Configure...',
+            onActivated: () => {
+                spawnCommandLineWithErrorLogging(`xlet-settings applet ${__meta.uuid} ${__meta.instanceId} -t 0`);
+            }
+        }, {
+            iconName: 'edit-delete',
+            text: `Remove '${__meta.name}`,
+            onActivated: () => global.log('todo')
+        }
+    ];
+    menuArgs.forEach((menuArg) => {
+        const menuItem = createSimpleMenuItem(Object.assign(Object.assign({}, menuArg), { onActivated: (self) => {
+                contextMenu.close();
+                menuArg.onActivated && (menuArg === null || menuArg === void 0 ? void 0 : menuArg.onActivated(self));
+            } }));
+        contextMenu.add_child(menuItem.actor);
+    });
+    return contextMenu;
+}
+
 ;// CONCATENATED MODULE: ./src/ui/RadioApplet/RadioAppletContainer.ts
+
 
 
 
@@ -5545,7 +5590,10 @@ function createRadioAppletContainer() {
         onMoved: () => mpvHandler.deactivateAllListener(),
         onRemoved: handleAppletRemoved,
         onClick: handleClick,
-        onRightClick: () => popupMenu === null || popupMenu === void 0 ? void 0 : popupMenu.close(),
+        onRightClick: () => {
+            popupMenu === null || popupMenu === void 0 ? void 0 : popupMenu.close();
+            contextMenu === null || contextMenu === void 0 ? void 0 : contextMenu.toggle();
+        },
         onScroll: handleScroll
     });
     [createRadioAppletIcon(), createYoutubeDownloadIcon(), createRadioAppletLabel()].forEach(widget => {
@@ -5553,6 +5601,7 @@ function createRadioAppletContainer() {
     });
     const tooltip = createRadioAppletTooltip({ appletContainer });
     const popupMenu = createRadioPopupMenu({ launcher: appletContainer.actor });
+    const contextMenu = createRadioContextMenu({ launcher: appletContainer.actor });
     popupMenu.connect('notify::visible', () => {
         popupMenu.visible && tooltip.hide();
     });
@@ -5565,6 +5614,7 @@ function createRadioAppletContainer() {
         mpvHandler.increaseDecreaseVolume(volumeChange);
     }
     async function handleClick() {
+        contextMenu === null || contextMenu === void 0 ? void 0 : contextMenu.close();
         if (installationInProgress)
             return;
         try {

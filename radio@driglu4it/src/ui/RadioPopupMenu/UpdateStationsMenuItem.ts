@@ -50,7 +50,7 @@ export function createUpdateStationsMenuItem() {
   let isLoading = false
 
   const menuItem = createSimpleMenuItem({
-    initialText: defaultText,
+    text: defaultText,
     onActivated: async (self) => {
       if (isLoading) return
       isLoading = true

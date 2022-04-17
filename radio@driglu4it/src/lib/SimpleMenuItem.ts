@@ -6,17 +6,17 @@ const { Point } = imports.gi.Clutter
 
 type SimpleMenuItem = ReturnType<typeof createSimpleMenuItem>
 
-interface Arguments {
-    initialText?: string | undefined,
+export interface SimpleMenuItemArguments {
+    text?: string | undefined,
     iconName?: string,
     onActivated?: (self: SimpleMenuItem) => void
     maxCharNumber?: number,
 }
 
-export function createSimpleMenuItem(args: Arguments) {
+export function createSimpleMenuItem(args: SimpleMenuItemArguments) {
 
     const {
-        initialText = '',
+        text: initialText = '',
         maxCharNumber,
         iconName,
         onActivated
