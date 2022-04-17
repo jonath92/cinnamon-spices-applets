@@ -4165,39 +4165,6 @@ function notifyError(prefix, errMessage, options) {
     });
 }
 
-;// CONCATENATED MODULE: ./src/ui/Notifications/YoutubeDownloadFinishedNotification.ts
-
-const { spawnCommandLine: YoutubeDownloadFinishedNotification_spawnCommandLine } = imports.misc.util;
-function notifyYoutubeDownloadFinished(args) {
-    const { downloadPath, fileAlreadExist = false } = args;
-    notify(fileAlreadExist ?
-        'Downloaded Song not saved as a file with the same name already exists' :
-        `Download finished. File saved to ${downloadPath}`, {
-        isMarkup: true,
-        transient: false,
-        buttons: [
-            {
-                text: 'Play',
-                onClick: () => YoutubeDownloadFinishedNotification_spawnCommandLine(`xdg-open '${downloadPath}'`)
-            }
-        ]
-    });
-}
-
-;// CONCATENATED MODULE: ./src/ui/Notifications/YoutubeDownloadStartedNotification.ts
-
-function notifyYoutubeDownloadStarted(args) {
-    const { title, onCancelClicked } = args;
-    notify(`Downloading ${title} ...`, {
-        buttons: [
-            {
-                text: 'Cancel',
-                onClick: onCancelClicked
-            }
-        ]
-    });
-}
-
 ;// CONCATENATED MODULE: ./src/services/youtubeDownload/YoutubeDl.ts
 const { spawnCommandLineAsyncIO } = imports.misc.util;
 function downloadWithYoutubeDl(props) {
@@ -4242,6 +4209,7 @@ function getDownloadPath(stdout) {
 
 ;// CONCATENATED MODULE: ./src/services/youtubeDownload/YtDlp.ts
 const { spawnCommandLineAsyncIO: YtDlp_spawnCommandLineAsyncIO } = imports.misc.util;
+// TODO: there are some redudances with downloadWithYoutubeDl.
 function downloadWithYtDlp(props) {
     const { downloadDir, title, onFinished, onSuccess, onError } = props;
     let hasBeenCancelled = false;
@@ -4285,8 +4253,6 @@ function YtDlp_getDownloadPath(stdout) {
 
 
 
-
-
 const { spawnCommandLine: YoutubeDownloadManager_spawnCommandLine } = imports.misc.util;
 const { get_tmp_dir, get_home_dir: YoutubeDownloadManager_get_home_dir } = imports.gi.GLib;
 const { File, FileCopyFlags } = imports.gi.Gio;
@@ -4298,6 +4264,31 @@ const notifyYoutubeDownloadFailed = (props) => {
             {
                 text: 'View Installation Instruction',
                 onClick: () => YoutubeDownloadManager_spawnCommandLine(`xdg-open ${APPLET_SITE} `)
+            }
+        ]
+    });
+};
+const notifyYoutubeDownloadStarted = (title) => {
+    notify(`Downloading ${title} ...`, {
+        buttons: [
+            {
+                text: 'Cancel',
+                onClick: () => cancelDownload(title)
+            }
+        ]
+    });
+};
+const notifyYoutubeDownloadFinished = (props) => {
+    const { downloadPath, fileAlreadyExist = false } = props;
+    notify(fileAlreadyExist ?
+        'Downloaded Song not saved as a file with the same name already exists' :
+        `Download finished. File saved to ${downloadPath}`, {
+        isMarkup: true,
+        transient: false,
+        buttons: [
+            {
+                text: 'Play',
+                onClick: () => YoutubeDownloadManager_spawnCommandLine(`xdg-open '${downloadPath}'`)
             }
         ]
     });
@@ -4332,7 +4323,7 @@ function downloadSongFromYoutube(title) {
             const targetPath = `${music_dir_absolut}/${fileName}`;
             const targetFile = File.parse_name(targetPath);
             if (targetFile.query_exists(null)) {
-                notifyYoutubeDownloadFinished({ downloadPath: targetPath, fileAlreadExist: true });
+                notifyYoutubeDownloadFinished({ downloadPath: targetPath, fileAlreadyExist: true });
                 return;
             }
             try {
@@ -4349,9 +4340,7 @@ function downloadSongFromYoutube(title) {
     const { cancel } = youtubeCli === 'youtube-dl' ?
         downloadWithYoutubeDl(downloadProps) :
         downloadWithYtDlp(downloadProps);
-    notifyYoutubeDownloadStarted({
-        title, onCancelClicked: cancel
-    });
+    notifyYoutubeDownloadStarted(title);
     downloadProcesses.push({ songTitle: title, cancelDownload: cancel });
     downloadingSongsChangedListener.forEach(listener => listener(downloadProcesses));
 }
@@ -5561,15 +5550,21 @@ function UpdateStationsMenuItem_notifyYoutubeDownloadFailed(arg0) {
 
 
 const { spawnCommandLineAsyncIO: RadioContextMenu_spawnCommandLineAsyncIO } = imports.misc.util;
+const { ConfirmDialog } = imports.ui.modalDialog;
+const AppletManager = imports.ui.appletManager;
+const showRemoveAppletDialog = () => {
+    const dialog = new ConfirmDialog(`Are you sure you want to remove '${__meta.name}`, () => AppletManager['_removeAppletFromPanel'](__meta.uuid, __meta.instanceId));
+    dialog.open();
+};
+const spawnCommandLineWithErrorLogging = (command) => {
+    RadioContextMenu_spawnCommandLineAsyncIO(command, (stdout, stderr) => {
+        if (stderr) {
+            global.logError(`Failed executing: ${command}. The following error occured: ${stderr}`);
+        }
+    });
+};
 function createRadioContextMenu(args) {
     const contextMenu = createPopupMenu(args);
-    const spawnCommandLineWithErrorLogging = (command) => {
-        RadioContextMenu_spawnCommandLineAsyncIO(command, (stdout, stderr) => {
-            if (stderr) {
-                global.logError(`Failed executing: ${command}. The following error occured: ${stderr}`);
-            }
-        });
-    };
     const defaultMenuArgs = [
         {
             iconName: 'dialog-question',
@@ -5587,7 +5582,7 @@ function createRadioContextMenu(args) {
         }, {
             iconName: 'edit-delete',
             text: `Remove '${__meta.name}`,
-            onActivated: () => global.log('todo')
+            onActivated: showRemoveAppletDialog
         }
     ];
     contextMenu.add_child(createUpdateStationsMenuItem());
