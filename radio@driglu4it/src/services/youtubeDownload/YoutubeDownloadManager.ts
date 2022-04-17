@@ -25,8 +25,8 @@ export interface YoutubeDownloadServiceReturnType {
     cancel: () => void
 }
 
-interface DownloadingSong {
-    title: string,
+interface DownloadProcess {
+    songTitle: string,
     cancelDownload: () => void
 }
 
@@ -45,13 +45,14 @@ const notifyYoutubeDownloadFailed = (props: { youtubeCli: YoutubeClis, errorMess
     })
 }
 
-export let downloadingSongs: DownloadingSong[] = []
 
-const downloadingSongsChangedListener: ((downloadingSongs: DownloadingSong[]) => void)[] = []
 
-export function downloadSongFromYoutube() {
+let downloadProcesses: DownloadProcess[] = []
 
-    const title = mpvHandler.getCurrentTitle()
+const downloadingSongsChangedListener: ((downloadingSongs: DownloadProcess[]) => void)[] = []
+
+export function downloadSongFromYoutube(title: string) {
+
     const downloadDir = configs.settingsObject.musicDownloadDir
     const youtubeCli = configs.settingsObject.youtubeCli
 
@@ -60,8 +61,8 @@ export function downloadSongFromYoutube() {
 
     if (!title) return
 
-    const sameSongIsDownloading = downloadingSongs.find(downloadingSong => {
-        return downloadingSong.title === title
+    const sameSongIsDownloading = downloadProcesses.find(process => {
+        return process.songTitle === title
     })
 
     if (sameSongIsDownloading)
@@ -74,8 +75,8 @@ export function downloadSongFromYoutube() {
             notifyYoutubeDownloadFailed({ youtubeCli, errorMessage: `The following error occured at youtube download attempt: ${errorMessage}. The used download Command was: ${downloadCommand}` })
         },
         onFinished: () => {
-            downloadingSongs = downloadingSongs.filter(downloadingSong => downloadingSong.title !== title)
-            downloadingSongsChangedListener.forEach(listener => listener(downloadingSongs))
+            downloadProcesses = downloadProcesses.filter(downloadingSong => downloadingSong.songTitle !== title)
+            downloadingSongsChangedListener.forEach(listener => listener(downloadProcesses))
         },
         onSuccess: (downloadPath) => {
             const tmpFile = File.new_for_path(downloadPath)
@@ -109,11 +110,24 @@ export function downloadSongFromYoutube() {
         title, onCancelClicked: cancel
     })
 
-    downloadingSongs.push({ title, cancelDownload: cancel })
-    downloadingSongsChangedListener.forEach(listener => listener(downloadingSongs))
+    downloadProcesses.push({ songTitle: title, cancelDownload: cancel })
+    downloadingSongsChangedListener.forEach(listener => listener(downloadProcesses))
 }
 
+export const getCurrentDownloadingSongs = () => {
+    return downloadProcesses.map((downloadingSong) => downloadingSong.songTitle)
+}
 
-export function addDownloadingSongsChangeListener(callback: (downloadingSongs: DownloadingSong[]) => void) {
+export const cancelDownload = (songTitle: string) => {
+    const downloadProcess = downloadProcesses.find((process) => process.songTitle === songTitle)
+
+    if (!downloadProcess) {
+        global.logWarning(`can't cancel download for song ${songTitle} as it seems that the song is currently not downloading`)
+        return
+    }
+    downloadProcess.cancelDownload()
+}
+
+export function addDownloadingSongsChangeListener(callback: (downloadingSongs: DownloadProcess[]) => void) {
     downloadingSongsChangedListener.push(callback)
 }

@@ -4165,40 +4165,6 @@ function notifyError(prefix, errMessage, options) {
     });
 }
 
-;// CONCATENATED MODULE: ./src/ui/Notifications/YoutubeDownloadFailedNotification.ts
-
-
-const { spawnCommandLine: YoutubeDownloadFailedNotification_spawnCommandLine } = imports.misc.util;
-const { get_home_dir: YoutubeDownloadFailedNotification_get_home_dir } = imports.gi.GLib;
-function notifyYoutubeDownloadFailed(props) {
-    const { youtubeCli, errorMessage } = props;
-    notifyError(`Couldn't download Song from Youtube due to an Error. Make Sure you have the newest version of ${youtubeCli} installed. 
-    \n<b>Important:</b> Don't use apt for the installation but follow the installation instruction given on the Radio Applet Site in the Cinnamon Store instead`, errorMessage, {
-        additionalBtns: [
-            {
-                text: 'View Installation Instruction',
-                onClick: () => YoutubeDownloadFailedNotification_spawnCommandLine(`xdg-open ${APPLET_SITE} `)
-            }
-        ]
-    });
-    notify(`Couldn't download Song from Youtube due to an Error. Make Sure you have the newest version of ${youtubeCli} installed. 
-        \n<b>Important:</b> Don't use apt for the installation but follow the installation instruction given on the Radio Applet Site in the Cinnamon Store instead
-        \nFor more information see the logs`, {
-        isMarkup: true,
-        transient: false,
-        buttons: [
-            {
-                text: 'View Installation Instruction',
-                onClick: () => YoutubeDownloadFailedNotification_spawnCommandLine(`xdg-open ${APPLET_SITE} `)
-            },
-            {
-                text: 'View Logs',
-                onClick: () => YoutubeDownloadFailedNotification_spawnCommandLine(`xdg-open ${YoutubeDownloadFailedNotification_get_home_dir()}/.xsession-errors`)
-            }
-        ]
-    });
-}
-
 ;// CONCATENATED MODULE: ./src/ui/Notifications/YoutubeDownloadFinishedNotification.ts
 
 const { spawnCommandLine: YoutubeDownloadFinishedNotification_spawnCommandLine } = imports.misc.util;
@@ -4321,20 +4287,32 @@ function YtDlp_getDownloadPath(stdout) {
 
 
 
+const { spawnCommandLine: YoutubeDownloadManager_spawnCommandLine } = imports.misc.util;
 const { get_tmp_dir, get_home_dir: YoutubeDownloadManager_get_home_dir } = imports.gi.GLib;
 const { File, FileCopyFlags } = imports.gi.Gio;
-let downloadingSongs = [];
+const notifyYoutubeDownloadFailed = (props) => {
+    const { youtubeCli, errorMessage } = props;
+    notifyError(`Couldn't download Song from Youtube due to an Error. Make Sure you have the newest version of ${youtubeCli} installed. 
+    \n<b>Important:</b> Don't use apt for the installation but follow the installation instruction given on the Radio Applet Site in the Cinnamon Store instead`, errorMessage, {
+        additionalBtns: [
+            {
+                text: 'View Installation Instruction',
+                onClick: () => YoutubeDownloadManager_spawnCommandLine(`xdg-open ${APPLET_SITE} `)
+            }
+        ]
+    });
+};
+let downloadProcesses = [];
 const downloadingSongsChangedListener = [];
-function downloadSongFromYoutube() {
-    const title = mpvHandler.getCurrentTitle();
+function downloadSongFromYoutube(title) {
     const downloadDir = configs.settingsObject.musicDownloadDir;
     const youtubeCli = configs.settingsObject.youtubeCli;
     const music_dir_absolut = downloadDir.charAt(0) === '~' ?
         downloadDir.replace('~', YoutubeDownloadManager_get_home_dir()) : downloadDir;
     if (!title)
         return;
-    const sameSongIsDownloading = downloadingSongs.find(downloadingSong => {
-        return downloadingSong.title === title;
+    const sameSongIsDownloading = downloadProcesses.find(process => {
+        return process.songTitle === title;
     });
     if (sameSongIsDownloading)
         return;
@@ -4345,8 +4323,8 @@ function downloadSongFromYoutube() {
             notifyYoutubeDownloadFailed({ youtubeCli, errorMessage: `The following error occured at youtube download attempt: ${errorMessage}. The used download Command was: ${downloadCommand}` });
         },
         onFinished: () => {
-            downloadingSongs = downloadingSongs.filter(downloadingSong => downloadingSong.title !== title);
-            downloadingSongsChangedListener.forEach(listener => listener(downloadingSongs));
+            downloadProcesses = downloadProcesses.filter(downloadingSong => downloadingSong.songTitle !== title);
+            downloadingSongsChangedListener.forEach(listener => listener(downloadProcesses));
         },
         onSuccess: (downloadPath) => {
             const tmpFile = File.new_for_path(downloadPath);
@@ -4374,9 +4352,20 @@ function downloadSongFromYoutube() {
     notifyYoutubeDownloadStarted({
         title, onCancelClicked: cancel
     });
-    downloadingSongs.push({ title, cancelDownload: cancel });
-    downloadingSongsChangedListener.forEach(listener => listener(downloadingSongs));
+    downloadProcesses.push({ songTitle: title, cancelDownload: cancel });
+    downloadingSongsChangedListener.forEach(listener => listener(downloadProcesses));
 }
+const getCurrentDownloadingSongs = () => {
+    return downloadProcesses.map((downloadingSong) => downloadingSong.songTitle);
+};
+const cancelDownload = (songTitle) => {
+    const downloadProcess = downloadProcesses.find((process) => process.songTitle === songTitle);
+    if (!downloadProcess) {
+        global.logWarning(`can't cancel download for song ${songTitle} as it seems that the song is currently not downloading`);
+        return;
+    }
+    downloadProcess.cancelDownload();
+};
 function addDownloadingSongsChangeListener(callback) {
     downloadingSongsChangedListener.push(callback);
 }
@@ -4407,11 +4396,12 @@ function createRadioAppletTooltip(args) {
             ['<b>Station</b>'],
             [`${markup_escape_text(mpvHandler.getCurrentChannelName() || '', -1)} `],
         ];
-        if (downloadingSongs.length !== 0) {
+        const currentDownloadingSongs = getCurrentDownloadingSongs();
+        if (currentDownloadingSongs.length !== 0) {
             [
                 [],
                 ['<b>Songs downloading:</b>'],
-                ...downloadingSongs.map(downloadingSong => [markup_escape_text(downloadingSong.title, -1)])
+                ...currentDownloadingSongs.map(downloadingSong => [markup_escape_text(downloadingSong, -1)])
             ].forEach(line => lines.push(line));
         }
         const markupTxt = lines.join(`\n`);
@@ -5302,26 +5292,26 @@ function createStopBtn() {
 
 
 function createDownloadButton() {
-    const handleBtnClicked = () => {
+    const getState = () => {
         const currentTitle = mpvHandler.getCurrentTitle();
+        const currentTitleIsDownloading = getCurrentDownloadingSongs().some(downloadingSong => downloadingSong === currentTitle);
+        return { currentTitle, currentTitleIsDownloading };
+    };
+    const handleBtnClicked = () => {
+        const { currentTitleIsDownloading, currentTitle } = getState();
         if (!currentTitle)
-            return;
-        const download = getDownloadOfTitle(currentTitle);
-        download ? download.cancelDownload() : downloadSongFromYoutube();
+            return; // this should actually never happe
+        currentTitleIsDownloading ? cancelDownload(currentTitle) : downloadSongFromYoutube(currentTitle);
     };
     const downloadButton = createControlBtn({
         onClick: handleBtnClicked
     });
     const setRefreshBtn = () => {
-        const currentTitle = mpvHandler.getCurrentTitle();
-        const currentTitleIsDownloading = !!getDownloadOfTitle(currentTitle);
+        const { currentTitle, currentTitleIsDownloading } = getState();
         const iconName = currentTitleIsDownloading ? CANCEL_ICON_NAME : DOWNLOAD_ICON_NAME;
         const tooltipTxt = currentTitleIsDownloading ? `Cancel downloading ${currentTitle}` : "Download current song from Youtube";
         downloadButton.icon.set_icon_name(iconName);
         downloadButton.tooltip.set_text(tooltipTxt);
-    };
-    const getDownloadOfTitle = (title) => {
-        return downloadingSongs.find(downloadingSong => downloadingSong.title === title);
     };
     setRefreshBtn();
     addDownloadingSongsChangeListener(setRefreshBtn);
@@ -5511,7 +5501,6 @@ function makeJsonHttpRequest(args) {
 
 
 
-
 const { File: UpdateStationsMenuItem_File, FileCreateFlags } = imports.gi.Gio;
 const { Bytes } = imports.gi.GLib;
 const saveStations = (stationsUnfiltered) => {
@@ -5546,7 +5535,7 @@ function createUpdateStationsMenuItem() {
             isLoading = true;
             self.setText('Updating Radio stations...');
             notify('Upating Radio stations... \n\nThis can take several minutes!');
-            notifyYoutubeDownloadFailed({ youtubeCli: 'youtube-dl', errorMessage: 'some error' });
+            UpdateStationsMenuItem_notifyYoutubeDownloadFailed({ youtubeCli: 'youtube-dl', errorMessage: 'some error' });
             makeJsonHttpRequest({
                 url: "http://de1.api.radio-browser.info/json/stations",
                 onSuccess: (resp) => saveStations(resp),
@@ -5561,6 +5550,9 @@ function createUpdateStationsMenuItem() {
         },
     });
     return menuItem.actor;
+}
+function UpdateStationsMenuItem_notifyYoutubeDownloadFailed(arg0) {
+    throw new Error("Function not implemented.");
 }
 
 ;// CONCATENATED MODULE: ./src/ui/RadioContextMenu.ts
