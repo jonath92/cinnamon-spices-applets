@@ -1,15 +1,11 @@
 import { APPLET_SITE } from "../../consts";
-import { notifyError } from "../../lib/notify";
+import { notify, notifyError } from "../../lib/notify";
 import { YoutubeClis } from "../../types";
-import { notifyYoutubeDownloadFinished } from "../../ui/Notifications/YoutubeDownloadFinishedNotification";
-import { notifyYoutubeDownloadStarted } from "../../ui/Notifications/YoutubeDownloadStartedNotification";
 import { configs } from "../Config";
-import { mpvHandler } from "../mpv/MpvHandler";
 import { downloadWithYoutubeDl } from "./YoutubeDl";
 import { downloadWithYtDlp } from "./YtDlp";
+
 const { spawnCommandLine } = imports.misc.util
-
-
 const { get_tmp_dir, get_home_dir } = imports.gi.GLib
 const { File, FileCopyFlags } = imports.gi.Gio
 
@@ -45,7 +41,39 @@ const notifyYoutubeDownloadFailed = (props: { youtubeCli: YoutubeClis, errorMess
     })
 }
 
+const notifyYoutubeDownloadStarted = (title: string) => {
+    notify(`Downloading ${title} ...`, {
+        buttons: [
+            {
+                text: 'Cancel',
+                onClick: () => cancelDownload(title)
+            }
+        ]
+    })
+}
 
+const notifyYoutubeDownloadFinished = (props: { downloadPath: string, fileAlreadyExist?: boolean }) => {
+    const {
+        downloadPath,
+        fileAlreadyExist = false
+    } = props
+
+    notify(
+        fileAlreadyExist ?
+            'Downloaded Song not saved as a file with the same name already exists' :
+            `Download finished. File saved to ${downloadPath}`,
+        {
+            isMarkup: true,
+            transient: false,
+            buttons: [
+                {
+                    text: 'Play',
+                    onClick: () => spawnCommandLine(`xdg-open '${downloadPath}'`)
+                }
+            ]
+        }
+    )
+}
 
 let downloadProcesses: DownloadProcess[] = []
 
@@ -85,7 +113,7 @@ export function downloadSongFromYoutube(title: string) {
             const targetFile = File.parse_name(targetPath)
 
             if (targetFile.query_exists(null)) {
-                notifyYoutubeDownloadFinished({ downloadPath: targetPath, fileAlreadExist: true })
+                notifyYoutubeDownloadFinished({ downloadPath: targetPath, fileAlreadyExist: true })
                 return
             }
 
@@ -106,9 +134,7 @@ export function downloadSongFromYoutube(title: string) {
         downloadWithYoutubeDl(downloadProps) :
         downloadWithYtDlp(downloadProps)
 
-    notifyYoutubeDownloadStarted({
-        title, onCancelClicked: cancel
-    })
+    notifyYoutubeDownloadStarted(title)
 
     downloadProcesses.push({ songTitle: title, cancelDownload: cancel })
     downloadingSongsChangedListener.forEach(listener => listener(downloadProcesses))
