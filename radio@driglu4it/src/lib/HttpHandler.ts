@@ -24,19 +24,15 @@ interface Headers {
   Authorization?: string;
 }
 
-// FIXME: why is T1 not allowed to be of type HTTPParams?
-export interface LoadJsonArgs<T1, T2 = HTTPParams> {
+export interface LoadJsonArgs<T1> {
   url: string;
   method?: Method;
-  bodyParams?: T1;
-  queryParams?: T2;
   headers?: Headers;
   onSuccess: (resp: T1) => void;
   onErr: (err: HttpError) => void;
   onSettled?: () => void
 }
 
-const ByteArray = imports.byteArray;
 
 function checkForHttpError(
   message: imports.gi.Soup.Message
@@ -67,8 +63,6 @@ export function makeJsonHttpRequest<T1>(args: LoadJsonArgs<T1>) {
   const {
     url,
     method = "GET",
-    bodyParams,
-    queryParams,
     onErr,
     onSuccess,
     onSettled,
@@ -88,10 +82,6 @@ export function makeJsonHttpRequest<T1>(args: LoadJsonArgs<T1>) {
       message.request_headers.append(key, value);
     });
 
-  // if (bodyParams) {
-  //     const bodyParamsStringified = stringify(bodyParams)
-  //     message.request_body.append(ByteArray.fromString(bodyParamsStringified, 'UTF-8'))
-  // }
 
   httpSession.queue_message(message, (session, msgResponse) => {
     onSettled?.()

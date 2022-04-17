@@ -1,4 +1,4 @@
-import { notify } from "./NotificationBase";
+import { notify } from "../../lib/notify";
 
 interface Arguments {
     title: string,

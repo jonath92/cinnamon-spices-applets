@@ -1,6 +1,6 @@
 import { APPLET_SITE } from "../../consts";
 import { YoutubeClis } from "../../types";
-import { notify } from "./NotificationBase";
+import { notify } from "../../lib/notify";
 const { spawnCommandLine } = imports.misc.util
 const { get_home_dir } = imports.gi.GLib;
 

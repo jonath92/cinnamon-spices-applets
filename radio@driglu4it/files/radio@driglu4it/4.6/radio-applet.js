@@ -5382,8 +5382,14 @@ const saveStations = (stationsUnfiltered) => {
         const isDuplicate = stationsUnfiltered.findIndex((val) => val.name === name && val.url === url) !== index;
         if (isDuplicate)
             return [];
+        if (name.length > 200 || url.length > 200) {
+            // some stations have unnormal long names/urls - probably due to some encoding issue on radio browser api side or so. 
+            return [];
+        }
         return [[name.trim(), url.trim()]];
-    });
+    })
+        // We need to sort our self - even though they should already be sorted - because some stations are wrongly shown first due to leading spaces
+        .sort((a, b) => a[0].localeCompare(b[0]));
     const file = UpdateStationsMenuItem_File.new_for_path(`${__meta.path}/allStations.json`);
     if (!file.query_exists(null)) {
         file.create(FileCreateFlags.NONE, null);
@@ -5401,9 +5407,10 @@ function createUpdateStationsMenuItem() {
             if (isLoading)
                 return;
             isLoading = true;
-            self.setText('Loading ...');
+            self.setText('Updating Radio stations...');
+            notify('Upating Radio stations... \n\nThis can take several minutes!');
             makeJsonHttpRequest({
-                url: "http://de1.api.radio-browser.info/json/stations?limit=100",
+                url: "http://de1.api.radio-browser.info/json/stations",
                 onSuccess: (resp) => saveStations(resp),
                 onErr: (err) => {
                     notify(`Couldn't update the station list due to an error. Make sure you are connected to the internet and try again. Don't hesitate to open an issue on github if the problem remains.`);
@@ -5530,7 +5537,9 @@ function createYoutubeDownloadIcon() {
 ;// CONCATENATED MODULE: ./src/ui/RadioContextMenu.ts
 
 
-const { spawnCommandLine: RadioContextMenu_spawnCommandLine, spawnCommandLineAsyncIO: RadioContextMenu_spawnCommandLineAsyncIO } = imports.misc.util;
+
+
+const { spawnCommandLineAsyncIO: RadioContextMenu_spawnCommandLineAsyncIO } = imports.misc.util;
 function createRadioContextMenu(args) {
     const contextMenu = createPopupMenu(args);
     const spawnCommandLineWithErrorLogging = (command) => {
@@ -5540,7 +5549,7 @@ function createRadioContextMenu(args) {
             }
         });
     };
-    const menuArgs = [
+    const defaultMenuArgs = [
         {
             iconName: 'dialog-question',
             text: 'About...',
@@ -5560,7 +5569,9 @@ function createRadioContextMenu(args) {
             onActivated: () => global.log('todo')
         }
     ];
-    menuArgs.forEach((menuArg) => {
+    contextMenu.add_child(createUpdateStationsMenuItem());
+    contextMenu.add(createSeparatorMenuItem());
+    defaultMenuArgs.forEach((menuArg) => {
         const menuItem = createSimpleMenuItem(Object.assign(Object.assign({}, menuArg), { onActivated: (self) => {
                 contextMenu.close();
                 menuArg.onActivated && (menuArg === null || menuArg === void 0 ? void 0 : menuArg.onActivated(self));

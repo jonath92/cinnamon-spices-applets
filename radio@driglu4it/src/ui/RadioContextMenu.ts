@@ -1,12 +1,13 @@
 import { createPopupMenu, PopupMenuArguments } from "../lib/PopupMenu";
+import { createSeparatorMenuItem } from "../lib/PopupSeperator";
 import { createSimpleMenuItem, SimpleMenuItemArguments } from "../lib/SimpleMenuItem";
+import { createUpdateStationsMenuItem } from "./RadioPopupMenu/UpdateStationsMenuItem";
 
-const { spawnCommandLine, spawnCommandLineAsyncIO } = imports.misc.util
+const { spawnCommandLineAsyncIO } = imports.misc.util
 
 export function createRadioContextMenu(args: PopupMenuArguments) {
 
     const contextMenu = createPopupMenu(args)
-
 
     const spawnCommandLineWithErrorLogging = (command: string) => {
         spawnCommandLineAsyncIO(command, (stdout, stderr) => {
@@ -16,7 +17,7 @@ export function createRadioContextMenu(args: PopupMenuArguments) {
         })
     }
 
-    const menuArgs: SimpleMenuItemArguments[] = [
+    const defaultMenuArgs: SimpleMenuItemArguments[] = [
         {
             iconName: 'dialog-question',
             text: 'About...',
@@ -37,7 +38,11 @@ export function createRadioContextMenu(args: PopupMenuArguments) {
         }
     ]
 
-    menuArgs.forEach((menuArg) => {
+
+    contextMenu.add_child(createUpdateStationsMenuItem())
+    contextMenu.add(createSeparatorMenuItem())
+
+    defaultMenuArgs.forEach((menuArg) => {
         const menuItem = createSimpleMenuItem({
             ...menuArg, onActivated: (self) => {
                 contextMenu.close()

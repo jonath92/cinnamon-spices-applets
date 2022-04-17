@@ -8,7 +8,7 @@ import { APPLET_SITE, MPRIS_PLUGIN_PATH, VOLUME_DELTA } from "../../consts"
 import { createRadioPopupMenu } from "../RadioPopupMenu/RadioPopupMenu"
 import { installMpvWithMpris } from "../../services/mpv/CheckInstallation"
 import { createYoutubeDownloadIcon } from "./YoutubeDownloadIcon"
-import { notify } from "../Notifications/NotificationBase"
+import { notify } from "../../lib/notify"
 import { createRadioContextMenu } from "../RadioContextMenu"
 
 const { ScrollDirection } = imports.gi.Clutter;
