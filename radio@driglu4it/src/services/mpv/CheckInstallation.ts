@@ -8,10 +8,12 @@ const { find_program_in_path, file_test, FileTest } = imports.gi.GLib;
 
 export async function installMpvWithMpris() {
 
-    const mprisPluginDownloaded = checkMprisPluginDownloaded()
-    const mpvInstalled = checkMpvInstalled()
+    const mpvInstalled = find_program_in_path('mpv')
+    const mprisPluginDownloaded = file_test(MPRIS_PLUGIN_PATH, FileTest.IS_REGULAR)
 
-    !mprisPluginDownloaded && await downloadMrisPluginInteractive()
+    if (!mprisPluginDownloaded) {
+        await downloadMrisPluginInteractive()
+    }
 
     if (!mpvInstalled) {
         const notificationText = `Please ${mprisPluginDownloaded ? '' : 'also'} install the mpv package.`
@@ -20,18 +22,8 @@ export async function installMpvWithMpris() {
     }
 }
 
-function checkMpvInstalled() {
-    return find_program_in_path('mpv')
-}
-
-function checkMprisPluginDownloaded() {
-    return file_test(MPRIS_PLUGIN_PATH, FileTest.IS_REGULAR)
-}
-
 function installMpvInteractive() {
     return new Promise<void>(async (resolve, reject) => {
-
-        if (checkMpvInstalled()) return resolve()
 
         if (!find_program_in_path("apturl")) return reject()
 
@@ -46,10 +38,6 @@ function installMpvInteractive() {
 
 function downloadMrisPluginInteractive() {
     return new Promise<void>(async (resolve, reject) => {
-
-        if (checkMprisPluginDownloaded()) {
-            return resolve()
-        }
 
         let [stderr, stdout, exitCode] = await spawnCommandLinePromise(
             `python3  ${__meta.path}/download-dialog-mpris.py`
