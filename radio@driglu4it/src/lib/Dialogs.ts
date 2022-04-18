@@ -16,6 +16,8 @@ class ModalDialog {
   private _hasModal: boolean;
   private _cinnamonReactive: boolean;
   private _group: imports.gi.St.Widget;
+  private _actionKeys = {}
+  // private _backgroundBin: imports.gi.St.Bin
 
   constructor(params?: Partial<ModalDialogParams>) {
     this.state = State.CLOSED;
@@ -29,8 +31,19 @@ class ModalDialog {
       accessible_role: Role.DIALOG,
     });
 
-    uiGroup.add_actor(this._group)
+    uiGroup.add_actor(this._group);
 
-    
+    let constraint = new BindConstraint({
+      source: global.stage,
+      coordinate: BindCoordinate.POSITION | BindCoordinate.SIZE,
+    });
+
+    this._group.add_constraint(constraint)
+
+    // this._group.connect('destroy', (owner) => this._onGroupDestroy())
+
+    // this._group.connect('key-press-event', (owner, event) => this.__onKeyPressEvent)
+
+
   }
 }
