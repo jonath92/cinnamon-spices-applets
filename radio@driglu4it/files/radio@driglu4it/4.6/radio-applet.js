@@ -5524,7 +5524,6 @@ function createUpdateStationsMenuItem() {
             isLoading = true;
             self.setText('Updating Radio stations...');
             notify('Upating Radio stations... \n\nThis can take several minutes!');
-            UpdateStationsMenuItem_notifyYoutubeDownloadFailed({ youtubeCli: 'youtube-dl', errorMessage: 'some error' });
             makeJsonHttpRequest({
                 url: "http://de1.api.radio-browser.info/json/stations",
                 onSuccess: (resp) => saveStations(resp),
@@ -5540,9 +5539,6 @@ function createUpdateStationsMenuItem() {
     });
     return menuItem.actor;
 }
-function UpdateStationsMenuItem_notifyYoutubeDownloadFailed(arg0) {
-    throw new Error("Function not implemented.");
-}
 
 ;// CONCATENATED MODULE: ./src/ui/RadioContextMenu.ts
 
@@ -5553,7 +5549,7 @@ const { spawnCommandLineAsyncIO: RadioContextMenu_spawnCommandLineAsyncIO } = im
 const { ConfirmDialog } = imports.ui.modalDialog;
 const AppletManager = imports.ui.appletManager;
 const showRemoveAppletDialog = () => {
-    const dialog = new ConfirmDialog(`Are you sure you want to remove '${__meta.name}`, () => AppletManager['_removeAppletFromPanel'](__meta.uuid, __meta.instanceId));
+    const dialog = new ConfirmDialog(`Are you sure you want to remove '${__meta.name}'`, () => AppletManager['_removeAppletFromPanel'](__meta.uuid, __meta.instanceId));
     dialog.open();
 };
 const spawnCommandLineWithErrorLogging = (command) => {
