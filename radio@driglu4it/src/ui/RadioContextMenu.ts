@@ -1,10 +1,10 @@
+import { ConfirmDialog } from "../lib/Dialogs";
 import { createPopupMenu, PopupMenuArguments } from "../lib/PopupMenu";
 import { createSeparatorMenuItem } from "../lib/PopupSeperator";
 import { createSimpleMenuItem, SimpleMenuItemArguments } from "../lib/SimpleMenuItem";
 import { createUpdateStationsMenuItem } from "./RadioPopupMenu/UpdateStationsMenuItem";
 
 const { spawnCommandLineAsyncIO } = imports.misc.util
-const { ConfirmDialog } = imports.ui.modalDialog
 const AppletManager = imports.ui.appletManager;
 
 const showRemoveAppletDialog = () => {

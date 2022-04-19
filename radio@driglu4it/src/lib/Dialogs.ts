@@ -1,23 +1,47 @@
-const { Widget, Bin, BoxLayout, Align, Label } = imports.gi.St;
-const { Role } = imports.gi.Atk;
-const { uiGroup } = imports.ui.main;
-const { BindConstraint, BindCoordinate, Group } = imports.gi.Clutter;
-const { Lightbox } = imports.ui.lightbox;
-const { Stack } = imports.gi.Cinnamon;
-const { State } = imports.ui.modalDialog;
+import { hasIn } from "lodash";
 
+const { Widget, Bin, BoxLayout, Align, Label, Button } = imports.gi.St;
+const { Role } = imports.gi.Atk;
+const { uiGroup, layoutManager, popModal, pushModal } = imports.ui.main;
+const { BindConstraint, BindCoordinate, Group, ModifierType, KEY_Escape } =
+  imports.gi.Clutter;
+const { Lightbox } = imports.ui.lightbox;
+const { Stack, get_event_state } = imports.gi.Cinnamon;
+const { State, FADE_IN_BUTTONS_TIME, FADE_OUT_DIALOG_TIME, OPEN_AND_CLOSE_TIME } = imports.ui.modalDialog;
+const { addTween } = imports.ui.tweener;
+
+
+interface DialogButton {
+  label: string;
+  action: () => void;
+  /** a keyboard key - easisest to use a respective Clutter Constant, such as Clutter.KEY_Escape */
+  key?: number;
+  focused?: boolean;
+  button?: imports.gi.St.Button;
+}
 interface ModalDialogParams {
   /**  whether the modal dialog should block Cinnamon input */
   cinnamonReactive: boolean;
   styleClass: string;
+}
+
+interface ActionKeys {
+  [key: number]: () => void;
 }
 class ModalDialog {
   public state: number;
   private _hasModal: boolean;
   private _cinnamonReactive: boolean;
   private _group: imports.gi.St.Widget;
-  private _actionKeys = {}
-  // private _backgroundBin: imports.gi.St.Bin
+  private _actionKeys: ActionKeys = {};
+  private _backgroundBin: imports.gi.St.Bin;
+  private _dialogLayout: imports.gi.St.BoxLayout;
+  private _lightbox: imports.ui.lightbox.Lightbox | undefined;
+  private _eventBlocker: imports.gi.Clutter.Group | undefined;
+  public contentLayout: imports.gi.St.BoxLayout;
+  private _buttonLayout: imports.gi.St.BoxLayout;
+  private _initialKeyFocus: imports.gi.St.Widget;
+  private _savedKeyFocus: null | imports.gi.Clutter.Actor;
 
   constructor(params?: Partial<ModalDialogParams>) {
     this.state = State.CLOSED;
@@ -38,12 +62,292 @@ class ModalDialog {
       coordinate: BindCoordinate.POSITION | BindCoordinate.SIZE,
     });
 
-    this._group.add_constraint(constraint)
+    this._group.add_constraint(constraint);
 
-    // this._group.connect('destroy', (owner) => this._onGroupDestroy())
+    this._group.connect("destroy", (owner) => this._onGroupDestroy());
 
-    // this._group.connect('key-press-event', (owner, event) => this.__onKeyPressEvent)
+    this._group.connect("key-press-event", (owner, event) =>
+      this._onKeyPressEvent(owner, event)
+    );
 
+    this._backgroundBin = new Bin();
+    this._group.add_actor(this._backgroundBin);
 
+    this._dialogLayout = new BoxLayout({
+      style_class: "modal-dialog",
+      vertical: true,
+    });
+
+    if (params?.styleClass != null) {
+      this._dialogLayout.add_style_class_name(params.styleClass);
+    }
+
+    if (!this._cinnamonReactive) {
+      this._lightbox = new Lightbox(this._group, {
+        inhibitEvents: true,
+        radialEffect: true,
+      });
+      this._lightbox.highlight(this._backgroundBin);
+
+      let stack = new Stack();
+      this._backgroundBin.child = stack;
+
+      this._eventBlocker = new Group({ reactive: true });
+      stack.add_actor(this._eventBlocker);
+      stack.add_actor(this._dialogLayout);
+    } else {
+      this._backgroundBin.child = this._dialogLayout;
+    }
+
+    this.contentLayout = new BoxLayout({ vertical: true });
+    this._dialogLayout.add(this.contentLayout, {
+      x_fill: true,
+      y_fill: true,
+      x_align: Align.MIDDLE,
+      y_align: Align.START,
+    });
+
+    this._buttonLayout = new BoxLayout({
+      style_class: "modal-dialog-button-box",
+      vertical: false,
+    });
+    this._dialogLayout.add(this._buttonLayout, {
+      expand: true,
+      x_align: Align.MIDDLE,
+      y_align: Align.END,
+    });
+
+    global.focus_manager.add_group(this._dialogLayout);
+    this._initialKeyFocus = this._dialogLayout;
+    this._savedKeyFocus = null;
+  }
+
+  public destroy() {
+    this._group.destroy();
+  }
+
+  setButtons(buttons: DialogButton[]) {
+    let hadChildren = this._buttonLayout.get_n_children() > 0;
+
+    this._buttonLayout.destroy_all_children();
+    this._actionKeys = {};
+    let focusSetExplicitly = false;
+
+    for (let i = 0; i < buttons.length; i++) {
+      let buttonInfo = buttons[i];
+      if (!buttonInfo.focused) {
+        buttonInfo.focused = false;
+      }
+      let label = buttonInfo["label"];
+      let action = buttonInfo["action"];
+      let key = buttonInfo["key"];
+      let wantsfocus = buttonInfo["focused"] === true;
+      let nofocus = buttonInfo["focused"] === false;
+      buttonInfo.button = new Button({
+        style_class: "modal-dialog-button",
+        reactive: true,
+        can_focus: true,
+        label: label,
+      });
+
+      let x_alignment;
+      if (buttons.length == 1) x_alignment = Align.END;
+      else if (i == 0) x_alignment = Align.START;
+      else if (i == buttons.length - 1) x_alignment = Align.END;
+      else x_alignment = Align.MIDDLE;
+
+      if (wantsfocus) {
+        this._initialKeyFocus = buttonInfo.button;
+        focusSetExplicitly = true;
+      }
+
+      if (
+        !focusSetExplicitly &&
+        !nofocus &&
+        (this._initialKeyFocus == this._dialogLayout ||
+          this._buttonLayout.contains(this._initialKeyFocus))
+      ) {
+        this._initialKeyFocus = buttonInfo.button;
+      }
+      this._buttonLayout.add(buttonInfo.button, {
+        expand: true,
+        x_fill: false,
+        y_fill: false,
+        x_align: x_alignment,
+        y_align: Align.MIDDLE,
+      });
+
+      buttonInfo.button.connect("clicked", action);
+
+      if (key)
+        // @ts-ignore
+        this._actionKeys[key] = action;
+    }
+
+    // Fade in buttons if there weren't any before
+    if (!hadChildren && buttons.length > 0) {
+      this._buttonLayout.opacity = 0;
+      addTween(this._buttonLayout, {
+        opacity: 255,
+        time: FADE_IN_BUTTONS_TIME,
+        transition: "easeOutQuad",
+        onComplete: () => {
+          //this.emit('buttons-set');
+        },
+      });
+    } else {
+      //this.emit('buttons-set');
+    }
+  }
+
+  private _onKeyPressEvent(
+    object: imports.gi.St.Widget,
+    keyPressEvent: imports.gi.Clutter.KeyEvent
+  ) {
+    let modifiers = get_event_state(keyPressEvent);
+    let ctrlAltMask = ModifierType.CONTROL_MASK | ModifierType.MOD1_MASK;
+    let symbol = keyPressEvent.get_key_symbol();
+    if (symbol === KEY_Escape && !(modifiers & ctrlAltMask)) {
+      this.close();
+      return false;
+    }
+
+    let action = this._actionKeys[symbol];
+
+    if (action) action();
+    return false;
+  }
+
+  private _onGroupDestroy() {
+    //this.emit('destroy');
+  }
+
+  private _fadeOpen() {
+    let monitor = layoutManager.currentMonitor;
+
+    this._backgroundBin.set_position(monitor.x, monitor.y);
+    this._backgroundBin.set_size(monitor.width, monitor.height);
+
+    this.state = State.OPENING;
+
+    this._dialogLayout.opacity = 255;
+    if (this._lightbox) this._lightbox.show();
+    this._group.opacity = 0;
+    this._group.show();
+    addTween(this._group, {
+      opacity: 255,
+      time: OPEN_AND_CLOSE_TIME,
+      transition: "easeOutQuad",
+      onComplete: () => {
+        this.state = State.OPENED;
+        // this.emit("opened");
+      },
+    });
+  }
+
+  public setInitialKeyFocus(actor: imports.gi.St.Widget) {
+    this._initialKeyFocus = actor;
+  }
+
+  public open(timestamp?: number) {
+    if (this.state == State.OPENED || this.state == State.OPENING) return true;
+
+    if (!this.pushModal(timestamp)) return false;
+
+    this._fadeOpen();
+    return true;
+  }
+
+  public close(timestamp?: number) {
+    if (this.state == State.CLOSED || this.state == State.CLOSING) return;
+
+    this.state = State.CLOSING;
+    this.popModal(timestamp);
+    this._savedKeyFocus = null;
+
+    addTween(this._group, {
+      opacity: 0,
+      time: OPEN_AND_CLOSE_TIME,
+      transition: "easeOutQuad",
+      onComplete: () => {
+        this.state = State.CLOSED;
+        this._group.hide();
+      },
+    });
+  }
+
+  public popModal(timestamp?: number) {
+    if (!this._hasModal) return;
+
+    let focus = global.stage.key_focus;
+    if (focus && this._group.contains(focus)) this._savedKeyFocus = focus;
+    else this._savedKeyFocus = null;
+    popModal(this._group, timestamp);
+    global.gdk_screen.get_display().sync();
+    this._hasModal = false;
+
+    if (!this._cinnamonReactive) this._eventBlocker?.raise_top();
+  }
+
+  public pushModal(timestamp?: number) {
+    if (this._hasModal) return true;
+    if (!pushModal(this._group, timestamp)) return false;
+
+    this._hasModal = true;
+    if (this._savedKeyFocus) {
+      this._savedKeyFocus.grab_key_focus();
+      this._savedKeyFocus = null;
+    } else this._initialKeyFocus.grab_key_focus();
+
+    if (!this._cinnamonReactive) this._eventBlocker?.lower_bottom();
+    return true;
+  }
+
+  public _fadeOutDialog(timestamp?: number) {
+    if (this.state == State.CLOSED || this.state == State.CLOSING) return;
+
+    if (this.state == State.FADED_OUT) return;
+
+    this.popModal(timestamp);
+    addTween(this._dialogLayout, {
+      opacity: 0,
+      time: FADE_OUT_DIALOG_TIME,
+      transition: "easeOutQuad",
+      onComplete: () => {
+        this.state = State.FADED_OUT;
+      },
+    });
+  }
+}
+
+export class ConfirmDialog extends ModalDialog {
+
+  public callback: () => void
+  constructor(label: string, callback: () => void) {
+    super();
+
+    this.contentLayout.add(
+      new Label({
+        text: "Confirm",
+        style_class: "confirm-dialog-title",
+        important: true,
+      })
+    );
+    this.contentLayout.add(new Label({ text: label }));
+    this.callback = callback;
+
+    this.setButtons([
+      {
+        label: "No",
+        action: () => this.destroy(),
+      },
+      {
+        label: "Yes",
+        action: () => {
+          this.destroy();
+          this.callback();
+        },
+      },
+    ]);
   }
 }

@@ -5373,26 +5373,22 @@ const spawnCommandLinePromise = function (command) {
 
 
 const { find_program_in_path, file_test, FileTest } = imports.gi.GLib;
+const showMprisDialog = () => {
+};
 async function installMpvWithMpris() {
-    const mprisPluginDownloaded = checkMprisPluginDownloaded();
-    const mpvInstalled = checkMpvInstalled();
-    !mprisPluginDownloaded && await downloadMrisPluginInteractive();
+    const mpvInstalled = find_program_in_path('mpv');
+    const mprisPluginDownloaded = file_test(MPRIS_PLUGIN_PATH, FileTest.IS_REGULAR);
+    if (!mprisPluginDownloaded) {
+        await downloadMrisPluginInteractive();
+    }
     if (!mpvInstalled) {
         const notificationText = `Please ${mprisPluginDownloaded ? '' : 'also'} install the mpv package.`;
         notify(notificationText);
         await installMpvInteractive();
     }
 }
-function checkMpvInstalled() {
-    return find_program_in_path('mpv');
-}
-function checkMprisPluginDownloaded() {
-    return file_test(MPRIS_PLUGIN_PATH, FileTest.IS_REGULAR);
-}
 function installMpvInteractive() {
     return new Promise(async (resolve, reject) => {
-        if (checkMpvInstalled())
-            return resolve();
         if (!find_program_in_path("apturl"))
             return reject();
         const [stderr, stdout, exitCode] = await spawnCommandLinePromise(`
@@ -5403,9 +5399,6 @@ function installMpvInteractive() {
 }
 function downloadMrisPluginInteractive() {
     return new Promise(async (resolve, reject) => {
-        if (checkMprisPluginDownloaded()) {
-            return resolve();
-        }
         let [stderr, stdout, exitCode] = await spawnCommandLinePromise(`python3  ${__meta.path}/download-dialog-mpris.py`);
         if ((stdout === null || stdout === void 0 ? void 0 : stdout.trim()) !== 'Continue') {
             return reject();
@@ -5431,6 +5424,287 @@ function createYoutubeDownloadIcon() {
         downloadingSongs.length !== 0 ? icon.visible = true : icon.visible = false;
     });
     return icon;
+}
+
+;// CONCATENATED MODULE: ./src/lib/Dialogs.ts
+const { Widget, Bin: Dialogs_Bin, BoxLayout: Dialogs_BoxLayout, Align, Label: Dialogs_Label, Button: Dialogs_Button } = imports.gi.St;
+const { Role } = imports.gi.Atk;
+const { uiGroup: Dialogs_uiGroup, layoutManager: Dialogs_layoutManager, popModal: Dialogs_popModal, pushModal: Dialogs_pushModal } = imports.ui.main;
+const { BindConstraint, BindCoordinate, Group, ModifierType, KEY_Escape: Dialogs_KEY_Escape } = imports.gi.Clutter;
+const { Lightbox } = imports.ui.lightbox;
+const { Stack: Dialogs_Stack, get_event_state } = imports.gi.Cinnamon;
+const { State, FADE_IN_BUTTONS_TIME, FADE_OUT_DIALOG_TIME, OPEN_AND_CLOSE_TIME } = imports.ui.modalDialog;
+const { addTween: Dialogs_addTween } = imports.ui.tweener;
+class ModalDialog {
+    constructor(params) {
+        this._actionKeys = {};
+        this.state = State.CLOSED;
+        this._hasModal = false;
+        this._cinnamonReactive = (params === null || params === void 0 ? void 0 : params.cinnamonReactive) || false;
+        this._group = new Widget({
+            visible: false,
+            x: 0,
+            y: 0,
+            accessible_role: Role.DIALOG,
+        });
+        Dialogs_uiGroup.add_actor(this._group);
+        let constraint = new BindConstraint({
+            source: global.stage,
+            coordinate: BindCoordinate.POSITION | BindCoordinate.SIZE,
+        });
+        this._group.add_constraint(constraint);
+        this._group.connect("destroy", (owner) => this._onGroupDestroy());
+        this._group.connect("key-press-event", (owner, event) => this._onKeyPressEvent(owner, event));
+        this._backgroundBin = new Dialogs_Bin();
+        this._group.add_actor(this._backgroundBin);
+        this._dialogLayout = new Dialogs_BoxLayout({
+            style_class: "modal-dialog",
+            vertical: true,
+        });
+        if ((params === null || params === void 0 ? void 0 : params.styleClass) != null) {
+            this._dialogLayout.add_style_class_name(params.styleClass);
+        }
+        if (!this._cinnamonReactive) {
+            this._lightbox = new Lightbox(this._group, {
+                inhibitEvents: true,
+                radialEffect: true,
+            });
+            this._lightbox.highlight(this._backgroundBin);
+            let stack = new Dialogs_Stack();
+            this._backgroundBin.child = stack;
+            this._eventBlocker = new Group({ reactive: true });
+            stack.add_actor(this._eventBlocker);
+            stack.add_actor(this._dialogLayout);
+        }
+        else {
+            this._backgroundBin.child = this._dialogLayout;
+        }
+        this.contentLayout = new Dialogs_BoxLayout({ vertical: true });
+        this._dialogLayout.add(this.contentLayout, {
+            x_fill: true,
+            y_fill: true,
+            x_align: Align.MIDDLE,
+            y_align: Align.START,
+        });
+        this._buttonLayout = new Dialogs_BoxLayout({
+            style_class: "modal-dialog-button-box",
+            vertical: false,
+        });
+        this._dialogLayout.add(this._buttonLayout, {
+            expand: true,
+            x_align: Align.MIDDLE,
+            y_align: Align.END,
+        });
+        global.focus_manager.add_group(this._dialogLayout);
+        this._initialKeyFocus = this._dialogLayout;
+        this._savedKeyFocus = null;
+    }
+    destroy() {
+        this._group.destroy();
+    }
+    setButtons(buttons) {
+        let hadChildren = this._buttonLayout.get_n_children() > 0;
+        this._buttonLayout.destroy_all_children();
+        this._actionKeys = {};
+        let focusSetExplicitly = false;
+        for (let i = 0; i < buttons.length; i++) {
+            let buttonInfo = buttons[i];
+            if (!buttonInfo.focused) {
+                buttonInfo.focused = false;
+            }
+            let label = buttonInfo["label"];
+            let action = buttonInfo["action"];
+            let key = buttonInfo["key"];
+            let wantsfocus = buttonInfo["focused"] === true;
+            let nofocus = buttonInfo["focused"] === false;
+            buttonInfo.button = new Dialogs_Button({
+                style_class: "modal-dialog-button",
+                reactive: true,
+                can_focus: true,
+                label: label,
+            });
+            let x_alignment;
+            if (buttons.length == 1)
+                x_alignment = Align.END;
+            else if (i == 0)
+                x_alignment = Align.START;
+            else if (i == buttons.length - 1)
+                x_alignment = Align.END;
+            else
+                x_alignment = Align.MIDDLE;
+            if (wantsfocus) {
+                this._initialKeyFocus = buttonInfo.button;
+                focusSetExplicitly = true;
+            }
+            if (!focusSetExplicitly &&
+                !nofocus &&
+                (this._initialKeyFocus == this._dialogLayout ||
+                    this._buttonLayout.contains(this._initialKeyFocus))) {
+                this._initialKeyFocus = buttonInfo.button;
+            }
+            this._buttonLayout.add(buttonInfo.button, {
+                expand: true,
+                x_fill: false,
+                y_fill: false,
+                x_align: x_alignment,
+                y_align: Align.MIDDLE,
+            });
+            buttonInfo.button.connect("clicked", action);
+            if (key)
+                // @ts-ignore
+                this._actionKeys[key] = action;
+        }
+        // Fade in buttons if there weren't any before
+        if (!hadChildren && buttons.length > 0) {
+            this._buttonLayout.opacity = 0;
+            Dialogs_addTween(this._buttonLayout, {
+                opacity: 255,
+                time: FADE_IN_BUTTONS_TIME,
+                transition: "easeOutQuad",
+                onComplete: () => {
+                    //this.emit('buttons-set');
+                },
+            });
+        }
+        else {
+            //this.emit('buttons-set');
+        }
+    }
+    _onKeyPressEvent(object, keyPressEvent) {
+        let modifiers = get_event_state(keyPressEvent);
+        let ctrlAltMask = ModifierType.CONTROL_MASK | ModifierType.MOD1_MASK;
+        let symbol = keyPressEvent.get_key_symbol();
+        if (symbol === Dialogs_KEY_Escape && !(modifiers & ctrlAltMask)) {
+            this.close();
+            return false;
+        }
+        let action = this._actionKeys[symbol];
+        if (action)
+            action();
+        return false;
+    }
+    _onGroupDestroy() {
+        //this.emit('destroy');
+    }
+    _fadeOpen() {
+        let monitor = Dialogs_layoutManager.currentMonitor;
+        this._backgroundBin.set_position(monitor.x, monitor.y);
+        this._backgroundBin.set_size(monitor.width, monitor.height);
+        this.state = State.OPENING;
+        this._dialogLayout.opacity = 255;
+        if (this._lightbox)
+            this._lightbox.show();
+        this._group.opacity = 0;
+        this._group.show();
+        Dialogs_addTween(this._group, {
+            opacity: 255,
+            time: OPEN_AND_CLOSE_TIME,
+            transition: "easeOutQuad",
+            onComplete: () => {
+                this.state = State.OPENED;
+                // this.emit("opened");
+            },
+        });
+    }
+    setInitialKeyFocus(actor) {
+        this._initialKeyFocus = actor;
+    }
+    open(timestamp) {
+        if (this.state == State.OPENED || this.state == State.OPENING)
+            return true;
+        if (!this.pushModal(timestamp))
+            return false;
+        this._fadeOpen();
+        return true;
+    }
+    close(timestamp) {
+        if (this.state == State.CLOSED || this.state == State.CLOSING)
+            return;
+        this.state = State.CLOSING;
+        this.popModal(timestamp);
+        this._savedKeyFocus = null;
+        Dialogs_addTween(this._group, {
+            opacity: 0,
+            time: OPEN_AND_CLOSE_TIME,
+            transition: "easeOutQuad",
+            onComplete: () => {
+                this.state = State.CLOSED;
+                this._group.hide();
+            },
+        });
+    }
+    popModal(timestamp) {
+        var _a;
+        if (!this._hasModal)
+            return;
+        let focus = global.stage.key_focus;
+        if (focus && this._group.contains(focus))
+            this._savedKeyFocus = focus;
+        else
+            this._savedKeyFocus = null;
+        Dialogs_popModal(this._group, timestamp);
+        global.gdk_screen.get_display().sync();
+        this._hasModal = false;
+        if (!this._cinnamonReactive)
+            (_a = this._eventBlocker) === null || _a === void 0 ? void 0 : _a.raise_top();
+    }
+    pushModal(timestamp) {
+        var _a;
+        if (this._hasModal)
+            return true;
+        if (!Dialogs_pushModal(this._group, timestamp))
+            return false;
+        this._hasModal = true;
+        if (this._savedKeyFocus) {
+            this._savedKeyFocus.grab_key_focus();
+            this._savedKeyFocus = null;
+        }
+        else
+            this._initialKeyFocus.grab_key_focus();
+        if (!this._cinnamonReactive)
+            (_a = this._eventBlocker) === null || _a === void 0 ? void 0 : _a.lower_bottom();
+        return true;
+    }
+    _fadeOutDialog(timestamp) {
+        if (this.state == State.CLOSED || this.state == State.CLOSING)
+            return;
+        if (this.state == State.FADED_OUT)
+            return;
+        this.popModal(timestamp);
+        Dialogs_addTween(this._dialogLayout, {
+            opacity: 0,
+            time: FADE_OUT_DIALOG_TIME,
+            transition: "easeOutQuad",
+            onComplete: () => {
+                this.state = State.FADED_OUT;
+            },
+        });
+    }
+}
+class ConfirmDialog extends ModalDialog {
+    constructor(label, callback) {
+        super();
+        this.contentLayout.add(new Dialogs_Label({
+            text: "Confirm",
+            style_class: "confirm-dialog-title",
+            important: true,
+        }));
+        this.contentLayout.add(new Dialogs_Label({ text: label }));
+        this.callback = callback;
+        this.setButtons([
+            {
+                label: "No",
+                action: () => this.destroy(),
+            },
+            {
+                label: "Yes",
+                action: () => {
+                    this.destroy();
+                    this.callback();
+                },
+            },
+        ]);
+    }
 }
 
 ;// CONCATENATED MODULE: ./src/lib/HttpHandler.ts
@@ -5545,8 +5819,8 @@ function createUpdateStationsMenuItem() {
 
 
 
+
 const { spawnCommandLineAsyncIO: RadioContextMenu_spawnCommandLineAsyncIO } = imports.misc.util;
-const { ConfirmDialog } = imports.ui.modalDialog;
 const AppletManager = imports.ui.appletManager;
 const showRemoveAppletDialog = () => {
     const dialog = new ConfirmDialog(`Are you sure you want to remove '${__meta.name}'`, () => AppletManager['_removeAppletFromPanel'](__meta.uuid, __meta.instanceId));
