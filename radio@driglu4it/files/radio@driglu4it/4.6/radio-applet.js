@@ -5440,31 +5440,23 @@ class ModalDialog {
         this._actionKeys = {};
         this.state = State.CLOSED;
         this._hasModal = false;
-        this._cinnamonReactive = (params === null || params === void 0 ? void 0 : params.cinnamonReactive) || false;
+        const showBackdrop = (params === null || params === void 0 ? void 0 : params.showBackdrop) || true;
         this._group = new Widget({
             visible: false,
             x: 0,
             y: 0,
             accessible_role: Role.DIALOG,
         });
-        Dialogs_uiGroup.add_actor(this._group);
-        let constraint = new BindConstraint({
-            source: global.stage,
-            coordinate: BindCoordinate.POSITION | BindCoordinate.SIZE,
-        });
-        this._group.add_constraint(constraint);
+        Dialogs_uiGroup.add_child(this._group);
         this._group.connect("destroy", (owner) => this._onGroupDestroy());
         this._group.connect("key-press-event", (owner, event) => this._onKeyPressEvent(owner, event));
         this._backgroundBin = new Dialogs_Bin();
-        this._group.add_actor(this._backgroundBin);
+        this._group.add_child(this._backgroundBin);
         this._dialogLayout = new Dialogs_BoxLayout({
             style_class: "modal-dialog",
             vertical: true,
         });
-        if ((params === null || params === void 0 ? void 0 : params.styleClass) != null) {
-            this._dialogLayout.add_style_class_name(params.styleClass);
-        }
-        if (!this._cinnamonReactive) {
+        if (showBackdrop) {
             this._lightbox = new Lightbox(this._group, {
                 inhibitEvents: true,
                 radialEffect: true,
@@ -5473,8 +5465,8 @@ class ModalDialog {
             let stack = new Dialogs_Stack();
             this._backgroundBin.child = stack;
             this._eventBlocker = new Group({ reactive: true });
-            stack.add_actor(this._eventBlocker);
-            stack.add_actor(this._dialogLayout);
+            stack.add_child(this._eventBlocker);
+            stack.add_child(this._dialogLayout);
         }
         else {
             this._backgroundBin.child = this._dialogLayout;
@@ -5645,8 +5637,7 @@ class ModalDialog {
         Dialogs_popModal(this._group, timestamp);
         global.gdk_screen.get_display().sync();
         this._hasModal = false;
-        if (!this._cinnamonReactive)
-            (_a = this._eventBlocker) === null || _a === void 0 ? void 0 : _a.raise_top();
+        (_a = this._eventBlocker) === null || _a === void 0 ? void 0 : _a.raise_top();
     }
     pushModal(timestamp) {
         var _a;
@@ -5661,8 +5652,7 @@ class ModalDialog {
         }
         else
             this._initialKeyFocus.grab_key_focus();
-        if (!this._cinnamonReactive)
-            (_a = this._eventBlocker) === null || _a === void 0 ? void 0 : _a.lower_bottom();
+        (_a = this._eventBlocker) === null || _a === void 0 ? void 0 : _a.lower_bottom();
         return true;
     }
     _fadeOutDialog(timestamp) {

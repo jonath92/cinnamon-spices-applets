@@ -20,9 +20,7 @@ interface DialogButton {
   button?: imports.gi.St.Button;
 }
 interface ModalDialogParams {
-  /**  whether the modal dialog should block Cinnamon input */
-  cinnamonReactive: boolean;
-  styleClass: string;
+  showBackdrop: boolean;
 }
 
 interface ActionKeys {
@@ -31,7 +29,6 @@ interface ActionKeys {
 class ModalDialog {
   public state: number;
   private _hasModal: boolean;
-  private _cinnamonReactive: boolean;
   private _group: imports.gi.St.Widget;
   private _actionKeys: ActionKeys = {};
   private _backgroundBin: imports.gi.St.Bin;
@@ -47,7 +44,8 @@ class ModalDialog {
     this.state = State.CLOSED;
     this._hasModal = false;
 
-    this._cinnamonReactive = params?.cinnamonReactive || false;
+    const showBackdrop = params?.showBackdrop || true
+
     this._group = new Widget({
       visible: false,
       x: 0,
@@ -55,14 +53,8 @@ class ModalDialog {
       accessible_role: Role.DIALOG,
     });
 
-    uiGroup.add_actor(this._group);
 
-    let constraint = new BindConstraint({
-      source: global.stage,
-      coordinate: BindCoordinate.POSITION | BindCoordinate.SIZE,
-    });
-
-    this._group.add_constraint(constraint);
+    uiGroup.add_child(this._group);
 
     this._group.connect("destroy", (owner) => this._onGroupDestroy());
 
@@ -71,18 +63,15 @@ class ModalDialog {
     );
 
     this._backgroundBin = new Bin();
-    this._group.add_actor(this._backgroundBin);
+    this._group.add_child(this._backgroundBin);
 
     this._dialogLayout = new BoxLayout({
       style_class: "modal-dialog",
       vertical: true,
     });
 
-    if (params?.styleClass != null) {
-      this._dialogLayout.add_style_class_name(params.styleClass);
-    }
 
-    if (!this._cinnamonReactive) {
+    if (showBackdrop) {
       this._lightbox = new Lightbox(this._group, {
         inhibitEvents: true,
         radialEffect: true,
@@ -93,8 +82,8 @@ class ModalDialog {
       this._backgroundBin.child = stack;
 
       this._eventBlocker = new Group({ reactive: true });
-      stack.add_actor(this._eventBlocker);
-      stack.add_actor(this._dialogLayout);
+      stack.add_child(this._eventBlocker);
+      stack.add_child(this._dialogLayout);
     } else {
       this._backgroundBin.child = this._dialogLayout;
     }
@@ -286,7 +275,7 @@ class ModalDialog {
     global.gdk_screen.get_display().sync();
     this._hasModal = false;
 
-    if (!this._cinnamonReactive) this._eventBlocker?.raise_top();
+    this._eventBlocker?.raise_top();
   }
 
   public pushModal(timestamp?: number) {
@@ -299,7 +288,7 @@ class ModalDialog {
       this._savedKeyFocus = null;
     } else this._initialKeyFocus.grab_key_focus();
 
-    if (!this._cinnamonReactive) this._eventBlocker?.lower_bottom();
+    this._eventBlocker?.lower_bottom();
     return true;
   }
 
