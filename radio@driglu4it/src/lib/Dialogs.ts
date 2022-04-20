@@ -1,5 +1,3 @@
-import { hasIn } from "lodash";
-
 const { Widget, Bin, BoxLayout, Align, Label, Button } = imports.gi.St;
 const { Role } = imports.gi.Atk;
 const { uiGroup, layoutManager, popModal, pushModal } = imports.ui.main;
@@ -7,20 +5,24 @@ const { BindConstraint, BindCoordinate, Group, ModifierType, KEY_Escape } =
   imports.gi.Clutter;
 const { Lightbox } = imports.ui.lightbox;
 const { Stack, get_event_state } = imports.gi.Cinnamon;
-const { State, FADE_IN_BUTTONS_TIME, FADE_OUT_DIALOG_TIME, OPEN_AND_CLOSE_TIME } = imports.ui.modalDialog;
+const {
+  State,
+  FADE_IN_BUTTONS_TIME,
+  FADE_OUT_DIALOG_TIME,
+  OPEN_AND_CLOSE_TIME,
+} = imports.ui.modalDialog;
 const { addTween } = imports.ui.tweener;
-
 
 interface DialogButton {
   label: string;
-  action: () => void;
+  onClick: () => void;
   /** a keyboard key - easisest to use a respective Clutter Constant, such as Clutter.KEY_Escape */
   key?: number;
-  focused?: boolean;
   button?: imports.gi.St.Button;
 }
 interface ModalDialogParams {
   showBackdrop: boolean;
+  buttons: DialogButton[];
 }
 
 interface ActionKeys {
@@ -40,11 +42,12 @@ class ModalDialog {
   private _initialKeyFocus: imports.gi.St.Widget;
   private _savedKeyFocus: null | imports.gi.Clutter.Actor;
 
-  constructor(params?: Partial<ModalDialogParams>) {
+  constructor(params: ModalDialogParams) {
+    const { showBackdrop, buttons } = params;
+
     this.state = State.CLOSED;
     this._hasModal = false;
 
-    const showBackdrop = params?.showBackdrop || true
 
     this._group = new Widget({
       visible: false,
@@ -52,7 +55,6 @@ class ModalDialog {
       y: 0,
       accessible_role: Role.DIALOG,
     });
-
 
     uiGroup.add_child(this._group);
 
@@ -70,8 +72,16 @@ class ModalDialog {
       vertical: true,
     });
 
-
     if (showBackdrop) {
+
+      const fullMonitorWidget = new Widget({
+        visible: false, 
+        x: 0,
+        y: 0,
+        accessible_role: Role.DIALOG,
+      })
+      
+
       this._lightbox = new Lightbox(this._group, {
         inhibitEvents: true,
         radialEffect: true,
@@ -100,6 +110,9 @@ class ModalDialog {
       style_class: "modal-dialog-button-box",
       vertical: false,
     });
+
+    this.setButtons(buttons);
+
     this._dialogLayout.add(this._buttonLayout, {
       expand: true,
       x_align: Align.MIDDLE,
@@ -115,78 +128,32 @@ class ModalDialog {
     this._group.destroy();
   }
 
-  setButtons(buttons: DialogButton[]) {
-    let hadChildren = this._buttonLayout.get_n_children() > 0;
+  private setButtons(buttons: DialogButton[]) {
+    buttons.forEach((btn, index) => {
+      const { label, onClick: action, key } = buttons[index];
 
-    this._buttonLayout.destroy_all_children();
-    this._actionKeys = {};
-    let focusSetExplicitly = false;
-
-    for (let i = 0; i < buttons.length; i++) {
-      let buttonInfo = buttons[i];
-      if (!buttonInfo.focused) {
-        buttonInfo.focused = false;
-      }
-      let label = buttonInfo["label"];
-      let action = buttonInfo["action"];
-      let key = buttonInfo["key"];
-      let wantsfocus = buttonInfo["focused"] === true;
-      let nofocus = buttonInfo["focused"] === false;
-      buttonInfo.button = new Button({
+      const button = new Button({
         style_class: "modal-dialog-button",
         reactive: true,
         can_focus: true,
         label: label,
       });
 
-      let x_alignment;
-      if (buttons.length == 1) x_alignment = Align.END;
-      else if (i == 0) x_alignment = Align.START;
-      else if (i == buttons.length - 1) x_alignment = Align.END;
-      else x_alignment = Align.MIDDLE;
+      const isLast = buttons.length - 1 === index;
+      const isFirst = index === 0;
 
-      if (wantsfocus) {
-        this._initialKeyFocus = buttonInfo.button;
-        focusSetExplicitly = true;
-      }
+      const x_align = isLast ? Align.END : isFirst ? Align.START : Align.MIDDLE;
 
-      if (
-        !focusSetExplicitly &&
-        !nofocus &&
-        (this._initialKeyFocus == this._dialogLayout ||
-          this._buttonLayout.contains(this._initialKeyFocus))
-      ) {
-        this._initialKeyFocus = buttonInfo.button;
-      }
-      this._buttonLayout.add(buttonInfo.button, {
+      this._buttonLayout.add(button, {
         expand: true,
         x_fill: false,
         y_fill: false,
-        x_align: x_alignment,
+        x_align,
         y_align: Align.MIDDLE,
       });
 
-      buttonInfo.button.connect("clicked", action);
-
-      if (key)
-        // @ts-ignore
-        this._actionKeys[key] = action;
-    }
-
-    // Fade in buttons if there weren't any before
-    if (!hadChildren && buttons.length > 0) {
-      this._buttonLayout.opacity = 0;
-      addTween(this._buttonLayout, {
-        opacity: 255,
-        time: FADE_IN_BUTTONS_TIME,
-        transition: "easeOutQuad",
-        onComplete: () => {
-          //this.emit('buttons-set');
-        },
-      });
-    } else {
-      //this.emit('buttons-set');
-    }
+      button.connect("clicked", action);
+    });
   }
 
   private _onKeyPressEvent(
@@ -310,10 +277,23 @@ class ModalDialog {
 }
 
 export class ConfirmDialog extends ModalDialog {
-
-  public callback: () => void
   constructor(label: string, callback: () => void) {
-    super();
+    super({
+      showBackdrop: true,
+      buttons: [
+        {
+          label: "No",
+          onClick: () => this.destroy(),
+        },
+        {
+          label: "Yes",
+          onClick: () => {
+            this.destroy();
+            callback();
+          },
+        },
+      ],
+    });
 
     this.contentLayout.add(
       new Label({
@@ -323,20 +303,5 @@ export class ConfirmDialog extends ModalDialog {
       })
     );
     this.contentLayout.add(new Label({ text: label }));
-    this.callback = callback;
-
-    this.setButtons([
-      {
-        label: "No",
-        action: () => this.destroy(),
-      },
-      {
-        label: "Yes",
-        action: () => {
-          this.destroy();
-          this.callback();
-        },
-      },
-    ]);
   }
 }

@@ -5426,277 +5426,6 @@ function createYoutubeDownloadIcon() {
     return icon;
 }
 
-;// CONCATENATED MODULE: ./src/lib/Dialogs.ts
-const { Widget, Bin: Dialogs_Bin, BoxLayout: Dialogs_BoxLayout, Align, Label: Dialogs_Label, Button: Dialogs_Button } = imports.gi.St;
-const { Role } = imports.gi.Atk;
-const { uiGroup: Dialogs_uiGroup, layoutManager: Dialogs_layoutManager, popModal: Dialogs_popModal, pushModal: Dialogs_pushModal } = imports.ui.main;
-const { BindConstraint, BindCoordinate, Group, ModifierType, KEY_Escape: Dialogs_KEY_Escape } = imports.gi.Clutter;
-const { Lightbox } = imports.ui.lightbox;
-const { Stack: Dialogs_Stack, get_event_state } = imports.gi.Cinnamon;
-const { State, FADE_IN_BUTTONS_TIME, FADE_OUT_DIALOG_TIME, OPEN_AND_CLOSE_TIME } = imports.ui.modalDialog;
-const { addTween: Dialogs_addTween } = imports.ui.tweener;
-class ModalDialog {
-    constructor(params) {
-        this._actionKeys = {};
-        this.state = State.CLOSED;
-        this._hasModal = false;
-        const showBackdrop = (params === null || params === void 0 ? void 0 : params.showBackdrop) || true;
-        this._group = new Widget({
-            visible: false,
-            x: 0,
-            y: 0,
-            accessible_role: Role.DIALOG,
-        });
-        Dialogs_uiGroup.add_child(this._group);
-        this._group.connect("destroy", (owner) => this._onGroupDestroy());
-        this._group.connect("key-press-event", (owner, event) => this._onKeyPressEvent(owner, event));
-        this._backgroundBin = new Dialogs_Bin();
-        this._group.add_child(this._backgroundBin);
-        this._dialogLayout = new Dialogs_BoxLayout({
-            style_class: "modal-dialog",
-            vertical: true,
-        });
-        if (showBackdrop) {
-            this._lightbox = new Lightbox(this._group, {
-                inhibitEvents: true,
-                radialEffect: true,
-            });
-            this._lightbox.highlight(this._backgroundBin);
-            let stack = new Dialogs_Stack();
-            this._backgroundBin.child = stack;
-            this._eventBlocker = new Group({ reactive: true });
-            stack.add_child(this._eventBlocker);
-            stack.add_child(this._dialogLayout);
-        }
-        else {
-            this._backgroundBin.child = this._dialogLayout;
-        }
-        this.contentLayout = new Dialogs_BoxLayout({ vertical: true });
-        this._dialogLayout.add(this.contentLayout, {
-            x_fill: true,
-            y_fill: true,
-            x_align: Align.MIDDLE,
-            y_align: Align.START,
-        });
-        this._buttonLayout = new Dialogs_BoxLayout({
-            style_class: "modal-dialog-button-box",
-            vertical: false,
-        });
-        this._dialogLayout.add(this._buttonLayout, {
-            expand: true,
-            x_align: Align.MIDDLE,
-            y_align: Align.END,
-        });
-        global.focus_manager.add_group(this._dialogLayout);
-        this._initialKeyFocus = this._dialogLayout;
-        this._savedKeyFocus = null;
-    }
-    destroy() {
-        this._group.destroy();
-    }
-    setButtons(buttons) {
-        let hadChildren = this._buttonLayout.get_n_children() > 0;
-        this._buttonLayout.destroy_all_children();
-        this._actionKeys = {};
-        let focusSetExplicitly = false;
-        for (let i = 0; i < buttons.length; i++) {
-            let buttonInfo = buttons[i];
-            if (!buttonInfo.focused) {
-                buttonInfo.focused = false;
-            }
-            let label = buttonInfo["label"];
-            let action = buttonInfo["action"];
-            let key = buttonInfo["key"];
-            let wantsfocus = buttonInfo["focused"] === true;
-            let nofocus = buttonInfo["focused"] === false;
-            buttonInfo.button = new Dialogs_Button({
-                style_class: "modal-dialog-button",
-                reactive: true,
-                can_focus: true,
-                label: label,
-            });
-            let x_alignment;
-            if (buttons.length == 1)
-                x_alignment = Align.END;
-            else if (i == 0)
-                x_alignment = Align.START;
-            else if (i == buttons.length - 1)
-                x_alignment = Align.END;
-            else
-                x_alignment = Align.MIDDLE;
-            if (wantsfocus) {
-                this._initialKeyFocus = buttonInfo.button;
-                focusSetExplicitly = true;
-            }
-            if (!focusSetExplicitly &&
-                !nofocus &&
-                (this._initialKeyFocus == this._dialogLayout ||
-                    this._buttonLayout.contains(this._initialKeyFocus))) {
-                this._initialKeyFocus = buttonInfo.button;
-            }
-            this._buttonLayout.add(buttonInfo.button, {
-                expand: true,
-                x_fill: false,
-                y_fill: false,
-                x_align: x_alignment,
-                y_align: Align.MIDDLE,
-            });
-            buttonInfo.button.connect("clicked", action);
-            if (key)
-                // @ts-ignore
-                this._actionKeys[key] = action;
-        }
-        // Fade in buttons if there weren't any before
-        if (!hadChildren && buttons.length > 0) {
-            this._buttonLayout.opacity = 0;
-            Dialogs_addTween(this._buttonLayout, {
-                opacity: 255,
-                time: FADE_IN_BUTTONS_TIME,
-                transition: "easeOutQuad",
-                onComplete: () => {
-                    //this.emit('buttons-set');
-                },
-            });
-        }
-        else {
-            //this.emit('buttons-set');
-        }
-    }
-    _onKeyPressEvent(object, keyPressEvent) {
-        let modifiers = get_event_state(keyPressEvent);
-        let ctrlAltMask = ModifierType.CONTROL_MASK | ModifierType.MOD1_MASK;
-        let symbol = keyPressEvent.get_key_symbol();
-        if (symbol === Dialogs_KEY_Escape && !(modifiers & ctrlAltMask)) {
-            this.close();
-            return false;
-        }
-        let action = this._actionKeys[symbol];
-        if (action)
-            action();
-        return false;
-    }
-    _onGroupDestroy() {
-        //this.emit('destroy');
-    }
-    _fadeOpen() {
-        let monitor = Dialogs_layoutManager.currentMonitor;
-        this._backgroundBin.set_position(monitor.x, monitor.y);
-        this._backgroundBin.set_size(monitor.width, monitor.height);
-        this.state = State.OPENING;
-        this._dialogLayout.opacity = 255;
-        if (this._lightbox)
-            this._lightbox.show();
-        this._group.opacity = 0;
-        this._group.show();
-        Dialogs_addTween(this._group, {
-            opacity: 255,
-            time: OPEN_AND_CLOSE_TIME,
-            transition: "easeOutQuad",
-            onComplete: () => {
-                this.state = State.OPENED;
-                // this.emit("opened");
-            },
-        });
-    }
-    setInitialKeyFocus(actor) {
-        this._initialKeyFocus = actor;
-    }
-    open(timestamp) {
-        if (this.state == State.OPENED || this.state == State.OPENING)
-            return true;
-        if (!this.pushModal(timestamp))
-            return false;
-        this._fadeOpen();
-        return true;
-    }
-    close(timestamp) {
-        if (this.state == State.CLOSED || this.state == State.CLOSING)
-            return;
-        this.state = State.CLOSING;
-        this.popModal(timestamp);
-        this._savedKeyFocus = null;
-        Dialogs_addTween(this._group, {
-            opacity: 0,
-            time: OPEN_AND_CLOSE_TIME,
-            transition: "easeOutQuad",
-            onComplete: () => {
-                this.state = State.CLOSED;
-                this._group.hide();
-            },
-        });
-    }
-    popModal(timestamp) {
-        var _a;
-        if (!this._hasModal)
-            return;
-        let focus = global.stage.key_focus;
-        if (focus && this._group.contains(focus))
-            this._savedKeyFocus = focus;
-        else
-            this._savedKeyFocus = null;
-        Dialogs_popModal(this._group, timestamp);
-        global.gdk_screen.get_display().sync();
-        this._hasModal = false;
-        (_a = this._eventBlocker) === null || _a === void 0 ? void 0 : _a.raise_top();
-    }
-    pushModal(timestamp) {
-        var _a;
-        if (this._hasModal)
-            return true;
-        if (!Dialogs_pushModal(this._group, timestamp))
-            return false;
-        this._hasModal = true;
-        if (this._savedKeyFocus) {
-            this._savedKeyFocus.grab_key_focus();
-            this._savedKeyFocus = null;
-        }
-        else
-            this._initialKeyFocus.grab_key_focus();
-        (_a = this._eventBlocker) === null || _a === void 0 ? void 0 : _a.lower_bottom();
-        return true;
-    }
-    _fadeOutDialog(timestamp) {
-        if (this.state == State.CLOSED || this.state == State.CLOSING)
-            return;
-        if (this.state == State.FADED_OUT)
-            return;
-        this.popModal(timestamp);
-        Dialogs_addTween(this._dialogLayout, {
-            opacity: 0,
-            time: FADE_OUT_DIALOG_TIME,
-            transition: "easeOutQuad",
-            onComplete: () => {
-                this.state = State.FADED_OUT;
-            },
-        });
-    }
-}
-class ConfirmDialog extends ModalDialog {
-    constructor(label, callback) {
-        super();
-        this.contentLayout.add(new Dialogs_Label({
-            text: "Confirm",
-            style_class: "confirm-dialog-title",
-            important: true,
-        }));
-        this.contentLayout.add(new Dialogs_Label({ text: label }));
-        this.callback = callback;
-        this.setButtons([
-            {
-                label: "No",
-                action: () => this.destroy(),
-            },
-            {
-                label: "Yes",
-                action: () => {
-                    this.destroy();
-                    this.callback();
-                },
-            },
-        ]);
-    }
-}
-
 ;// CONCATENATED MODULE: ./src/lib/HttpHandler.ts
 const { Message, SessionAsync } = imports.gi.Soup;
 const httpSession = new SessionAsync();
@@ -5809,12 +5538,34 @@ function createUpdateStationsMenuItem() {
 
 
 
-
+const { Lightbox } = imports.ui.lightbox;
+const { Bin: RadioContextMenu_Bin, BoxLayout: RadioContextMenu_BoxLayout } = imports.gi.St;
+const { uiGroup: RadioContextMenu_uiGroup, layoutManager: RadioContextMenu_layoutManager, pushModal: RadioContextMenu_pushModal } = imports.ui.main;
+const { Stack: RadioContextMenu_Stack } = imports.gi.Cinnamon;
+const { Group } = imports.gi.Clutter;
 const { spawnCommandLineAsyncIO: RadioContextMenu_spawnCommandLineAsyncIO } = imports.misc.util;
 const AppletManager = imports.ui.appletManager;
-const showRemoveAppletDialog = () => {
-    const dialog = new ConfirmDialog(`Are you sure you want to remove '${__meta.name}'`, () => AppletManager['_removeAppletFromPanel'](__meta.uuid, __meta.instanceId));
-    dialog.open();
+const showRemoveAppletDialog = (launcher) => {
+    const monitor = RadioContextMenu_layoutManager.findMonitorForActor(launcher);
+    const lightBoxContainer = new RadioContextMenu_Bin({
+        x: 0,
+        width: monitor.width,
+        height: monitor.height,
+        reactive: true,
+        // style: "background-color: red",
+        y: 0,
+    });
+    const dialogLayout = new RadioContextMenu_BoxLayout({});
+    lightBoxContainer.connect('key-press-event', () => {
+        lightBoxContainer.destroy();
+        return true;
+    });
+    RadioContextMenu_pushModal(lightBoxContainer);
+    RadioContextMenu_uiGroup.add_child(lightBoxContainer);
+    const ligthbox = new Lightbox(lightBoxContainer, {
+        inhibitEvents: true,
+    });
+    ligthbox.show();
 };
 const spawnCommandLineWithErrorLogging = (command) => {
     RadioContextMenu_spawnCommandLineAsyncIO(command, (stdout, stderr) => {
@@ -5827,23 +5578,24 @@ function createRadioContextMenu(args) {
     const contextMenu = createPopupMenu(args);
     const defaultMenuArgs = [
         {
-            iconName: 'dialog-question',
-            text: 'About...',
+            iconName: "dialog-question",
+            text: "About...",
             onActivated: () => {
                 spawnCommandLineWithErrorLogging(`xlet-about-dialog applets ${__meta.uuid}`);
-            }
+            },
         },
         {
-            iconName: 'system-run',
-            text: 'Configure...',
+            iconName: "system-run",
+            text: "Configure...",
             onActivated: () => {
                 spawnCommandLineWithErrorLogging(`xlet-settings applet ${__meta.uuid} ${__meta.instanceId} -t 0`);
-            }
-        }, {
-            iconName: 'edit-delete',
+            },
+        },
+        {
+            iconName: "edit-delete",
             text: `Remove '${__meta.name}`,
-            onActivated: showRemoveAppletDialog
-        }
+            onActivated: () => showRemoveAppletDialog(args.launcher),
+        },
     ];
     contextMenu.add_child(createUpdateStationsMenuItem());
     contextMenu.add(createSeparatorMenuItem());
