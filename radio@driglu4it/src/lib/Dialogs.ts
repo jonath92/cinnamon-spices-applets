@@ -130,7 +130,7 @@ class ModalDialog {
 
   private setButtons(buttons: DialogButton[]) {
     buttons.forEach((btn, index) => {
-      const { label, onClick: action, key } = buttons[index];
+      const { label, onClick: action, key } = btn;
 
       const button = new Button({
         style_class: "modal-dialog-button",

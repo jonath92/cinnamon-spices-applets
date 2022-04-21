@@ -7,44 +7,149 @@ import {
 } from "../lib/SimpleMenuItem";
 import { createUpdateStationsMenuItem } from "./RadioPopupMenu/UpdateStationsMenuItem";
 const { Lightbox } = imports.ui.lightbox;
-const { Bin, BoxLayout } = imports.gi.St;
-const { uiGroup, layoutManager, pushModal } = imports.ui.main;
+const { Bin, BoxLayout, Label, Align, Button } = imports.gi.St;
+const { uiGroup, layoutManager, pushModal, popModal } = imports.ui.main;
 const { Stack } = imports.gi.Cinnamon;
-const { Group } = imports.gi.Clutter;
+const { Group, KEY_Escape } = imports.gi.Clutter;
 const { spawnCommandLineAsyncIO } = imports.misc.util;
 const AppletManager = imports.ui.appletManager;
+
+type ButtonProps = Exclude<ConstructorParameters<typeof Button>[0], undefined>;
+
+type ButtonAddProps = Partial<imports.gi.St.BoxLayoutChildInitOptions>;
 
 const showRemoveAppletDialog = (launcher: imports.gi.St.Widget) => {
   const monitor = layoutManager.findMonitorForActor(launcher);
 
+  const modalButtonProps: ButtonProps = {
+    style_class: "modal-dialog-button",
+    reactive: true,
+    can_focus: true,
+  };
+
+  const modalButtonAddProps: ButtonAddProps = {
+    expand: true,
+    x_fill: false,
+    y_fill: false,
+    y_align: Align.MIDDLE,
+  };
+
   const lightBoxContainer = new Bin({
     x: 0,
+    y: 0,
     width: monitor.width,
     height: monitor.height,
     reactive: true,
-    // style: "background-color: red",
-    y: 0,
+    style_class: "lightbox",
   });
 
-  const dialogLayout = new BoxLayout({
+  const dialog = new BoxLayout({
+    style_class: "modal-dialog",
+    vertical: true,
+  });
 
-  })
+  const contentLayout = new BoxLayout({
+    vertical: true,
+  });
 
-  lightBoxContainer.connect('key-press-event', () => {
-    lightBoxContainer.destroy()
+  dialog.add(contentLayout, {
+    x_fill: true,
+    y_fill: true,
+    x_align: Align.MIDDLE,
+    y_align: Align.START,
+  });
 
-    return true
-  })
+  // dialog.add(
+  //   new Label({
+  //     text: "Confirm",
+  //     style_class: "confirm-dialog-title",
+  //     // TODO: needed?
+  //     important: true,
+  //   }),
+  //   {
+  //     x_fill: true,
+  //     y_fill: true,
+  //     x_align: Align.MIDDLE,
+  //     y_align: Align.START,
+  //   }
+  // );
 
-  pushModal(lightBoxContainer)
+  contentLayout.add_child(
+    new Label({
+      text: "Confirm",
+      style_class: "confirm-dialog-title",
+      // TODO: needed?
+      important: true,
+    })
+  );
+
+  contentLayout.add_child(
+    new Label({
+      text: `Are you sure you want to remove '${__meta.name}'?`,
+      important: true,
+    })
+  );
+
+  const buttonLayout = new BoxLayout({
+    style_class: "modal-dialog-button-box",
+    vertical: false,
+  });
+
+  const noBtn = new Button({
+    ...modalButtonProps,
+    label: "No",
+  });
+
+  const yesBtn = new Button({
+    ...modalButtonProps,
+    label: "Yes",
+  });
+
+  buttonLayout.add(noBtn, {
+    ...modalButtonAddProps,
+    x_align: Align.START,
+  });
+
+  buttonLayout.add(yesBtn, {
+    ...modalButtonAddProps,
+    x_align: Align.END,
+  });
+
+  dialog.add(buttonLayout, {
+    expand: true,
+    x_align: Align.MIDDLE,
+    y_align: Align.END,
+  });
+
+  // add_child is recommended but doesn't work sometimes: https://gitlab.gnome.org/GNOME/gnome-shell/-/issues/3172
+  lightBoxContainer.add_actor(dialog);
+
+  pushModal(lightBoxContainer);
   uiGroup.add_child(lightBoxContainer);
 
-  const ligthbox = new Lightbox(lightBoxContainer, {
-    inhibitEvents: true,
+  const signalId = lightBoxContainer.connect("key-press-event", (_, event) => {
+    if (event.get_key_symbol() === KEY_Escape) {
+      lightBoxContainer.destroy();
+    }
+
+    // popModal(lightBoxContainer)
+    // const numberChildren = lightBoxContainer.get_children().length
+    // global.log('numberChildren', numberChildren)
+    // uiGroup.remove_child(lightBoxContainer)
+    // lightBoxContainer.disconnect(signalId)
+    // lightBoxContainer.destroy()
+    // popModal(lightBoxContainer)
+    // lightBoxContainer.destroy_all_children()
+    // lightBoxContainer.destroy()
+
+    return true;
   });
 
-  ligthbox.show();
+  // const ligthbox = new Lightbox(lightBoxContainer, {
+  //   inhibitEvents: true,
+  // });
 
+  // ligthbox.show();
 };
 
 const spawnCommandLineWithErrorLogging = (command: string) => {

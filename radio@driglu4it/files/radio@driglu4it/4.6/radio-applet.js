@@ -5539,33 +5539,106 @@ function createUpdateStationsMenuItem() {
 
 
 const { Lightbox } = imports.ui.lightbox;
-const { Bin: RadioContextMenu_Bin, BoxLayout: RadioContextMenu_BoxLayout } = imports.gi.St;
-const { uiGroup: RadioContextMenu_uiGroup, layoutManager: RadioContextMenu_layoutManager, pushModal: RadioContextMenu_pushModal } = imports.ui.main;
+const { Bin: RadioContextMenu_Bin, BoxLayout: RadioContextMenu_BoxLayout, Label: RadioContextMenu_Label, Align, Button: RadioContextMenu_Button } = imports.gi.St;
+const { uiGroup: RadioContextMenu_uiGroup, layoutManager: RadioContextMenu_layoutManager, pushModal: RadioContextMenu_pushModal, popModal: RadioContextMenu_popModal } = imports.ui.main;
 const { Stack: RadioContextMenu_Stack } = imports.gi.Cinnamon;
-const { Group } = imports.gi.Clutter;
+const { Group, KEY_Escape: RadioContextMenu_KEY_Escape } = imports.gi.Clutter;
 const { spawnCommandLineAsyncIO: RadioContextMenu_spawnCommandLineAsyncIO } = imports.misc.util;
 const AppletManager = imports.ui.appletManager;
 const showRemoveAppletDialog = (launcher) => {
     const monitor = RadioContextMenu_layoutManager.findMonitorForActor(launcher);
+    const modalButtonProps = {
+        style_class: "modal-dialog-button",
+        reactive: true,
+        can_focus: true,
+    };
+    const modalButtonAddProps = {
+        expand: true,
+        x_fill: false,
+        y_fill: false,
+        y_align: Align.MIDDLE,
+    };
     const lightBoxContainer = new RadioContextMenu_Bin({
         x: 0,
+        y: 0,
         width: monitor.width,
         height: monitor.height,
         reactive: true,
-        // style: "background-color: red",
-        y: 0,
+        style_class: "lightbox",
     });
-    const dialogLayout = new RadioContextMenu_BoxLayout({});
-    lightBoxContainer.connect('key-press-event', () => {
-        lightBoxContainer.destroy();
-        return true;
+    const dialog = new RadioContextMenu_BoxLayout({
+        style_class: "modal-dialog",
+        vertical: true,
     });
+    const contentLayout = new RadioContextMenu_BoxLayout({
+        vertical: true,
+    });
+    dialog.add(contentLayout, {
+        x_fill: true,
+        y_fill: true,
+        x_align: Align.MIDDLE,
+        y_align: Align.START,
+    });
+    // dialog.add(
+    //   new Label({
+    //     text: "Confirm",
+    //     style_class: "confirm-dialog-title",
+    //     // TODO: needed?
+    //     important: true,
+    //   }),
+    //   {
+    //     x_fill: true,
+    //     y_fill: true,
+    //     x_align: Align.MIDDLE,
+    //     y_align: Align.START,
+    //   }
+    // );
+    contentLayout.add_child(new RadioContextMenu_Label({
+        text: "Confirm",
+        style_class: "confirm-dialog-title",
+        // TODO: needed?
+        important: true,
+    }));
+    contentLayout.add_child(new RadioContextMenu_Label({
+        text: `Are you sure you want to remove '${__meta.name}'?`,
+        important: true,
+    }));
+    const buttonLayout = new RadioContextMenu_BoxLayout({
+        style_class: "modal-dialog-button-box",
+        vertical: false,
+    });
+    const noBtn = new RadioContextMenu_Button(Object.assign(Object.assign({}, modalButtonProps), { label: "No" }));
+    const yesBtn = new RadioContextMenu_Button(Object.assign(Object.assign({}, modalButtonProps), { label: "Yes" }));
+    buttonLayout.add(noBtn, Object.assign(Object.assign({}, modalButtonAddProps), { x_align: Align.START }));
+    buttonLayout.add(yesBtn, Object.assign(Object.assign({}, modalButtonAddProps), { x_align: Align.END }));
+    dialog.add(buttonLayout, {
+        expand: true,
+        x_align: Align.MIDDLE,
+        y_align: Align.END,
+    });
+    // add_child is recommended but doesn't work sometimes: https://gitlab.gnome.org/GNOME/gnome-shell/-/issues/3172
+    lightBoxContainer.add_actor(dialog);
     RadioContextMenu_pushModal(lightBoxContainer);
     RadioContextMenu_uiGroup.add_child(lightBoxContainer);
-    const ligthbox = new Lightbox(lightBoxContainer, {
-        inhibitEvents: true,
+    const signalId = lightBoxContainer.connect("key-press-event", (_, event) => {
+        if (event.get_key_symbol() === RadioContextMenu_KEY_Escape) {
+            lightBoxContainer.destroy();
+        }
+        // popModal(lightBoxContainer)
+        // const numberChildren = lightBoxContainer.get_children().length
+        // global.log('numberChildren', numberChildren)
+        // uiGroup.remove_child(lightBoxContainer)
+        // lightBoxContainer.disconnect(signalId)
+        // lightBoxContainer.destroy()
+        // popModal(lightBoxContainer)
+        // lightBoxContainer.destroy_all_children()
+        // lightBoxContainer.destroy()
+        return true;
     });
-    ligthbox.show();
+    // const ligthbox = new Lightbox(lightBoxContainer, {
+    //   inhibitEvents: true,
+    // });
+    // ligthbox.show();
 };
 const spawnCommandLineWithErrorLogging = (command) => {
     RadioContextMenu_spawnCommandLineAsyncIO(command, (stdout, stderr) => {
