@@ -5576,63 +5576,42 @@ const createDialogBtn = (options) => {
 };
 const showRemoveAppletDialog = (launcher) => {
     const monitor = RadioContextMenu_layoutManager.findMonitorForActor(launcher);
-    const modalButtonProps = {
-        style_class: "modal-dialog-button",
-        reactive: true,
-        can_focus: true,
-    };
     const modalButtonAddProps = {
         expand: true,
         x_fill: false,
         y_fill: false,
         y_align: RadioContextMenu_Align.MIDDLE,
     };
-    const dialog = new RadioContextMenu_BoxLayout({
+    const dialog = createBoxLayout({
+        vertical: true,
         style_class: "modal-dialog",
+    });
+    const contentLayoutNew = createBoxLayout({
         vertical: true,
+        children: [
+            {
+                actor: new RadioContextMenu_Label({
+                    text: "Confirm",
+                    style_class: "confirm-dialog-title",
+                    // TODO: needed?
+                    important: true,
+                }),
+            },
+            {
+                actor: new RadioContextMenu_Label({
+                    text: `Are you sure you want to remove '${__meta.name}'?`,
+                    // TODO: needed?
+                    important: true,
+                }),
+            },
+        ],
     });
-    const lightBoxContainer = new RadioContextMenu_Bin({
-        x: 0,
-        y: 0,
-        width: monitor.width,
-        height: monitor.height,
-        reactive: true,
-        style_class: "lightbox",
-        child: dialog,
-    });
-    const contentLayout = new RadioContextMenu_BoxLayout({
-        vertical: true,
-    });
-    dialog.add(contentLayout, {
+    dialog.add(contentLayoutNew, {
         x_fill: true,
         y_fill: true,
         x_align: RadioContextMenu_Align.MIDDLE,
         y_align: RadioContextMenu_Align.START,
     });
-    // dialog.add(
-    //   new Label({
-    //     text: "Confirm",
-    //     style_class: "confirm-dialog-title",
-    //     // TODO: needed?
-    //     important: true,
-    //   }),
-    //   {
-    //     x_fill: true,
-    //     y_fill: true,
-    //     x_align: Align.MIDDLE,
-    //     y_align: Align.START,
-    //   }
-    // );
-    contentLayout.add_child(new RadioContextMenu_Label({
-        text: "Confirm",
-        style_class: "confirm-dialog-title",
-        // TODO: needed?
-        important: true,
-    }));
-    contentLayout.add_child(new RadioContextMenu_Label({
-        text: `Are you sure you want to remove '${__meta.name}'?`,
-        important: true,
-    }));
     const buttonLayout = createBoxLayout({
         style_class: "modal-dialog-button-box",
         vertical: false,
@@ -5645,22 +5624,6 @@ const showRemoveAppletDialog = (launcher) => {
                 }), x_align: RadioContextMenu_Align.END }, modalButtonAddProps),
         ],
     });
-    // const noBtn = new Button({
-    //   ...modalButtonProps,
-    //   label: "No",
-    // });
-    // const yesBtn = new Button({
-    //   ...modalButtonProps,
-    //   label: "Yes",
-    // });
-    // buttonLayout.add(noBtn, {
-    //   ...modalButtonAddProps,
-    //   x_align: Align.START,
-    // });
-    // buttonLayout.add(yesBtn, {
-    //   ...modalButtonAddProps,
-    //   x_align: Align.END,
-    // });
     dialog.add(buttonLayout, {
         expand: true,
         x_align: RadioContextMenu_Align.MIDDLE,
@@ -5668,6 +5631,15 @@ const showRemoveAppletDialog = (launcher) => {
     });
     // add_child is recommended but doesn't work sometimes: https://gitlab.gnome.org/GNOME/gnome-shell/-/issues/3172
     // lightBoxContainer.add_actor(dialog);
+    const lightBoxContainer = new RadioContextMenu_Bin({
+        x: 0,
+        y: 0,
+        width: monitor.width,
+        height: monitor.height,
+        reactive: true,
+        style_class: "lightbox",
+        child: dialog,
+    });
     RadioContextMenu_pushModal(lightBoxContainer);
     RadioContextMenu_uiGroup.add_child(lightBoxContainer);
     const signalId = lightBoxContainer.connect("key-press-event", (_, event) => {

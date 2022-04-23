@@ -31,12 +31,6 @@ const createDialogBtn = (options?: ButtonProps) => {
 const showRemoveAppletDialog = (launcher: imports.gi.St.Widget) => {
   const monitor = layoutManager.findMonitorForActor(launcher);
 
-  const modalButtonProps: ButtonProps = {
-    style_class: "modal-dialog-button",
-    reactive: true,
-    can_focus: true,
-  };
-
   const modalButtonAddProps: ButtonAddProps = {
     expand: true,
     x_fill: false,
@@ -44,62 +38,38 @@ const showRemoveAppletDialog = (launcher: imports.gi.St.Widget) => {
     y_align: Align.MIDDLE,
   };
 
-  const dialog = new BoxLayout({
+  const dialog = createBoxLayout({
+    vertical: true,
     style_class: "modal-dialog",
+  });
+
+  const contentLayoutNew = createBoxLayout({
     vertical: true,
+    children: [
+      {
+        actor: new Label({
+          text: "Confirm",
+          style_class: "confirm-dialog-title",
+          // TODO: needed?
+          important: true,
+        }),
+      },
+      {
+        actor: new Label({
+          text: `Are you sure you want to remove '${__meta.name}'?`,
+          // TODO: needed?
+          important: true,
+        }),
+      },
+    ],
   });
 
-  const lightBoxContainer = new Bin({
-    x: 0,
-    y: 0,
-    width: monitor.width,
-    height: monitor.height,
-    reactive: true,
-    style_class: "lightbox",
-    child: dialog,
-  });
-
-  const contentLayout = new BoxLayout({
-    vertical: true,
-  });
-
-  dialog.add(contentLayout, {
+  dialog.add(contentLayoutNew, {
     x_fill: true,
     y_fill: true,
     x_align: Align.MIDDLE,
     y_align: Align.START,
   });
-
-  // dialog.add(
-  //   new Label({
-  //     text: "Confirm",
-  //     style_class: "confirm-dialog-title",
-  //     // TODO: needed?
-  //     important: true,
-  //   }),
-  //   {
-  //     x_fill: true,
-  //     y_fill: true,
-  //     x_align: Align.MIDDLE,
-  //     y_align: Align.START,
-  //   }
-  // );
-
-  contentLayout.add_child(
-    new Label({
-      text: "Confirm",
-      style_class: "confirm-dialog-title",
-      // TODO: needed?
-      important: true,
-    })
-  );
-
-  contentLayout.add_child(
-    new Label({
-      text: `Are you sure you want to remove '${__meta.name}'?`,
-      important: true,
-    })
-  );
 
   const buttonLayout = createBoxLayout({
     style_class: "modal-dialog-button-box",
@@ -122,26 +92,6 @@ const showRemoveAppletDialog = (launcher: imports.gi.St.Widget) => {
     ],
   });
 
-  // const noBtn = new Button({
-  //   ...modalButtonProps,
-  //   label: "No",
-  // });
-
-  // const yesBtn = new Button({
-  //   ...modalButtonProps,
-  //   label: "Yes",
-  // });
-
-  // buttonLayout.add(noBtn, {
-  //   ...modalButtonAddProps,
-  //   x_align: Align.START,
-  // });
-
-  // buttonLayout.add(yesBtn, {
-  //   ...modalButtonAddProps,
-  //   x_align: Align.END,
-  // });
-
   dialog.add(buttonLayout, {
     expand: true,
     x_align: Align.MIDDLE,
@@ -150,6 +100,16 @@ const showRemoveAppletDialog = (launcher: imports.gi.St.Widget) => {
 
   // add_child is recommended but doesn't work sometimes: https://gitlab.gnome.org/GNOME/gnome-shell/-/issues/3172
   // lightBoxContainer.add_actor(dialog);
+
+  const lightBoxContainer = new Bin({
+    x: 0,
+    y: 0,
+    width: monitor.width,
+    height: monitor.height,
+    reactive: true,
+    style_class: "lightbox",
+    child: dialog,
+  });
 
   pushModal(lightBoxContainer);
   uiGroup.add_child(lightBoxContainer);
