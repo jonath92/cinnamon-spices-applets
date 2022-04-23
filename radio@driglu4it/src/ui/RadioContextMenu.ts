@@ -5,6 +5,7 @@ import {
   createSimpleMenuItem,
   SimpleMenuItemArguments,
 } from "../lib/SimpleMenuItem";
+import { createBoxLayout } from "../lib/St/BoxLayout";
 import { createUpdateStationsMenuItem } from "./RadioPopupMenu/UpdateStationsMenuItem";
 const { Lightbox } = imports.ui.lightbox;
 const { Bin, BoxLayout, Label, Align, Button } = imports.gi.St;
@@ -17,6 +18,15 @@ const AppletManager = imports.ui.appletManager;
 type ButtonProps = Exclude<ConstructorParameters<typeof Button>[0], undefined>;
 
 type ButtonAddProps = Partial<imports.gi.St.BoxLayoutChildInitOptions>;
+
+const createDialogBtn = (options?: ButtonProps) => {
+  return new Button({
+    style_class: "modal-dialog-button",
+    reactive: true,
+    can_focus: true,
+    ...options,
+  });
+};
 
 const showRemoveAppletDialog = (launcher: imports.gi.St.Widget) => {
   const monitor = layoutManager.findMonitorForActor(launcher);
@@ -34,6 +44,11 @@ const showRemoveAppletDialog = (launcher: imports.gi.St.Widget) => {
     y_align: Align.MIDDLE,
   };
 
+  const dialog = new BoxLayout({
+    style_class: "modal-dialog",
+    vertical: true,
+  });
+
   const lightBoxContainer = new Bin({
     x: 0,
     y: 0,
@@ -41,11 +56,7 @@ const showRemoveAppletDialog = (launcher: imports.gi.St.Widget) => {
     height: monitor.height,
     reactive: true,
     style_class: "lightbox",
-  });
-
-  const dialog = new BoxLayout({
-    style_class: "modal-dialog",
-    vertical: true,
+    child: dialog,
   });
 
   const contentLayout = new BoxLayout({
@@ -90,30 +101,46 @@ const showRemoveAppletDialog = (launcher: imports.gi.St.Widget) => {
     })
   );
 
-  const buttonLayout = new BoxLayout({
+  const buttonLayout = createBoxLayout({
     style_class: "modal-dialog-button-box",
     vertical: false,
+    children: [
+      {
+        actor: createDialogBtn({
+          label: "No",
+        }),
+        x_align: Align.START,
+        ...modalButtonAddProps,
+      },
+      {
+        actor: createDialogBtn({
+          label: "Yes",
+        }),
+        x_align: Align.END,
+        ...modalButtonAddProps,
+      },
+    ],
   });
 
-  const noBtn = new Button({
-    ...modalButtonProps,
-    label: "No",
-  });
+  // const noBtn = new Button({
+  //   ...modalButtonProps,
+  //   label: "No",
+  // });
 
-  const yesBtn = new Button({
-    ...modalButtonProps,
-    label: "Yes",
-  });
+  // const yesBtn = new Button({
+  //   ...modalButtonProps,
+  //   label: "Yes",
+  // });
 
-  buttonLayout.add(noBtn, {
-    ...modalButtonAddProps,
-    x_align: Align.START,
-  });
+  // buttonLayout.add(noBtn, {
+  //   ...modalButtonAddProps,
+  //   x_align: Align.START,
+  // });
 
-  buttonLayout.add(yesBtn, {
-    ...modalButtonAddProps,
-    x_align: Align.END,
-  });
+  // buttonLayout.add(yesBtn, {
+  //   ...modalButtonAddProps,
+  //   x_align: Align.END,
+  // });
 
   dialog.add(buttonLayout, {
     expand: true,
@@ -122,7 +149,7 @@ const showRemoveAppletDialog = (launcher: imports.gi.St.Widget) => {
   });
 
   // add_child is recommended but doesn't work sometimes: https://gitlab.gnome.org/GNOME/gnome-shell/-/issues/3172
-  lightBoxContainer.add_actor(dialog);
+  // lightBoxContainer.add_actor(dialog);
 
   pushModal(lightBoxContainer);
   uiGroup.add_child(lightBoxContainer);

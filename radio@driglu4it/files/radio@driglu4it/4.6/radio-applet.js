@@ -5426,6 +5426,31 @@ function createYoutubeDownloadIcon() {
     return icon;
 }
 
+;// CONCATENATED MODULE: ./src/lib/St/BoxLayout.ts
+var BoxLayout_rest = (undefined && undefined.__rest) || function (s, e) {
+    var t = {};
+    for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p) && e.indexOf(p) < 0)
+        t[p] = s[p];
+    if (s != null && typeof Object.getOwnPropertySymbols === "function")
+        for (var i = 0, p = Object.getOwnPropertySymbols(s); i < p.length; i++) {
+            if (e.indexOf(p[i]) < 0 && Object.prototype.propertyIsEnumerable.call(s, p[i]))
+                t[p[i]] = s[p[i]];
+        }
+    return t;
+};
+const { BoxLayout: NativeBoxLayout, Align, Button: BoxLayout_Button } = imports.gi.St;
+const createBoxLayout = (props) => {
+    const { children } = props, rest = BoxLayout_rest(props, ["children"]);
+    const boxLayout = new NativeBoxLayout(Object.assign({}, rest));
+    if (children) {
+        children.forEach((_a) => {
+            var { actor } = _a, rest = BoxLayout_rest(_a, ["actor"]);
+            return boxLayout.add(actor, Object.assign({}, rest));
+        });
+    }
+    return boxLayout;
+};
+
 ;// CONCATENATED MODULE: ./src/lib/HttpHandler.ts
 const { Message, SessionAsync } = imports.gi.Soup;
 const httpSession = new SessionAsync();
@@ -5538,13 +5563,17 @@ function createUpdateStationsMenuItem() {
 
 
 
+
 const { Lightbox } = imports.ui.lightbox;
-const { Bin: RadioContextMenu_Bin, BoxLayout: RadioContextMenu_BoxLayout, Label: RadioContextMenu_Label, Align, Button: RadioContextMenu_Button } = imports.gi.St;
+const { Bin: RadioContextMenu_Bin, BoxLayout: RadioContextMenu_BoxLayout, Label: RadioContextMenu_Label, Align: RadioContextMenu_Align, Button: RadioContextMenu_Button } = imports.gi.St;
 const { uiGroup: RadioContextMenu_uiGroup, layoutManager: RadioContextMenu_layoutManager, pushModal: RadioContextMenu_pushModal, popModal: RadioContextMenu_popModal } = imports.ui.main;
 const { Stack: RadioContextMenu_Stack } = imports.gi.Cinnamon;
 const { Group, KEY_Escape: RadioContextMenu_KEY_Escape } = imports.gi.Clutter;
 const { spawnCommandLineAsyncIO: RadioContextMenu_spawnCommandLineAsyncIO } = imports.misc.util;
 const AppletManager = imports.ui.appletManager;
+const createDialogBtn = (options) => {
+    return new RadioContextMenu_Button(Object.assign({ style_class: "modal-dialog-button", reactive: true, can_focus: true }, options));
+};
 const showRemoveAppletDialog = (launcher) => {
     const monitor = RadioContextMenu_layoutManager.findMonitorForActor(launcher);
     const modalButtonProps = {
@@ -5556,8 +5585,12 @@ const showRemoveAppletDialog = (launcher) => {
         expand: true,
         x_fill: false,
         y_fill: false,
-        y_align: Align.MIDDLE,
+        y_align: RadioContextMenu_Align.MIDDLE,
     };
+    const dialog = new RadioContextMenu_BoxLayout({
+        style_class: "modal-dialog",
+        vertical: true,
+    });
     const lightBoxContainer = new RadioContextMenu_Bin({
         x: 0,
         y: 0,
@@ -5565,10 +5598,7 @@ const showRemoveAppletDialog = (launcher) => {
         height: monitor.height,
         reactive: true,
         style_class: "lightbox",
-    });
-    const dialog = new RadioContextMenu_BoxLayout({
-        style_class: "modal-dialog",
-        vertical: true,
+        child: dialog,
     });
     const contentLayout = new RadioContextMenu_BoxLayout({
         vertical: true,
@@ -5576,8 +5606,8 @@ const showRemoveAppletDialog = (launcher) => {
     dialog.add(contentLayout, {
         x_fill: true,
         y_fill: true,
-        x_align: Align.MIDDLE,
-        y_align: Align.START,
+        x_align: RadioContextMenu_Align.MIDDLE,
+        y_align: RadioContextMenu_Align.START,
     });
     // dialog.add(
     //   new Label({
@@ -5603,21 +5633,41 @@ const showRemoveAppletDialog = (launcher) => {
         text: `Are you sure you want to remove '${__meta.name}'?`,
         important: true,
     }));
-    const buttonLayout = new RadioContextMenu_BoxLayout({
+    const buttonLayout = createBoxLayout({
         style_class: "modal-dialog-button-box",
         vertical: false,
+        children: [
+            Object.assign({ actor: createDialogBtn({
+                    label: "No",
+                }), x_align: RadioContextMenu_Align.START }, modalButtonAddProps),
+            Object.assign({ actor: createDialogBtn({
+                    label: "Yes",
+                }), x_align: RadioContextMenu_Align.END }, modalButtonAddProps),
+        ],
     });
-    const noBtn = new RadioContextMenu_Button(Object.assign(Object.assign({}, modalButtonProps), { label: "No" }));
-    const yesBtn = new RadioContextMenu_Button(Object.assign(Object.assign({}, modalButtonProps), { label: "Yes" }));
-    buttonLayout.add(noBtn, Object.assign(Object.assign({}, modalButtonAddProps), { x_align: Align.START }));
-    buttonLayout.add(yesBtn, Object.assign(Object.assign({}, modalButtonAddProps), { x_align: Align.END }));
+    // const noBtn = new Button({
+    //   ...modalButtonProps,
+    //   label: "No",
+    // });
+    // const yesBtn = new Button({
+    //   ...modalButtonProps,
+    //   label: "Yes",
+    // });
+    // buttonLayout.add(noBtn, {
+    //   ...modalButtonAddProps,
+    //   x_align: Align.START,
+    // });
+    // buttonLayout.add(yesBtn, {
+    //   ...modalButtonAddProps,
+    //   x_align: Align.END,
+    // });
     dialog.add(buttonLayout, {
         expand: true,
-        x_align: Align.MIDDLE,
-        y_align: Align.END,
+        x_align: RadioContextMenu_Align.MIDDLE,
+        y_align: RadioContextMenu_Align.END,
     });
     // add_child is recommended but doesn't work sometimes: https://gitlab.gnome.org/GNOME/gnome-shell/-/issues/3172
-    lightBoxContainer.add_actor(dialog);
+    // lightBoxContainer.add_actor(dialog);
     RadioContextMenu_pushModal(lightBoxContainer);
     RadioContextMenu_uiGroup.add_child(lightBoxContainer);
     const signalId = lightBoxContainer.connect("key-press-event", (_, event) => {
