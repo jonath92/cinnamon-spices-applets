@@ -5582,10 +5582,6 @@ const showRemoveAppletDialog = (launcher) => {
         y_fill: false,
         y_align: RadioContextMenu_Align.MIDDLE,
     };
-    const dialog = createBoxLayout({
-        vertical: true,
-        style_class: "modal-dialog",
-    });
     const contentLayoutNew = createBoxLayout({
         vertical: true,
         children: [
@@ -5606,11 +5602,18 @@ const showRemoveAppletDialog = (launcher) => {
             },
         ],
     });
-    dialog.add(contentLayoutNew, {
-        x_fill: true,
-        y_fill: true,
-        x_align: RadioContextMenu_Align.MIDDLE,
-        y_align: RadioContextMenu_Align.START,
+    const dialog = createBoxLayout({
+        vertical: true,
+        style_class: "modal-dialog",
+        children: [
+            {
+                actor: contentLayoutNew,
+                x_fill: true,
+                y_fill: true,
+                x_align: RadioContextMenu_Align.MIDDLE,
+                y_align: RadioContextMenu_Align.START,
+            },
+        ],
     });
     const buttonLayout = createBoxLayout({
         style_class: "modal-dialog-button-box",

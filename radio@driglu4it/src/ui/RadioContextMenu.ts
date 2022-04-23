@@ -38,12 +38,7 @@ const showRemoveAppletDialog = (launcher: imports.gi.St.Widget) => {
     y_align: Align.MIDDLE,
   };
 
-  const dialog = createBoxLayout({
-    vertical: true,
-    style_class: "modal-dialog",
-  });
-
-  const contentLayoutNew = createBoxLayout({
+  const contentLayout = createBoxLayout({
     vertical: true,
     children: [
       {
@@ -64,11 +59,18 @@ const showRemoveAppletDialog = (launcher: imports.gi.St.Widget) => {
     ],
   });
 
-  dialog.add(contentLayoutNew, {
-    x_fill: true,
-    y_fill: true,
-    x_align: Align.MIDDLE,
-    y_align: Align.START,
+  const dialog = createBoxLayout({
+    vertical: true,
+    style_class: "modal-dialog",
+    children: [
+      {
+        actor: contentLayout,
+        x_fill: true,
+        y_fill: true,
+        x_align: Align.MIDDLE,
+        y_align: Align.START,
+      },
+    ],
   });
 
   const buttonLayout = createBoxLayout({
