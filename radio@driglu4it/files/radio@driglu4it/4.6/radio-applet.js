@@ -5339,21 +5339,26 @@ const createMediaControlToolbar = () => {
 
 const { BoxLayout: RadioPopupMenu_BoxLayout } = imports.gi.St;
 function createRadioPopupMenu(props) {
-    const { launcher, } = props;
+    const { launcher } = props;
     const { getPlaybackStatus, addPlaybackStatusChangeHandler } = mpvHandler;
     const popupMenu = createPopupMenu({ launcher });
     const radioActiveSection = new RadioPopupMenu_BoxLayout({
         vertical: true,
-        visible: getPlaybackStatus() !== 'Stopped'
+        visible: getPlaybackStatus() !== "Stopped",
     });
-    [createInfoSection(), createMediaControlToolbar(), createVolumeSlider(), createSeeker()].forEach(widget => {
+    [
+        createInfoSection(),
+        createMediaControlToolbar(),
+        createVolumeSlider(),
+        createSeeker(),
+    ].forEach((widget) => {
         radioActiveSection.add_child(createSeparatorMenuItem());
         radioActiveSection.add_child(widget);
     });
     popupMenu.add_child(createChannelList());
     popupMenu.add_child(radioActiveSection);
     addPlaybackStatusChangeHandler((newValue) => {
-        radioActiveSection.visible = newValue !== 'Stopped';
+        radioActiveSection.visible = newValue !== "Stopped";
     });
     return popupMenu;
 }
@@ -5512,14 +5517,15 @@ const createDialogBtn = (props) => {
     btn.connect("clicked", onClick);
     return btn;
 };
-const createConfirmationDialog = (props) => {
-    const { monitor, onConfirmed, title, subTitle } = props;
-    const confirmationTitle = createBoxLayout({
+const createDialogTitle = (props) => {
+    const { title, subTitle } = props;
+    return createBoxLayout({
         vertical: true,
         children: [
             {
                 actor: new Dialogs_Label({
                     text: title,
+                    // important required for some themes (e.g. Cinnamox-Rhino)
                     important: true,
                     style_class: "confirm-dialog-title",
                 }),
@@ -5527,12 +5533,15 @@ const createConfirmationDialog = (props) => {
             {
                 actor: new Dialogs_Label({
                     text: subTitle,
-                    // TODO: needed?
                     important: true,
                 }),
             },
         ],
     });
+};
+const createConfirmationDialog = (props) => {
+    const { monitor, onConfirmed, title, subTitle } = props;
+    const confirmationTitle = createDialogTitle({ title, subTitle });
     const modalButtonAddProps = {
         expand: true,
         x_fill: false,
@@ -5738,6 +5747,75 @@ function createRadioContextMenu(args) {
     return contextMenu;
 }
 
+;// CONCATENATED MODULE: ./src/ui/DownloadMprisDialog.ts
+
+
+
+const { Button: DownloadMprisDialog_Button, Icon: DownloadMprisDialog_Icon, Label: DownloadMprisDialog_Label, Align: DownloadMprisDialog_Align } = imports.gi.St;
+const modalButtonAddProps = {
+    expand: false,
+    x_fill: false,
+    y_fill: false,
+    y_align: DownloadMprisDialog_Align.MIDDLE,
+};
+const DownloadMprisDialog_createDialogBtn = (props) => {
+    const { label, onClick } = props;
+    const btn = new DownloadMprisDialog_Button({
+        style_class: "modal-dialog-button",
+        reactive: true,
+        can_focus: true,
+        child: createBoxLayout({
+            children: [
+                {
+                    actor: new DownloadMprisDialog_Icon({
+                        icon_name: LOADING_ICON_NAME,
+                        style_class: "popup-menu-icon",
+                        style: "padding-right:10px;",
+                    }),
+                },
+                {
+                    actor: new DownloadMprisDialog_Label({ text: label }),
+                },
+            ],
+        }),
+    });
+    btn.connect("clicked", onClick);
+    return btn;
+};
+const createConfirmationBtnBox = () => {
+    return createBoxLayout({
+        style_class: "modal-dialog-button-box",
+        vertical: false,
+        children: [
+            Object.assign({ actor: DownloadMprisDialog_createDialogBtn({
+                    label: "No",
+                    onClick: () => global.log("todo"),
+                }), x_align: DownloadMprisDialog_Align.START }, modalButtonAddProps),
+            Object.assign({ actor: DownloadMprisDialog_createDialogBtn({
+                    label: "Yes",
+                    onClick: () => global.log("todo"),
+                }), x_align: DownloadMprisDialog_Align.END }, modalButtonAddProps),
+        ],
+    });
+};
+const createDownloadMprisDialog = (props) => {
+    const { monitor } = props;
+    return createDialog({
+        monitor,
+        children: [
+            {
+                actor: createDialogTitle({
+                    title: "Confirm",
+                    subTitle: `The radio applet depends on the 'mpv-mpris' plugin. It is a 3rd party applet, which allows controlling the radio player remotely (e.g. with the sound applet and KDEConnect). \n \n Do you want to proceed the download at your own risk?`,
+                }),
+            },
+            {
+                actor: createConfirmationBtnBox(),
+            },
+        ],
+    });
+};
+
 ;// CONCATENATED MODULE: ./src/ui/RadioApplet/RadioAppletContainer.ts
 
 
@@ -5750,7 +5828,9 @@ function createRadioContextMenu(args) {
 
 
 
+
 const { ScrollDirection: RadioAppletContainer_ScrollDirection } = imports.gi.Clutter;
+const { layoutManager: RadioAppletContainer_layoutManager } = imports.ui.main;
 function createRadioAppletContainer() {
     let installationInProgress = false;
     const appletContainer = createAppletContainer({
@@ -5762,15 +5842,21 @@ function createRadioAppletContainer() {
             popupMenu === null || popupMenu === void 0 ? void 0 : popupMenu.close();
             contextMenu === null || contextMenu === void 0 ? void 0 : contextMenu.toggle();
         },
-        onScroll: handleScroll
+        onScroll: handleScroll,
     });
-    [createRadioAppletIcon(), createYoutubeDownloadIcon(), createRadioAppletLabel()].forEach(widget => {
+    [
+        createRadioAppletIcon(),
+        createYoutubeDownloadIcon(),
+        createRadioAppletLabel(),
+    ].forEach((widget) => {
         appletContainer.actor.add_child(widget);
     });
     const tooltip = createRadioAppletTooltip({ appletContainer });
     const popupMenu = createRadioPopupMenu({ launcher: appletContainer.actor });
-    const contextMenu = createRadioContextMenu({ launcher: appletContainer.actor });
-    popupMenu.connect('notify::visible', () => {
+    const contextMenu = createRadioContextMenu({
+        launcher: appletContainer.actor,
+    });
+    popupMenu.connect("notify::visible", () => {
         popupMenu.visible && tooltip.hide();
     });
     function handleAppletRemoved() {
@@ -5782,6 +5868,10 @@ function createRadioAppletContainer() {
         mpvHandler.increaseDecreaseVolume(volumeChange);
     }
     async function handleClick() {
+        const monitor = RadioAppletContainer_layoutManager.findMonitorForActor(appletContainer.actor);
+        createDownloadMprisDialog({
+            monitor,
+        });
         contextMenu === null || contextMenu === void 0 ? void 0 : contextMenu.close();
         if (installationInProgress)
             return;

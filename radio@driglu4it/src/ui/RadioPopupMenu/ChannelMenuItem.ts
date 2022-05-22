@@ -3,7 +3,6 @@ import { createRotateAnimation } from '../../functions/tweens';
 import { createSimpleMenuItem } from '../../lib/SimpleMenuItem';
 import { AdvancedPlaybackStatus } from '../../types';
 
-
 export interface Arguments {
     channelName: string,
     onActivated: (channelName: string) => void,

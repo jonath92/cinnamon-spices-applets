@@ -91,15 +91,13 @@ export const createDialogBtn = (props: {
   return btn;
 };
 
-export const createConfirmationDialog = (props: {
-  monitor: imports.ui.layout.Monitor;
+export const createDialogTitle = (props: {
   title: string;
   subTitle: string;
-  onConfirmed: () => void;
 }) => {
-  const { monitor, onConfirmed, title, subTitle } = props;
+  const { title, subTitle } = props;
 
-  const confirmationTitle = createBoxLayout({
+  return createBoxLayout({
     vertical: true,
     children: [
       {
@@ -118,6 +116,17 @@ export const createConfirmationDialog = (props: {
       },
     ],
   });
+};
+
+export const createConfirmationDialog = (props: {
+  monitor: imports.ui.layout.Monitor;
+  title: string;
+  subTitle: string;
+  onConfirmed: () => void;
+}) => {
+  const { monitor, onConfirmed, title, subTitle } = props;
+
+  const confirmationTitle = createDialogTitle({ title, subTitle });
 
   const modalButtonAddProps: ButtonAddProps = {
     expand: true,
