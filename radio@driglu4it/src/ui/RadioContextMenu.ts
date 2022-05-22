@@ -52,10 +52,7 @@ export function createRadioContextMenu(args: PopupMenuArguments) {
           title: "Confirm",
           subTitle: `Are you sure you want to remove '${__meta.name}'?`,
           onConfirmed: () =>
-            AppletManager._removeAppletFromPanel(
-              __meta.uuid,
-              __meta.instanceId
-            ),
+            AppletManager._removeAppletFromPanel(uuid, instanceId),
         }),
     },
   ];

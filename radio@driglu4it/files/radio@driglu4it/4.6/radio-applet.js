@@ -5488,8 +5488,10 @@ const createDialog = (props) => {
     const { children, monitor, destroyOnEsc = true } = props;
     const dialog = createBoxLayout({
         vertical: true,
+        x_expand: true,
         children,
         style_class: "modal-dialog",
+        style: "padding: 15px!important; spacing: 15px!important",
     });
     const lightbox = createLighbox({
         monitor,
@@ -5510,6 +5512,7 @@ const createDialogBtn = (props) => {
     const { label, onClick } = props;
     const btn = new Dialogs_Button({
         style_class: "modal-dialog-button",
+        style: "margin: 0!important",
         reactive: true,
         can_focus: true,
         label,
@@ -5518,30 +5521,27 @@ const createDialogBtn = (props) => {
     return btn;
 };
 const createDialogTitle = (props) => {
-    const { title, subTitle } = props;
-    return createBoxLayout({
-        vertical: true,
-        children: [
-            {
-                actor: new Dialogs_Label({
-                    text: title,
-                    // important required for some themes (e.g. Cinnamox-Rhino)
-                    important: true,
-                    style_class: "confirm-dialog-title",
-                }),
-            },
-            {
-                actor: new Dialogs_Label({
-                    text: subTitle,
-                    important: true,
-                }),
-            },
-        ],
+    const { text } = props;
+    return new Dialogs_Label({
+        text,
+        // important required for some themes (e.g. Cinnamox-Rhino)
+        important: true,
+        style_class: "confirm-dialog-title",
+        style: "padding: 0!important; margin: 0!important",
     });
 };
 const createConfirmationDialog = (props) => {
     const { monitor, onConfirmed, title, subTitle } = props;
-    const confirmationTitle = createDialogTitle({ title, subTitle });
+    // const confirmationTitle = createDialogContent({
+    //   title,
+    //   content: {
+    //     actor: new Label({ text: subTitle }),
+    //   },
+    // });
+    const dialogTitle = createDialogTitle({
+        text: title,
+    });
+    const dialogContent = new Dialogs_Label({ text: subTitle });
     const modalButtonAddProps = {
         expand: true,
         x_fill: false,
@@ -5550,6 +5550,7 @@ const createConfirmationDialog = (props) => {
     };
     const confirmationBtnBox = createBoxLayout({
         style_class: "modal-dialog-button-box",
+        style: "padding: 0!important; margin: 0!important;",
         vertical: false,
         children: [
             Object.assign({ actor: createDialogBtn({
@@ -5569,14 +5570,21 @@ const createConfirmationDialog = (props) => {
         monitor,
         children: [
             {
-                actor: confirmationTitle,
+                actor: dialogTitle,
                 x_align: Dialogs_Align.MIDDLE,
                 y_align: Dialogs_Align.START,
             },
             {
+                actor: dialogContent,
+                expand: true,
+            },
+            {
                 actor: confirmationBtnBox,
-                x_align: Dialogs_Align.MIDDLE,
+                x_align: Dialogs_Align.START,
+                x_fill: true,
                 y_align: Dialogs_Align.END,
+                y_fill: true,
+                expand: true,
             },
         ],
     });
@@ -5731,7 +5739,7 @@ function createRadioContextMenu(args) {
                 monitor,
                 title: "Confirm",
                 subTitle: `Are you sure you want to remove '${__meta.name}'?`,
-                onConfirmed: () => AppletManager._removeAppletFromPanel(__meta.uuid, __meta.instanceId),
+                onConfirmed: () => AppletManager._removeAppletFromPanel(uuid, instanceId),
             }),
         },
     ];
@@ -5753,7 +5761,7 @@ function createRadioContextMenu(args) {
 
 const { Button: DownloadMprisDialog_Button, Icon: DownloadMprisDialog_Icon, Label: DownloadMprisDialog_Label, Align: DownloadMprisDialog_Align } = imports.gi.St;
 const modalButtonAddProps = {
-    expand: false,
+    expand: true,
     x_fill: false,
     y_fill: false,
     y_align: DownloadMprisDialog_Align.MIDDLE,
@@ -5788,7 +5796,7 @@ const createConfirmationBtnBox = () => {
         vertical: false,
         children: [
             Object.assign({ actor: DownloadMprisDialog_createDialogBtn({
-                    label: "No",
+                    label: "Cancel",
                     onClick: () => global.log("todo"),
                 }), x_align: DownloadMprisDialog_Align.START }, modalButtonAddProps),
             Object.assign({ actor: DownloadMprisDialog_createDialogBtn({
@@ -5804,11 +5812,14 @@ const createDownloadMprisDialog = (props) => {
         monitor,
         children: [
             {
-                actor: createDialogTitle({
-                    title: "Confirm",
-                    subTitle: `The radio applet depends on the 'mpv-mpris' plugin. It is a 3rd party applet, which allows controlling the radio player remotely (e.g. with the sound applet and KDEConnect). \n \n Do you want to proceed the download at your own risk?`,
-                }),
+                actor: createDialogTitle({ text: "Download Confirmation" }),
             },
+            //   {
+            //     actor: createDialogContent({
+            //       title: "Download Confirmation",
+            //       subTitle: `The radio applet depends on the 'mpv-mpris' plugin. It is a 3rd party plugin \nfor mpv, which allows controlling the radio player remotely (e.g. with the sound applet and KDEConnect).  \n\nDo you want to proceed the download at your own risk?`,
+            //     }),
+            //   },
             {
                 actor: createConfirmationBtnBox(),
             },

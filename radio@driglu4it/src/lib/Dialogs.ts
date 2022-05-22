@@ -51,8 +51,10 @@ export const createDialog = (props: {
 
   const dialog = createBoxLayout({
     vertical: true,
+    x_expand: true,
     children,
     style_class: "modal-dialog",
+    style: "padding: 15px!important; spacing: 15px!important",
   });
 
   const lightbox = createLighbox({
@@ -81,6 +83,7 @@ export const createDialogBtn = (props: {
 
   const btn = new Button({
     style_class: "modal-dialog-button",
+    style: "margin: 0!important",
     reactive: true,
     can_focus: true,
     label,
@@ -91,30 +94,15 @@ export const createDialogBtn = (props: {
   return btn;
 };
 
-export const createDialogTitle = (props: {
-  title: string;
-  subTitle: string;
-}) => {
-  const { title, subTitle } = props;
+export const createDialogTitle = (props: { text: string }) => {
+  const { text } = props;
 
-  return createBoxLayout({
-    vertical: true,
-    children: [
-      {
-        actor: new Label({
-          text: title,
-          // important required for some themes (e.g. Cinnamox-Rhino)
-          important: true,
-          style_class: "confirm-dialog-title",
-        }),
-      },
-      {
-        actor: new Label({
-          text: subTitle,
-          important: true,
-        }),
-      },
-    ],
+  return new Label({
+    text,
+    // important required for some themes (e.g. Cinnamox-Rhino)
+    important: true,
+    style_class: "confirm-dialog-title",
+    style: "padding: 0!important; margin: 0!important",
   });
 };
 
@@ -126,7 +114,17 @@ export const createConfirmationDialog = (props: {
 }) => {
   const { monitor, onConfirmed, title, subTitle } = props;
 
-  const confirmationTitle = createDialogTitle({ title, subTitle });
+  // const confirmationTitle = createDialogContent({
+  //   title,
+  //   content: {
+  //     actor: new Label({ text: subTitle }),
+  //   },
+  // });
+  const dialogTitle = createDialogTitle({
+    text: title,
+  });
+
+  const dialogContent = new Label({ text: subTitle });
 
   const modalButtonAddProps: ButtonAddProps = {
     expand: true,
@@ -137,6 +135,7 @@ export const createConfirmationDialog = (props: {
 
   const confirmationBtnBox = createBoxLayout({
     style_class: "modal-dialog-button-box",
+    style: "padding: 0!important; margin: 0!important;",
     vertical: false,
     children: [
       {
@@ -165,14 +164,21 @@ export const createConfirmationDialog = (props: {
     monitor,
     children: [
       {
-        actor: confirmationTitle,
+        actor: dialogTitle,
         x_align: Align.MIDDLE,
         y_align: Align.START,
       },
       {
+        actor: dialogContent,
+        expand: true,
+      },
+      {
         actor: confirmationBtnBox,
-        x_align: Align.MIDDLE,
+        x_align: Align.START,
+        x_fill: true,
         y_align: Align.END,
+        y_fill: true,
+        expand: true,
       },
     ],
   });

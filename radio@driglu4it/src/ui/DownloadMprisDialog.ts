@@ -1,13 +1,12 @@
 import { LOADING_ICON_NAME } from "../consts";
 import { createDialog, createDialogTitle } from "../lib/Dialogs";
-import { createSimpleMenuItem } from "../lib/SimpleMenuItem";
 import { createBoxLayout } from "../lib/St/BoxLayout";
 const { Button, Icon, Label, Align } = imports.gi.St;
 
 type ButtonAddProps = Partial<imports.gi.St.BoxLayoutChildInitOptions>;
 
 const modalButtonAddProps: ButtonAddProps = {
-  expand: false,
+  expand: true,
   x_fill: false,
   y_fill: false,
   y_align: Align.MIDDLE,
@@ -48,7 +47,7 @@ const createConfirmationBtnBox = () => {
     children: [
       {
         actor: createDialogBtn({
-          label: "No",
+          label: "Cancel",
           onClick: () => global.log("todo"),
         }),
         x_align: Align.START,
@@ -75,11 +74,14 @@ export const createDownloadMprisDialog = (props: {
     monitor,
     children: [
       {
-        actor: createDialogTitle({
-          title: "Confirm",
-          subTitle: `The radio applet depends on the 'mpv-mpris' plugin. It is a 3rd party applet, which allows controlling the radio player remotely (e.g. with the sound applet and KDEConnect). \n \n Do you want to proceed the download at your own risk?`,
-        }),
+        actor: createDialogTitle({ text: "Download Confirmation" }),
       },
+      //   {
+      //     actor: createDialogContent({
+      //       title: "Download Confirmation",
+      //       subTitle: `The radio applet depends on the 'mpv-mpris' plugin. It is a 3rd party plugin \nfor mpv, which allows controlling the radio player remotely (e.g. with the sound applet and KDEConnect).  \n\nDo you want to proceed the download at your own risk?`,
+      //     }),
+      //   },
       {
         actor: createConfirmationBtnBox(),
       },
