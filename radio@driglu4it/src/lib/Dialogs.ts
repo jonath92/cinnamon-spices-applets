@@ -43,7 +43,7 @@ const createLighbox = (props: {
 };
 
 export const createDialog = (props: {
-  children: BoxLayoutChild[];
+  children: imports.gi.St.Widget[];
   monitor: imports.ui.layout.Monitor;
   destroyOnEsc?: boolean;
 }) => {
@@ -52,7 +52,7 @@ export const createDialog = (props: {
   const dialog = createBoxLayout({
     vertical: true,
     x_expand: true,
-    children,
+    children: children.map((actor) => ({ actor })),
     style_class: "modal-dialog",
     style: "padding: 15px!important; spacing: 15px!important",
   });
@@ -76,17 +76,17 @@ export const createDialog = (props: {
 };
 
 export const createDialogBtn = (props: {
-  label: string;
+  text: string;
   onClick: () => void;
 }) => {
-  const { label, onClick } = props;
+  const { text, onClick } = props;
 
   const btn = new Button({
     style_class: "modal-dialog-button",
     style: "margin: 0!important",
     reactive: true,
     can_focus: true,
-    label,
+    label: text,
   });
 
   btn.connect("clicked", onClick);
@@ -106,6 +106,36 @@ export const createDialogTitle = (props: { text: string }) => {
   });
 };
 
+// TODO: currently only working when passing exect two children!
+export const createDialogConfirmationBtnBox = (props: {
+  children: [imports.gi.St.Widget, imports.gi.St.Widget];
+}) => {
+  const { children } = props;
+
+  const modalButtonAddProps: ButtonAddProps = {
+    expand: true,
+    x_fill: false,
+  };
+
+  return createBoxLayout({
+    style_class: "modal-dialog-button-box",
+    style: "padding: 0!important; margin: 0!important;",
+    vertical: false,
+    children: [
+      {
+        actor: children[0],
+        x_align: Align.START,
+        ...modalButtonAddProps,
+      },
+      {
+        actor: children[1],
+        x_align: Align.END,
+        ...modalButtonAddProps,
+      },
+    ],
+  });
+};
+
 export const createConfirmationDialog = (props: {
   monitor: imports.ui.layout.Monitor;
   title: string;
@@ -114,72 +144,30 @@ export const createConfirmationDialog = (props: {
 }) => {
   const { monitor, onConfirmed, title, subTitle } = props;
 
-  // const confirmationTitle = createDialogContent({
-  //   title,
-  //   content: {
-  //     actor: new Label({ text: subTitle }),
-  //   },
-  // });
-  const dialogTitle = createDialogTitle({
-    text: title,
-  });
-
-  const dialogContent = new Label({ text: subTitle });
-
-  const modalButtonAddProps: ButtonAddProps = {
-    expand: true,
-    x_fill: false,
-    y_fill: false,
-    y_align: Align.MIDDLE,
-  };
-
-  const confirmationBtnBox = createBoxLayout({
-    style_class: "modal-dialog-button-box",
-    style: "padding: 0!important; margin: 0!important;",
-    vertical: false,
-    children: [
-      {
-        actor: createDialogBtn({
-          label: "No",
-          onClick: () => dialog.destroy(),
-        }),
-        x_align: Align.START,
-        ...modalButtonAddProps,
-      },
-      {
-        actor: createDialogBtn({
-          label: "Yes",
-          onClick: () => {
-            onConfirmed();
-            dialog.destroy();
-          },
-        }),
-        x_align: Align.END,
-        ...modalButtonAddProps,
-      },
-    ],
-  });
-
   const dialog = createDialog({
     monitor,
     children: [
-      {
-        actor: dialogTitle,
-        x_align: Align.MIDDLE,
-        y_align: Align.START,
-      },
-      {
-        actor: dialogContent,
-        expand: true,
-      },
-      {
-        actor: confirmationBtnBox,
-        x_align: Align.START,
-        x_fill: true,
-        y_align: Align.END,
-        y_fill: true,
-        expand: true,
-      },
+      createDialogTitle({
+        text: title,
+      }),
+      new Label({ text: subTitle }),
+      createDialogConfirmationBtnBox({
+        children: [
+          createDialogBtn({
+            text: "No",
+            onClick: () => dialog.destroy(),
+          }),
+          createDialogBtn({
+            text: "Yes",
+            onClick: () => {
+              onConfirmed();
+              dialog.destroy();
+            },
+          }),
+        ],
+      }),
     ],
   });
+
+  return dialog;
 };

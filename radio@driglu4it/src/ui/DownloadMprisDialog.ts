@@ -1,5 +1,9 @@
 import { LOADING_ICON_NAME } from "../consts";
-import { createDialog, createDialogTitle } from "../lib/Dialogs";
+import {
+  createDialog,
+  createDialogConfirmationBtnBox,
+  createDialogTitle,
+} from "../lib/Dialogs";
 import { createBoxLayout } from "../lib/St/BoxLayout";
 const { Button, Icon, Label, Align } = imports.gi.St;
 
@@ -40,31 +44,6 @@ const createDialogBtn = (props: { label: string; onClick: () => void }) => {
   return btn;
 };
 
-const createConfirmationBtnBox = () => {
-  return createBoxLayout({
-    style_class: "modal-dialog-button-box",
-    vertical: false,
-    children: [
-      {
-        actor: createDialogBtn({
-          label: "Cancel",
-          onClick: () => global.log("todo"),
-        }),
-        x_align: Align.START,
-        ...modalButtonAddProps,
-      },
-      {
-        actor: createDialogBtn({
-          label: "Yes",
-          onClick: () => global.log("todo"),
-        }),
-        x_align: Align.END,
-        ...modalButtonAddProps,
-      },
-    ],
-  });
-};
-
 export const createDownloadMprisDialog = (props: {
   monitor: imports.ui.layout.Monitor;
 }) => {
@@ -73,18 +52,28 @@ export const createDownloadMprisDialog = (props: {
   return createDialog({
     monitor,
     children: [
-      {
-        actor: createDialogTitle({ text: "Download Confirmation" }),
-      },
+      createDialogTitle({ text: "Download Confirmation" }),
+      new Label({
+        text: `The radio applet depends on the 'mpv-mpris' plugin. It is a 3rd party plugin \nfor mpv, which allows controlling the radio player remotely (e.g. with the sound applet and KDEConnect).  \n\nDo you want to proceed the download at your own risk?\n`,
+      }),
+      createDialogConfirmationBtnBox({
+        children: [
+          createDialogBtn({
+            label: "Cancel",
+            onClick: () => global.log("todo"),
+          }),
+          createDialogBtn({
+            label: "Yes",
+            onClick: () => global.log("todo"),
+          }),
+        ],
+      }),
       //   {
       //     actor: createDialogContent({
       //       title: "Download Confirmation",
       //       subTitle: `The radio applet depends on the 'mpv-mpris' plugin. It is a 3rd party plugin \nfor mpv, which allows controlling the radio player remotely (e.g. with the sound applet and KDEConnect).  \n\nDo you want to proceed the download at your own risk?`,
       //     }),
       //   },
-      {
-        actor: createConfirmationBtnBox(),
-      },
     ],
   });
 };

@@ -5489,7 +5489,7 @@ const createDialog = (props) => {
     const dialog = createBoxLayout({
         vertical: true,
         x_expand: true,
-        children,
+        children: children.map((actor) => ({ actor })),
         style_class: "modal-dialog",
         style: "padding: 15px!important; spacing: 15px!important",
     });
@@ -5509,13 +5509,13 @@ const createDialog = (props) => {
     return Object.assign(Object.assign({}, dialog), { destroy: () => lightbox.destroy() });
 };
 const createDialogBtn = (props) => {
-    const { label, onClick } = props;
+    const { text, onClick } = props;
     const btn = new Dialogs_Button({
         style_class: "modal-dialog-button",
         style: "margin: 0!important",
         reactive: true,
         can_focus: true,
-        label,
+        label: text,
     });
     btn.connect("clicked", onClick);
     return btn;
@@ -5530,64 +5530,50 @@ const createDialogTitle = (props) => {
         style: "padding: 0!important; margin: 0!important",
     });
 };
-const createConfirmationDialog = (props) => {
-    const { monitor, onConfirmed, title, subTitle } = props;
-    // const confirmationTitle = createDialogContent({
-    //   title,
-    //   content: {
-    //     actor: new Label({ text: subTitle }),
-    //   },
-    // });
-    const dialogTitle = createDialogTitle({
-        text: title,
-    });
-    const dialogContent = new Dialogs_Label({ text: subTitle });
+// TODO: currently only working when passing exect two children!
+const createDialogConfirmationBtnBox = (props) => {
+    const { children } = props;
     const modalButtonAddProps = {
         expand: true,
         x_fill: false,
-        y_fill: false,
-        y_align: Dialogs_Align.MIDDLE,
     };
-    const confirmationBtnBox = createBoxLayout({
+    return createBoxLayout({
         style_class: "modal-dialog-button-box",
         style: "padding: 0!important; margin: 0!important;",
         vertical: false,
         children: [
-            Object.assign({ actor: createDialogBtn({
-                    label: "No",
-                    onClick: () => dialog.destroy(),
-                }), x_align: Dialogs_Align.START }, modalButtonAddProps),
-            Object.assign({ actor: createDialogBtn({
-                    label: "Yes",
-                    onClick: () => {
-                        onConfirmed();
-                        dialog.destroy();
-                    },
-                }), x_align: Dialogs_Align.END }, modalButtonAddProps),
+            Object.assign({ actor: children[0], x_align: Dialogs_Align.START }, modalButtonAddProps),
+            Object.assign({ actor: children[1], x_align: Dialogs_Align.END }, modalButtonAddProps),
         ],
     });
+};
+const createConfirmationDialog = (props) => {
+    const { monitor, onConfirmed, title, subTitle } = props;
     const dialog = createDialog({
         monitor,
         children: [
-            {
-                actor: dialogTitle,
-                x_align: Dialogs_Align.MIDDLE,
-                y_align: Dialogs_Align.START,
-            },
-            {
-                actor: dialogContent,
-                expand: true,
-            },
-            {
-                actor: confirmationBtnBox,
-                x_align: Dialogs_Align.START,
-                x_fill: true,
-                y_align: Dialogs_Align.END,
-                y_fill: true,
-                expand: true,
-            },
+            createDialogTitle({
+                text: title,
+            }),
+            new Dialogs_Label({ text: subTitle }),
+            createDialogConfirmationBtnBox({
+                children: [
+                    createDialogBtn({
+                        text: "No",
+                        onClick: () => dialog.destroy(),
+                    }),
+                    createDialogBtn({
+                        text: "Yes",
+                        onClick: () => {
+                            onConfirmed();
+                            dialog.destroy();
+                        },
+                    }),
+                ],
+            }),
         ],
     });
+    return dialog;
 };
 
 ;// CONCATENATED MODULE: ./src/lib/HttpHandler.ts
@@ -5790,39 +5776,57 @@ const DownloadMprisDialog_createDialogBtn = (props) => {
     btn.connect("clicked", onClick);
     return btn;
 };
-const createConfirmationBtnBox = () => {
-    return createBoxLayout({
-        style_class: "modal-dialog-button-box",
-        vertical: false,
-        children: [
-            Object.assign({ actor: DownloadMprisDialog_createDialogBtn({
-                    label: "Cancel",
-                    onClick: () => global.log("todo"),
-                }), x_align: DownloadMprisDialog_Align.START }, modalButtonAddProps),
-            Object.assign({ actor: DownloadMprisDialog_createDialogBtn({
-                    label: "Yes",
-                    onClick: () => global.log("todo"),
-                }), x_align: DownloadMprisDialog_Align.END }, modalButtonAddProps),
-        ],
-    });
-};
+// const createConfirmationBtnBox = () => {
+//   return createBoxLayout({
+//     style_class: "modal-dialog-button-box",
+//     vertical: false,
+//     children: [
+//       {
+//         actor: createDialogBtn({
+//           label: "Cancel",
+//           onClick: () => global.log("todo"),
+//         }),
+//         x_align: Align.START,
+//         ...modalButtonAddProps,
+//       },
+//       {
+//         actor: createDialogBtn({
+//           label: "Yes",
+//           onClick: () => global.log("todo"),
+//         }),
+//         x_align: Align.END,
+//         ...modalButtonAddProps,
+//       },
+//     ],
+//   });
+// };
 const createDownloadMprisDialog = (props) => {
     const { monitor } = props;
     return createDialog({
         monitor,
         children: [
-            {
-                actor: createDialogTitle({ text: "Download Confirmation" }),
-            },
+            createDialogTitle({ text: "Download Confirmation" }),
+            new DownloadMprisDialog_Label({
+                text: `The radio applet depends on the 'mpv-mpris' plugin. It is a 3rd party plugin \nfor mpv, which allows controlling the radio player remotely (e.g. with the sound applet and KDEConnect).  \n\nDo you want to proceed the download at your own risk?\n`,
+            }),
+            createDialogConfirmationBtnBox({
+                children: [
+                    DownloadMprisDialog_createDialogBtn({
+                        label: "Cancel",
+                        onClick: () => global.log("todo"),
+                    }),
+                    DownloadMprisDialog_createDialogBtn({
+                        label: "Yes",
+                        onClick: () => global.log("todo"),
+                    }),
+                ],
+            }),
             //   {
             //     actor: createDialogContent({
             //       title: "Download Confirmation",
             //       subTitle: `The radio applet depends on the 'mpv-mpris' plugin. It is a 3rd party plugin \nfor mpv, which allows controlling the radio player remotely (e.g. with the sound applet and KDEConnect).  \n\nDo you want to proceed the download at your own risk?`,
             //     }),
             //   },
-            {
-                actor: createConfirmationBtnBox(),
-            },
         ],
     });
 };
