@@ -5,12 +5,13 @@ type BoxLayoutNativeProps = Exclude<
   undefined
 >;
 
-type BoxLayoutChildren = Partial<imports.gi.St.BoxLayoutChildInitOptions> & {
-  actor: imports.gi.Clutter.Actor;
-};
+export type BoxLayoutChild =
+  Partial<imports.gi.St.BoxLayoutChildInitOptions> & {
+    actor: imports.gi.Clutter.Actor;
+  };
 
 type BoxLayoutProps = BoxLayoutNativeProps & {
-  children?: BoxLayoutChildren[];
+  children?: BoxLayoutChild[];
 };
 
 export const createBoxLayout = (props: BoxLayoutProps) => {

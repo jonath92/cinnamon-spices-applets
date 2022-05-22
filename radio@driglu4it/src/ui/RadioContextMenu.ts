@@ -1,145 +1,14 @@
-import { ConfirmDialog } from "../lib/Dialogs";
+import { createConfirmationDialog } from "../lib/Dialogs";
 import { createPopupMenu, PopupMenuArguments } from "../lib/PopupMenu";
 import { createSeparatorMenuItem } from "../lib/PopupSeperator";
 import {
   createSimpleMenuItem,
   SimpleMenuItemArguments,
 } from "../lib/SimpleMenuItem";
-import { createBoxLayout } from "../lib/St/BoxLayout";
 import { createUpdateStationsMenuItem } from "./RadioPopupMenu/UpdateStationsMenuItem";
-const { Lightbox } = imports.ui.lightbox;
-const { Bin, BoxLayout, Label, Align, Button } = imports.gi.St;
-const { uiGroup, layoutManager, pushModal, popModal } = imports.ui.main;
-const { Stack } = imports.gi.Cinnamon;
-const { Group, KEY_Escape } = imports.gi.Clutter;
+const { layoutManager } = imports.ui.main;
 const { spawnCommandLineAsyncIO } = imports.misc.util;
 const AppletManager = imports.ui.appletManager;
-
-type ButtonProps = Exclude<ConstructorParameters<typeof Button>[0], undefined>;
-
-type ButtonAddProps = Partial<imports.gi.St.BoxLayoutChildInitOptions>;
-
-const createDialogBtn = (options?: ButtonProps) => {
-  return new Button({
-    style_class: "modal-dialog-button",
-    reactive: true,
-    can_focus: true,
-    ...options,
-  });
-};
-
-const showRemoveAppletDialog = (launcher: imports.gi.St.Widget) => {
-  const monitor = layoutManager.findMonitorForActor(launcher);
-
-  const modalButtonAddProps: ButtonAddProps = {
-    expand: true,
-    x_fill: false,
-    y_fill: false,
-    y_align: Align.MIDDLE,
-  };
-
-  const contentLayout = createBoxLayout({
-    vertical: true,
-    children: [
-      {
-        actor: new Label({
-          text: "Confirm",
-          style_class: "confirm-dialog-title",
-          // TODO: needed?
-          important: true,
-        }),
-      },
-      {
-        actor: new Label({
-          text: `Are you sure you want to remove '${__meta.name}'?`,
-          // TODO: needed?
-          important: true,
-        }),
-      },
-    ],
-  });
-
-  const dialog = createBoxLayout({
-    vertical: true,
-    style_class: "modal-dialog",
-    children: [
-      {
-        actor: contentLayout,
-        x_fill: true,
-        y_fill: true,
-        x_align: Align.MIDDLE,
-        y_align: Align.START,
-      },
-    ],
-  });
-
-  const buttonLayout = createBoxLayout({
-    style_class: "modal-dialog-button-box",
-    vertical: false,
-    children: [
-      {
-        actor: createDialogBtn({
-          label: "No",
-        }),
-        x_align: Align.START,
-        ...modalButtonAddProps,
-      },
-      {
-        actor: createDialogBtn({
-          label: "Yes",
-        }),
-        x_align: Align.END,
-        ...modalButtonAddProps,
-      },
-    ],
-  });
-
-  dialog.add(buttonLayout, {
-    expand: true,
-    x_align: Align.MIDDLE,
-    y_align: Align.END,
-  });
-
-  // add_child is recommended but doesn't work sometimes: https://gitlab.gnome.org/GNOME/gnome-shell/-/issues/3172
-  // lightBoxContainer.add_actor(dialog);
-
-  const lightBoxContainer = new Bin({
-    x: 0,
-    y: 0,
-    width: monitor.width,
-    height: monitor.height,
-    reactive: true,
-    style_class: "lightbox",
-    child: dialog,
-  });
-
-  pushModal(lightBoxContainer);
-  uiGroup.add_child(lightBoxContainer);
-
-  const signalId = lightBoxContainer.connect("key-press-event", (_, event) => {
-    if (event.get_key_symbol() === KEY_Escape) {
-      lightBoxContainer.destroy();
-    }
-
-    // popModal(lightBoxContainer)
-    // const numberChildren = lightBoxContainer.get_children().length
-    // global.log('numberChildren', numberChildren)
-    // uiGroup.remove_child(lightBoxContainer)
-    // lightBoxContainer.disconnect(signalId)
-    // lightBoxContainer.destroy()
-    // popModal(lightBoxContainer)
-    // lightBoxContainer.destroy_all_children()
-    // lightBoxContainer.destroy()
-
-    return true;
-  });
-
-  // const ligthbox = new Lightbox(lightBoxContainer, {
-  //   inhibitEvents: true,
-  // });
-
-  // ligthbox.show();
-};
 
 const spawnCommandLineWithErrorLogging = (command: string) => {
   spawnCommandLineAsyncIO(command, (stdout, stderr) => {
@@ -153,15 +22,16 @@ const spawnCommandLineWithErrorLogging = (command: string) => {
 
 export function createRadioContextMenu(args: PopupMenuArguments) {
   const contextMenu = createPopupMenu(args);
+  const monitor = layoutManager.findMonitorForActor(args.launcher);
+
+  const { uuid, instanceId, name: appletName } = __meta;
 
   const defaultMenuArgs: SimpleMenuItemArguments[] = [
     {
       iconName: "dialog-question",
       text: "About...",
       onActivated: () => {
-        spawnCommandLineWithErrorLogging(
-          `xlet-about-dialog applets ${__meta.uuid}`
-        );
+        spawnCommandLineWithErrorLogging(`xlet-about-dialog applets ${uuid}`);
       },
     },
     {
@@ -169,14 +39,24 @@ export function createRadioContextMenu(args: PopupMenuArguments) {
       text: "Configure...",
       onActivated: () => {
         spawnCommandLineWithErrorLogging(
-          `xlet-settings applet ${__meta.uuid} ${__meta.instanceId} -t 0`
+          `xlet-settings applet ${uuid} ${instanceId} -t 0`
         );
       },
     },
     {
       iconName: "edit-delete",
-      text: `Remove '${__meta.name}`,
-      onActivated: () => showRemoveAppletDialog(args.launcher),
+      text: `Remove '${appletName}`,
+      onActivated: () =>
+        createConfirmationDialog({
+          monitor,
+          title: "Confirm",
+          subTitle: `Are you sure you want to remove '${__meta.name}'?`,
+          onConfirmed: () =>
+            AppletManager._removeAppletFromPanel(
+              __meta.uuid,
+              __meta.instanceId
+            ),
+        }),
     },
   ];
 

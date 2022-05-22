@@ -5451,6 +5451,128 @@ const createBoxLayout = (props) => {
     return boxLayout;
 };
 
+;// CONCATENATED MODULE: ./src/lib/Dialogs.ts
+
+const { Bin: Dialogs_Bin, Button: Dialogs_Button, Label: Dialogs_Label, Align: Dialogs_Align } = imports.gi.St;
+const { pushModal: Dialogs_pushModal, uiGroup: Dialogs_uiGroup } = imports.ui.main;
+const { KEY_Escape: Dialogs_KEY_Escape } = imports.gi.Clutter;
+const createLighbox = (props) => {
+    const { child, monitor: { width: monitorWidth, height: monitorHeight }, destroyOnEsc = true, } = props;
+    const lightbox = new Dialogs_Bin({
+        x: 0,
+        y: 0,
+        width: monitorWidth,
+        height: monitorHeight,
+        reactive: true,
+        style_class: "lightbox",
+        child,
+    });
+    Dialogs_pushModal(lightbox);
+    Dialogs_uiGroup.add_child(lightbox);
+    if (destroyOnEsc) {
+        lightbox.connect("key-press-event", (_, event) => {
+            if (event.get_key_symbol() === Dialogs_KEY_Escape) {
+                lightbox.destroy();
+            }
+            return true;
+        });
+    }
+    return lightbox;
+};
+const createDialog = (props) => {
+    const { children, monitor, destroyOnEsc = true } = props;
+    const dialog = createBoxLayout({
+        vertical: true,
+        children,
+        style_class: "modal-dialog",
+    });
+    const lightbox = createLighbox({
+        monitor,
+        destroyOnEsc,
+        child: dialog,
+    });
+    if (destroyOnEsc) {
+        dialog.connect("key-press-event", (_, event) => {
+            if (event.get_key_symbol() === Dialogs_KEY_Escape) {
+                dialog.destroy();
+            }
+            return true;
+        });
+    }
+    return Object.assign(Object.assign({}, dialog), { destroy: () => lightbox.destroy() });
+};
+const createDialogBtn = (props) => {
+    const { label, onClick } = props;
+    const btn = new Dialogs_Button({
+        style_class: "modal-dialog-button",
+        reactive: true,
+        can_focus: true,
+        label,
+    });
+    btn.connect("clicked", onClick);
+    return btn;
+};
+const createConfirmationDialog = (props) => {
+    const { monitor, onConfirmed, title, subTitle } = props;
+    const confirmationTitle = createBoxLayout({
+        vertical: true,
+        children: [
+            {
+                actor: new Dialogs_Label({
+                    text: title,
+                    important: true,
+                    style_class: "confirm-dialog-title",
+                }),
+            },
+            {
+                actor: new Dialogs_Label({
+                    text: subTitle,
+                    // TODO: needed?
+                    important: true,
+                }),
+            },
+        ],
+    });
+    const modalButtonAddProps = {
+        expand: true,
+        x_fill: false,
+        y_fill: false,
+        y_align: Dialogs_Align.MIDDLE,
+    };
+    const confirmationBtnBox = createBoxLayout({
+        style_class: "modal-dialog-button-box",
+        vertical: false,
+        children: [
+            Object.assign({ actor: createDialogBtn({
+                    label: "No",
+                    onClick: () => dialog.destroy(),
+                }), x_align: Dialogs_Align.START }, modalButtonAddProps),
+            Object.assign({ actor: createDialogBtn({
+                    label: "Yes",
+                    onClick: () => {
+                        onConfirmed();
+                        dialog.destroy();
+                    },
+                }), x_align: Dialogs_Align.END }, modalButtonAddProps),
+        ],
+    });
+    const dialog = createDialog({
+        monitor,
+        children: [
+            {
+                actor: confirmationTitle,
+                x_align: Dialogs_Align.MIDDLE,
+                y_align: Dialogs_Align.START,
+            },
+            {
+                actor: confirmationBtnBox,
+                x_align: Dialogs_Align.MIDDLE,
+                y_align: Dialogs_Align.END,
+            },
+        ],
+    });
+};
+
 ;// CONCATENATED MODULE: ./src/lib/HttpHandler.ts
 const { Message, SessionAsync } = imports.gi.Soup;
 const httpSession = new SessionAsync();
@@ -5564,107 +5686,9 @@ function createUpdateStationsMenuItem() {
 
 
 
-const { Lightbox } = imports.ui.lightbox;
-const { Bin: RadioContextMenu_Bin, BoxLayout: RadioContextMenu_BoxLayout, Label: RadioContextMenu_Label, Align: RadioContextMenu_Align, Button: RadioContextMenu_Button } = imports.gi.St;
-const { uiGroup: RadioContextMenu_uiGroup, layoutManager: RadioContextMenu_layoutManager, pushModal: RadioContextMenu_pushModal, popModal: RadioContextMenu_popModal } = imports.ui.main;
-const { Stack: RadioContextMenu_Stack } = imports.gi.Cinnamon;
-const { Group, KEY_Escape: RadioContextMenu_KEY_Escape } = imports.gi.Clutter;
+const { layoutManager: RadioContextMenu_layoutManager } = imports.ui.main;
 const { spawnCommandLineAsyncIO: RadioContextMenu_spawnCommandLineAsyncIO } = imports.misc.util;
 const AppletManager = imports.ui.appletManager;
-const createDialogBtn = (options) => {
-    return new RadioContextMenu_Button(Object.assign({ style_class: "modal-dialog-button", reactive: true, can_focus: true }, options));
-};
-const showRemoveAppletDialog = (launcher) => {
-    const monitor = RadioContextMenu_layoutManager.findMonitorForActor(launcher);
-    const modalButtonAddProps = {
-        expand: true,
-        x_fill: false,
-        y_fill: false,
-        y_align: RadioContextMenu_Align.MIDDLE,
-    };
-    const contentLayoutNew = createBoxLayout({
-        vertical: true,
-        children: [
-            {
-                actor: new RadioContextMenu_Label({
-                    text: "Confirm",
-                    style_class: "confirm-dialog-title",
-                    // TODO: needed?
-                    important: true,
-                }),
-            },
-            {
-                actor: new RadioContextMenu_Label({
-                    text: `Are you sure you want to remove '${__meta.name}'?`,
-                    // TODO: needed?
-                    important: true,
-                }),
-            },
-        ],
-    });
-    const dialog = createBoxLayout({
-        vertical: true,
-        style_class: "modal-dialog",
-        children: [
-            {
-                actor: contentLayoutNew,
-                x_fill: true,
-                y_fill: true,
-                x_align: RadioContextMenu_Align.MIDDLE,
-                y_align: RadioContextMenu_Align.START,
-            },
-        ],
-    });
-    const buttonLayout = createBoxLayout({
-        style_class: "modal-dialog-button-box",
-        vertical: false,
-        children: [
-            Object.assign({ actor: createDialogBtn({
-                    label: "No",
-                }), x_align: RadioContextMenu_Align.START }, modalButtonAddProps),
-            Object.assign({ actor: createDialogBtn({
-                    label: "Yes",
-                }), x_align: RadioContextMenu_Align.END }, modalButtonAddProps),
-        ],
-    });
-    dialog.add(buttonLayout, {
-        expand: true,
-        x_align: RadioContextMenu_Align.MIDDLE,
-        y_align: RadioContextMenu_Align.END,
-    });
-    // add_child is recommended but doesn't work sometimes: https://gitlab.gnome.org/GNOME/gnome-shell/-/issues/3172
-    // lightBoxContainer.add_actor(dialog);
-    const lightBoxContainer = new RadioContextMenu_Bin({
-        x: 0,
-        y: 0,
-        width: monitor.width,
-        height: monitor.height,
-        reactive: true,
-        style_class: "lightbox",
-        child: dialog,
-    });
-    RadioContextMenu_pushModal(lightBoxContainer);
-    RadioContextMenu_uiGroup.add_child(lightBoxContainer);
-    const signalId = lightBoxContainer.connect("key-press-event", (_, event) => {
-        if (event.get_key_symbol() === RadioContextMenu_KEY_Escape) {
-            lightBoxContainer.destroy();
-        }
-        // popModal(lightBoxContainer)
-        // const numberChildren = lightBoxContainer.get_children().length
-        // global.log('numberChildren', numberChildren)
-        // uiGroup.remove_child(lightBoxContainer)
-        // lightBoxContainer.disconnect(signalId)
-        // lightBoxContainer.destroy()
-        // popModal(lightBoxContainer)
-        // lightBoxContainer.destroy_all_children()
-        // lightBoxContainer.destroy()
-        return true;
-    });
-    // const ligthbox = new Lightbox(lightBoxContainer, {
-    //   inhibitEvents: true,
-    // });
-    // ligthbox.show();
-};
 const spawnCommandLineWithErrorLogging = (command) => {
     RadioContextMenu_spawnCommandLineAsyncIO(command, (stdout, stderr) => {
         if (stderr) {
@@ -5674,25 +5698,32 @@ const spawnCommandLineWithErrorLogging = (command) => {
 };
 function createRadioContextMenu(args) {
     const contextMenu = createPopupMenu(args);
+    const monitor = RadioContextMenu_layoutManager.findMonitorForActor(args.launcher);
+    const { uuid, instanceId, name: appletName } = __meta;
     const defaultMenuArgs = [
         {
             iconName: "dialog-question",
             text: "About...",
             onActivated: () => {
-                spawnCommandLineWithErrorLogging(`xlet-about-dialog applets ${__meta.uuid}`);
+                spawnCommandLineWithErrorLogging(`xlet-about-dialog applets ${uuid}`);
             },
         },
         {
             iconName: "system-run",
             text: "Configure...",
             onActivated: () => {
-                spawnCommandLineWithErrorLogging(`xlet-settings applet ${__meta.uuid} ${__meta.instanceId} -t 0`);
+                spawnCommandLineWithErrorLogging(`xlet-settings applet ${uuid} ${instanceId} -t 0`);
             },
         },
         {
             iconName: "edit-delete",
-            text: `Remove '${__meta.name}`,
-            onActivated: () => showRemoveAppletDialog(args.launcher),
+            text: `Remove '${appletName}`,
+            onActivated: () => createConfirmationDialog({
+                monitor,
+                title: "Confirm",
+                subTitle: `Are you sure you want to remove '${__meta.name}'?`,
+                onConfirmed: () => AppletManager._removeAppletFromPanel(__meta.uuid, __meta.instanceId),
+            }),
         },
     ];
     contextMenu.add_child(createUpdateStationsMenuItem());
