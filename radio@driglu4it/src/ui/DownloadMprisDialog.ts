@@ -60,8 +60,8 @@ export const createDownloadMprisDialog = (props: {
         text: "The radio applet depends on the LINK1. It is a 3rd party plugin for mpv,\nwhich allows controlling the radio player remotely (e.g. with the sound applet and KDEConnect).\n\nDo you want to proceed the download at your own risk?\n ",
         links: [
           {
-            text: "mpv-mpris plugin", 
-
+            text: "mpv-mpris plugin",
+            href: "https://github.com/hoyon/mpv-mpris",
           },
         ],
       }),

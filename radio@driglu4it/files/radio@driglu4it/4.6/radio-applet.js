@@ -5752,14 +5752,73 @@ var Label_rest = (undefined && undefined.__rest) || function (s, e) {
     return t;
 };
 const { Label: NativeLabel } = imports.gi.St;
+const { Cursor } = imports.gi.Cinnamon;
+const { app_info_launch_default_for_uri } = imports.gi.Gio;
 const createLabel = (props) => {
     const { isMarkup, links = [], text: textRaw } = props, rest = Label_rest(props, ["isMarkup", "links", "text"]);
-    const labelText = links === null || links === void 0 ? void 0 : links.reduce((previous, { text, href }, index) => previous.replace(`LINK${index + 1}`, text), textRaw);
+    const linksIncluded = links.length > 0;
+    const urlPositions = links.map(({ text, href }, index) => {
+        const rawStartPos = textRaw.indexOf(`LINK${index + 1}`, 0);
+        const positionDifferences = index === 0
+            ? 0
+            : links.slice(0, index - 1).reduce((acc, { text }, index) => {
+                const placeHolderLength = `LINK${index}`.length;
+                const textLength = text.length;
+                return acc + (textLength - placeHolderLength);
+            }, 0);
+        const trueStartPos = rawStartPos + positionDifferences;
+        return {
+            startPos: trueStartPos,
+            endPos: trueStartPos + text.length - 1,
+            href: href || text,
+        };
+    }, []);
+    const labelText = links === null || links === void 0 ? void 0 : links.reduce((acc, { text }, index) => acc.replace(`LINK${index + 1}`, `<span foreground="#ccccff"><u>${text}</u></span>`), textRaw);
     const label = new NativeLabel(Object.assign(Object.assign({}, rest), { text: labelText }));
-    if (isMarkup) {
-        label.clutter_text.set_use_markup(true);
+    const getHrefAtEventCoordinates = ({ x, y }) => {
+        var _a;
+        const clutterText = label.get_clutter_text();
+        const [success, xTransformed, yTransformed] = clutterText.transform_stage_point(x, y);
+        if (!success)
+            return undefined;
+        const xPosIsValid = xTransformed >= 0 && xTransformed <= clutterText.width;
+        const yPosIsValid = yTransformed >= 0 && yTransformed <= clutterText.height;
+        if (!xPosIsValid || !yPosIsValid)
+            return undefined;
+        const pos = clutterText.coords_to_position(xTransformed, yTransformed);
+        const hrefAtPos = (_a = urlPositions.find(({ startPos, endPos }) => startPos <= pos && endPos >= pos)) === null || _a === void 0 ? void 0 : _a.href;
+        return hrefAtPos;
+    };
+    if (linksIncluded) {
+        label.reactive = true;
+        label.connect("motion-event", (actor, event) => {
+            if (!actor.visible || actor.get_paint_opacity() == 0) {
+                return false;
+            }
+            const [x, y] = event.get_coords();
+            const hrefAtPos = getHrefAtEventCoordinates({ x, y });
+            hrefAtPos
+                ? global.set_cursor(Cursor.POINTING_HAND)
+                : global.unset_cursor();
+            return false;
+        });
+        label.connect("leave-event", () => {
+            global.unset_cursor();
+            return false;
+        });
+        label.connect("button-release-event", (actor, event) => {
+            const [x, y] = event.get_coords();
+            const hrefAtPos = getHrefAtEventCoordinates({ x, y });
+            if (hrefAtPos) {
+                app_info_launch_default_for_uri(hrefAtPos, global.create_app_launch_context());
+            }
+            return false;
+        });
     }
-    links === null || links === void 0 ? void 0 : links.forEach(({ text: linkText, href }, index) => { });
+    if (isMarkup || linksIncluded) {
+        label.clutter_text.set_use_markup(true);
+        label.clutter_text.set_selectable(true);
+    }
     return label;
 };
 
@@ -5811,6 +5870,7 @@ const createDownloadMprisDialog = (props) => {
                 links: [
                     {
                         text: "mpv-mpris plugin",
+                        href: "https://github.com/hoyon/mpv-mpris",
                     },
                 ],
             }),
