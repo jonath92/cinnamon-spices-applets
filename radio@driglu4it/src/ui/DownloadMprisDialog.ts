@@ -57,7 +57,13 @@ export const createDownloadMprisDialog = (props: {
     children: [
       createDialogTitle({ text: "Download Confirmation" }),
       createLabel({
-        text: "The radio applet depends on the mpv-mpris plugin. It is a 3rd party plugin for mpv,\nwhich allows controlling the radio player remotely (e.g. with the sound applet and KDEConnect).\n\nDo you want to proceed the download at your own risk?\n ",
+        text: "The radio applet depends on the LINK1. It is a 3rd party plugin for mpv,\nwhich allows controlling the radio player remotely (e.g. with the sound applet and KDEConnect).\n\nDo you want to proceed the download at your own risk?\n ",
+        links: [
+          {
+            text: "mpv-mpris plugin", 
+
+          },
+        ],
       }),
 
       //   new Label({

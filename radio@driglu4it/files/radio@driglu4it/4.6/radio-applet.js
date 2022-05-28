@@ -5753,11 +5753,13 @@ var Label_rest = (undefined && undefined.__rest) || function (s, e) {
 };
 const { Label: NativeLabel } = imports.gi.St;
 const createLabel = (props) => {
-    const { isMarkup } = props, rest = Label_rest(props, ["isMarkup"]);
-    const label = new NativeLabel(Object.assign({}, rest));
+    const { isMarkup, links = [], text: textRaw } = props, rest = Label_rest(props, ["isMarkup", "links", "text"]);
+    const labelText = links === null || links === void 0 ? void 0 : links.reduce((previous, { text, href }, index) => previous.replace(`LINK${index + 1}`, text), textRaw);
+    const label = new NativeLabel(Object.assign(Object.assign({}, rest), { text: labelText }));
     if (isMarkup) {
         label.clutter_text.set_use_markup(true);
     }
+    links === null || links === void 0 ? void 0 : links.forEach(({ text: linkText, href }, index) => { });
     return label;
 };
 
@@ -5805,7 +5807,12 @@ const createDownloadMprisDialog = (props) => {
         children: [
             createDialogTitle({ text: "Download Confirmation" }),
             createLabel({
-                text: "The radio applet depends on the mpv-mpris plugin. It is a 3rd party plugin for mpv,\nwhich allows controlling the radio player remotely (e.g. with the sound applet and KDEConnect).\n\nDo you want to proceed the download at your own risk?\n ",
+                text: "The radio applet depends on the LINK1. It is a 3rd party plugin for mpv,\nwhich allows controlling the radio player remotely (e.g. with the sound applet and KDEConnect).\n\nDo you want to proceed the download at your own risk?\n ",
+                links: [
+                    {
+                        text: "mpv-mpris plugin",
+                    },
+                ],
             }),
             //   new Label({
             //     text: `The radio applet depends on the 'mpv-mpris' plugin. It is a 3rd party plugin \nfor mpv, which allows controlling the radio player remotely (e.g. with the sound applet and KDEConnect).  \n\nDo you want to proceed the download at your own risk?\n`,
