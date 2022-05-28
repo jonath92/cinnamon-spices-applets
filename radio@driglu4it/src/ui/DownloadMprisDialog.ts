@@ -5,6 +5,7 @@ import {
   createDialogTitle,
 } from "../lib/Dialogs";
 import { createBoxLayout } from "../lib/St/BoxLayout";
+import { createLabel } from "../lib/St/Label";
 const { Button, Icon, Label, Align } = imports.gi.St;
 
 type ButtonAddProps = Partial<imports.gi.St.BoxLayoutChildInitOptions>;
@@ -44,6 +45,8 @@ const createDialogBtn = (props: { label: string; onClick: () => void }) => {
   return btn;
 };
 
+// const downloadMprisPlugin = ()
+
 export const createDownloadMprisDialog = (props: {
   monitor: imports.ui.layout.Monitor;
 }) => {
@@ -53,9 +56,13 @@ export const createDownloadMprisDialog = (props: {
     monitor,
     children: [
       createDialogTitle({ text: "Download Confirmation" }),
-      new Label({
-        text: `The radio applet depends on the 'mpv-mpris' plugin. It is a 3rd party plugin \nfor mpv, which allows controlling the radio player remotely (e.g. with the sound applet and KDEConnect).  \n\nDo you want to proceed the download at your own risk?\n`,
+      createLabel({
+        text: "The radio applet depends on the mpv-mpris plugin. It is a 3rd party plugin for mpv,\nwhich allows controlling the radio player remotely (e.g. with the sound applet and KDEConnect).\n\nDo you want to proceed the download at your own risk?\n ",
       }),
+
+      //   new Label({
+      //     text: `The radio applet depends on the 'mpv-mpris' plugin. It is a 3rd party plugin \nfor mpv, which allows controlling the radio player remotely (e.g. with the sound applet and KDEConnect).  \n\nDo you want to proceed the download at your own risk?\n`,
+      //   }),
       createDialogConfirmationBtnBox({
         children: [
           createDialogBtn({

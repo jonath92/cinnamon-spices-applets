@@ -1,4 +1,4 @@
-const { BoxLayout: NativeBoxLayout, Align, Button } = imports.gi.St;
+const { BoxLayout: NativeBoxLayout } = imports.gi.St;
 
 type BoxLayoutNativeProps = Exclude<
   ConstructorParameters<typeof NativeBoxLayout>[0],

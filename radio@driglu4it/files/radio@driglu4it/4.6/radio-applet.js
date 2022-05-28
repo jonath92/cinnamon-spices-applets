@@ -5378,16 +5378,14 @@ const spawnCommandLinePromise = function (command) {
 
 
 const { find_program_in_path, file_test, FileTest } = imports.gi.GLib;
-const showMprisDialog = () => {
-};
 async function installMpvWithMpris() {
-    const mpvInstalled = find_program_in_path('mpv');
+    const mpvInstalled = find_program_in_path("mpv");
     const mprisPluginDownloaded = file_test(MPRIS_PLUGIN_PATH, FileTest.IS_REGULAR);
     if (!mprisPluginDownloaded) {
         await downloadMrisPluginInteractive();
     }
     if (!mpvInstalled) {
-        const notificationText = `Please ${mprisPluginDownloaded ? '' : 'also'} install the mpv package.`;
+        const notificationText = `Please ${mprisPluginDownloaded ? "" : "also"} install the mpv package.`;
         notify(notificationText);
         await installMpvInteractive();
     }
@@ -5399,21 +5397,21 @@ function installMpvInteractive() {
         const [stderr, stdout, exitCode] = await spawnCommandLinePromise(`
             apturl apt://mpv`);
         // exitCode 0 means sucessfully. See: man apturl
-        return (exitCode === 0) ? resolve() : reject(stderr);
+        return exitCode === 0 ? resolve() : reject(stderr);
     });
 }
 function downloadMrisPluginInteractive() {
     return new Promise(async (resolve, reject) => {
         let [stderr, stdout, exitCode] = await spawnCommandLinePromise(`python3  ${__meta.path}/download-dialog-mpris.py`);
-        if ((stdout === null || stdout === void 0 ? void 0 : stdout.trim()) !== 'Continue') {
+        if ((stdout === null || stdout === void 0 ? void 0 : stdout.trim()) !== "Continue") {
             return reject();
         }
         [stderr, stdout, exitCode] = await spawnCommandLinePromise(`
             wget ${MPRIS_PLUGIN_URL} -O ${MPRIS_PLUGIN_PATH}`);
-        // Wget always prints to stderr - exitcode 0 means it was sucessfull 
+        // Wget always prints to stderr - exitcode 0 means it was sucessfull
         // see:  https://stackoverflow.com/questions/13066518/why-does-wget-output-to-stderr-rather-than-stdout
         // and https://www.gnu.org/software/wget/manual/html_node/Exit-Status.html
-        return (exitCode === 0) ? resolve() : reject(stderr);
+        return exitCode === 0 ? resolve() : reject(stderr);
     });
 }
 
@@ -5443,7 +5441,7 @@ var BoxLayout_rest = (undefined && undefined.__rest) || function (s, e) {
         }
     return t;
 };
-const { BoxLayout: NativeBoxLayout, Align, Button: BoxLayout_Button } = imports.gi.St;
+const { BoxLayout: NativeBoxLayout } = imports.gi.St;
 const createBoxLayout = (props) => {
     const { children } = props, rest = BoxLayout_rest(props, ["children"]);
     const boxLayout = new NativeBoxLayout(Object.assign({}, rest));
@@ -5458,7 +5456,7 @@ const createBoxLayout = (props) => {
 
 ;// CONCATENATED MODULE: ./src/lib/Dialogs.ts
 
-const { Bin: Dialogs_Bin, Button: Dialogs_Button, Label: Dialogs_Label, Align: Dialogs_Align } = imports.gi.St;
+const { Bin: Dialogs_Bin, Button: Dialogs_Button, Label: Dialogs_Label, Align } = imports.gi.St;
 const { pushModal: Dialogs_pushModal, uiGroup: Dialogs_uiGroup } = imports.ui.main;
 const { KEY_Escape: Dialogs_KEY_Escape } = imports.gi.Clutter;
 const createLighbox = (props) => {
@@ -5542,8 +5540,8 @@ const createDialogConfirmationBtnBox = (props) => {
         style: "padding: 0!important; margin: 0!important;",
         vertical: false,
         children: [
-            Object.assign({ actor: children[0], x_align: Dialogs_Align.START }, modalButtonAddProps),
-            Object.assign({ actor: children[1], x_align: Dialogs_Align.END }, modalButtonAddProps),
+            Object.assign({ actor: children[0], x_align: Align.START }, modalButtonAddProps),
+            Object.assign({ actor: children[1], x_align: Align.END }, modalButtonAddProps),
         ],
     });
 };
@@ -5741,7 +5739,30 @@ function createRadioContextMenu(args) {
     return contextMenu;
 }
 
+;// CONCATENATED MODULE: ./src/lib/St/Label.ts
+var Label_rest = (undefined && undefined.__rest) || function (s, e) {
+    var t = {};
+    for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p) && e.indexOf(p) < 0)
+        t[p] = s[p];
+    if (s != null && typeof Object.getOwnPropertySymbols === "function")
+        for (var i = 0, p = Object.getOwnPropertySymbols(s); i < p.length; i++) {
+            if (e.indexOf(p[i]) < 0 && Object.prototype.propertyIsEnumerable.call(s, p[i]))
+                t[p[i]] = s[p[i]];
+        }
+    return t;
+};
+const { Label: NativeLabel } = imports.gi.St;
+const createLabel = (props) => {
+    const { isMarkup } = props, rest = Label_rest(props, ["isMarkup"]);
+    const label = new NativeLabel(Object.assign({}, rest));
+    if (isMarkup) {
+        label.clutter_text.set_use_markup(true);
+    }
+    return label;
+};
+
 ;// CONCATENATED MODULE: ./src/ui/DownloadMprisDialog.ts
+
 
 
 
@@ -5776,39 +5797,19 @@ const DownloadMprisDialog_createDialogBtn = (props) => {
     btn.connect("clicked", onClick);
     return btn;
 };
-// const createConfirmationBtnBox = () => {
-//   return createBoxLayout({
-//     style_class: "modal-dialog-button-box",
-//     vertical: false,
-//     children: [
-//       {
-//         actor: createDialogBtn({
-//           label: "Cancel",
-//           onClick: () => global.log("todo"),
-//         }),
-//         x_align: Align.START,
-//         ...modalButtonAddProps,
-//       },
-//       {
-//         actor: createDialogBtn({
-//           label: "Yes",
-//           onClick: () => global.log("todo"),
-//         }),
-//         x_align: Align.END,
-//         ...modalButtonAddProps,
-//       },
-//     ],
-//   });
-// };
+// const downloadMprisPlugin = ()
 const createDownloadMprisDialog = (props) => {
     const { monitor } = props;
     return createDialog({
         monitor,
         children: [
             createDialogTitle({ text: "Download Confirmation" }),
-            new DownloadMprisDialog_Label({
-                text: `The radio applet depends on the 'mpv-mpris' plugin. It is a 3rd party plugin \nfor mpv, which allows controlling the radio player remotely (e.g. with the sound applet and KDEConnect).  \n\nDo you want to proceed the download at your own risk?\n`,
+            createLabel({
+                text: "The radio applet depends on the mpv-mpris plugin. It is a 3rd party plugin for mpv,\nwhich allows controlling the radio player remotely (e.g. with the sound applet and KDEConnect).\n\nDo you want to proceed the download at your own risk?\n ",
             }),
+            //   new Label({
+            //     text: `The radio applet depends on the 'mpv-mpris' plugin. It is a 3rd party plugin \nfor mpv, which allows controlling the radio player remotely (e.g. with the sound applet and KDEConnect).  \n\nDo you want to proceed the download at your own risk?\n`,
+            //   }),
             createDialogConfirmationBtnBox({
                 children: [
                     DownloadMprisDialog_createDialogBtn({
