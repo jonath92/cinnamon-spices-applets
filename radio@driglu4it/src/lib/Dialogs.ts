@@ -1,8 +1,9 @@
 import { BoxLayoutChild, createBoxLayout } from "./St/BoxLayout";
 
 const { Bin, Button, Label, Align } = imports.gi.St;
-const { pushModal, uiGroup } = imports.ui.main;
+const { pushModal, uiGroup, layoutManager } = imports.ui.main;
 const { KEY_Escape } = imports.gi.Clutter;
+const { disable_unredirect_for_screen } = imports.gi.Meta;
 
 type ButtonAddProps = Partial<imports.gi.St.BoxLayoutChildInitOptions>;
 
@@ -46,8 +47,9 @@ export const createDialog = (props: {
   children: imports.gi.St.Widget[];
   monitor: imports.ui.layout.Monitor;
   destroyOnEsc?: boolean;
+  showLigthbox?: boolean;
 }) => {
-  const { children, monitor, destroyOnEsc = true } = props;
+  const { children, monitor, destroyOnEsc = true, showLigthbox = true } = props;
 
   const dialog = createBoxLayout({
     vertical: true,
@@ -57,14 +59,22 @@ export const createDialog = (props: {
     style: "padding: 15px!important; spacing: 15px!important",
   });
 
-  const lightbox = createLighbox({
-    monitor,
-    destroyOnEsc,
-    child: dialog,
-  });
+  let lightbox: ReturnType<typeof createLighbox> | undefined;
+
+  if (showLigthbox) {
+    lightbox = createLighbox({
+      monitor,
+      destroyOnEsc,
+      child: dialog,
+    });
+  } else {
+    pushModal(dialog);
+    uiGroup.add_child(dialog);
+  }
 
   if (destroyOnEsc) {
     dialog.connect("key-press-event", (_, event) => {
+      global.log("key-press-event-called");
       if (event.get_key_symbol() === KEY_Escape) {
         dialog.destroy();
       }
@@ -72,7 +82,7 @@ export const createDialog = (props: {
     });
   }
 
-  return { ...dialog, destroy: () => lightbox.destroy() };
+  return { ...dialog, destroy: () => lightbox?.destroy() };
 };
 
 export const createDialogBtn = (props: {

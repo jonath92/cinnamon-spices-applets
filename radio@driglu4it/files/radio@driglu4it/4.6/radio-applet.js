@@ -5457,8 +5457,9 @@ const createBoxLayout = (props) => {
 ;// CONCATENATED MODULE: ./src/lib/Dialogs.ts
 
 const { Bin: Dialogs_Bin, Button: Dialogs_Button, Label: Dialogs_Label, Align } = imports.gi.St;
-const { pushModal: Dialogs_pushModal, uiGroup: Dialogs_uiGroup } = imports.ui.main;
+const { pushModal: Dialogs_pushModal, uiGroup: Dialogs_uiGroup, layoutManager: Dialogs_layoutManager } = imports.ui.main;
 const { KEY_Escape: Dialogs_KEY_Escape } = imports.gi.Clutter;
+const { disable_unredirect_for_screen } = imports.gi.Meta;
 const createLighbox = (props) => {
     const { child, monitor: { width: monitorWidth, height: monitorHeight }, destroyOnEsc = true, } = props;
     const lightbox = new Dialogs_Bin({
@@ -5483,7 +5484,7 @@ const createLighbox = (props) => {
     return lightbox;
 };
 const createDialog = (props) => {
-    const { children, monitor, destroyOnEsc = true } = props;
+    const { children, monitor, destroyOnEsc = true, showLigthbox = true } = props;
     const dialog = createBoxLayout({
         vertical: true,
         x_expand: true,
@@ -5491,20 +5492,28 @@ const createDialog = (props) => {
         style_class: "modal-dialog",
         style: "padding: 15px!important; spacing: 15px!important",
     });
-    const lightbox = createLighbox({
-        monitor,
-        destroyOnEsc,
-        child: dialog,
-    });
+    let lightbox;
+    if (showLigthbox) {
+        lightbox = createLighbox({
+            monitor,
+            destroyOnEsc,
+            child: dialog,
+        });
+    }
+    else {
+        Dialogs_pushModal(dialog);
+        Dialogs_uiGroup.add_child(dialog);
+    }
     if (destroyOnEsc) {
         dialog.connect("key-press-event", (_, event) => {
+            global.log("key-press-event-called");
             if (event.get_key_symbol() === Dialogs_KEY_Escape) {
                 dialog.destroy();
             }
             return true;
         });
     }
-    return Object.assign(Object.assign({}, dialog), { destroy: () => lightbox.destroy() });
+    return Object.assign(Object.assign({}, dialog), { destroy: () => lightbox === null || lightbox === void 0 ? void 0 : lightbox.destroy() });
 };
 const createDialogBtn = (props) => {
     const { text, onClick } = props;
