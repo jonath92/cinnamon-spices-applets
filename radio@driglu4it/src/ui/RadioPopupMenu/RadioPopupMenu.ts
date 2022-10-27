@@ -6,6 +6,7 @@ import { createInfoSection } from "../InfoSection"
 import { createSeeker } from "../Seeker"
 import { createVolumeSlider } from "../VolumeSlider"
 import { createChannelList } from "./ChannelList"
+import { createEditChannelMenuSection } from "./EditChannelMenuSection"
 import { createMediaControlToolbar } from "./MediaControlToolbar/MediaControlToolbar"
 
 const { BoxLayout } = imports.gi.St
@@ -39,7 +40,8 @@ export const initRadioPopupMenu = (props: { launcher: imports.gi.St.BoxLayout })
         radioActiveSection.add_child(widget)
     })
 
-    radioPopupMenu.add_child(createChannelList())
+    // radioPopupMenu.add_child(createChannelList())
+    radioPopupMenu.add_child(createEditChannelMenuSection())
     radioPopupMenu.add_child(radioActiveSection)
 
     addPlaybackStatusChangeHandler((newValue) => {

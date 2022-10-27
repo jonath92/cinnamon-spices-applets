@@ -5080,221 +5080,89 @@ function createVolumeSlider() {
     return container;
 }
 
-;// CONCATENATED MODULE: ./src/lib/PopupSubMenu.ts
-
-const { BoxLayout: PopupSubMenu_BoxLayout, Label: PopupSubMenu_Label, Icon: PopupSubMenu_Icon, ScrollView } = imports.gi.St;
-// @ts-ignore
-const { ActorAlign: PopupSubMenu_ActorAlign, Point: PopupSubMenu_Point } = imports.gi.Clutter;
-const { PolicyType } = imports.gi.Gtk;
-function createSubMenu(args) {
-    const { text } = args;
-    const container = new PopupSubMenu_BoxLayout({
+;// CONCATENATED MODULE: ./src/lib/Input.ts
+const { BoxLayout: Input_BoxLayout, Entry, Align, Label: Input_Label } = imports.gi.St;
+const createInput = (props) => {
+    const { labelText, style = '' } = props;
+    const container = new Input_BoxLayout({
         vertical: true,
+        style
     });
-    const label = new PopupSubMenu_Label({
-        text,
+    [
+        new Input_Label({
+            text: labelText,
+            style: "padding-bottom: 10px; padding-left: 2px;",
+        }),
+        new Entry({
+            name: "menu-search-entry",
+            track_hover: true,
+            can_focus: true,
+        }),
+    ].forEach((widget) => {
+        container.add(widget, {
+            x_align: Align.START,
+            y_align: Align.MIDDLE,
+            expand: true,
+        });
     });
-    const triangle = new PopupSubMenu_Icon({
-        style_class: "popup-menu-arrow",
-        icon_name: "pan-end",
-        rotation_angle_z: 90,
-        x_expand: true,
-        x_align: PopupSubMenu_ActorAlign.END,
-        pivot_point: new PopupSubMenu_Point({ x: 0.5, y: 0.5 }),
-        important: true, // without this, it looks ugly on Mint-X Themes
-    });
-    const toggle = new PopupSubMenu_BoxLayout({
-        style_class: "popup-menu-item popup-submenu-menu-item",
-    });
-    createActivWidget({
-        widget: toggle,
-        onActivated: toggleScrollbox,
-    });
-    [label, triangle].forEach((widget) => toggle.add_child(widget));
-    container.add_child(toggle);
-    const scrollbox = new ScrollView({
-        style_class: "popup-sub-menu",
-        vscrollbar_policy: PolicyType.AUTOMATIC,
-        hscrollbar_policy: PolicyType.NEVER,
-    });
-    const box = new PopupSubMenu_BoxLayout({
-        vertical: true,
-    });
-    function toggleScrollbox() {
-        scrollbox.visible ? closeMenu() : openMenu();
-    }
-    function openMenu() {
-        scrollbox.show();
-        triangle.rotation_angle_z = 90;
-    }
-    function closeMenu() {
-        scrollbox.hide();
-        triangle.rotation_angle_z = 0;
-    }
-    // add_child is recommended but doesn't work: https://gitlab.gnome.org/GNOME/gnome-shell/-/issues/3172
-    scrollbox.add_actor(box);
-    [toggle, scrollbox].forEach((widget) => container.add_child(widget));
-    return {
-        /** the container which should be used to add it as child to a parent Actor */
-        actor: container,
-        /** the container which should be used to add children  */
-        box,
-    };
-}
-
-;// CONCATENATED MODULE: ./src/ui/RadioPopupMenu/ChannelMenuItem.ts
-
-
-
-const { BoxLayout: ChannelMenuItem_BoxLayout } = imports.gi.St;
-const playbackIconMap = new Map([
-    ["Playing", PLAY_ICON_NAME],
-    ["Paused", PAUSE_ICON_NAME],
-    ["Loading", LOADING_ICON_NAME],
-    ["Stopped", null]
-]);
-const createMainMenuItem = (props) => {
-    const { channelName, onActivated, onRightClick, initialPlaybackStatus } = props;
-    const mainMenuItem = createSimpleMenuItem({
-        maxCharNumber: MAX_STRING_LENGTH,
-        text: channelName,
-        onActivated,
-        onRightClick
-    });
-    const { startResumeRotation, stopRotation } = createRotateAnimation(mainMenuItem.getIcon());
-    const setPlaybackStatus = (playbackStatus) => {
-        const iconName = playbackIconMap.get(playbackStatus);
-        playbackStatus === 'Loading' ? startResumeRotation() : stopRotation();
-        mainMenuItem.setIconName(iconName);
-    };
-    initialPlaybackStatus && setPlaybackStatus(initialPlaybackStatus);
-    return {
-        actor: mainMenuItem.actor,
-        setPlaybackStatus
-    };
-};
-const createChannelMenuItem = (props) => {
-    const { channelName, onActivated, initialPlaybackStatus, onRemoveClick, onContextMenuOpened } = props;
-    const removeChannelItem = createSimpleMenuItem({
-        text: 'Remove Channel',
-        onActivated: onRemoveClick,
-        iconName: 'edit-delete',
-    });
-    const contextMenuContainer = new ChannelMenuItem_BoxLayout({
-        vertical: true,
-        style: `padding-left:20px;`
-    });
-    contextMenuContainer.add_child(removeChannelItem.actor);
-    const menuItemContainer = new ChannelMenuItem_BoxLayout({ vertical: true });
-    const getContextMenuOpen = () => menuItemContainer.get_child_at_index(1) === contextMenuContainer;
-    const handleMainMenuItemRightClicked = () => {
-        const contextMenuOpen = getContextMenuOpen();
-        if (contextMenuOpen) {
-            closeContextMenu();
-            return;
-        }
-        onContextMenuOpened();
-        menuItemContainer.add_child(contextMenuContainer);
-    };
-    const closeContextMenu = () => {
-        const contextMenuOpen = getContextMenuOpen();
-        if (contextMenuOpen) {
-            menuItemContainer.remove_child(contextMenuContainer);
-        }
-    };
-    const mainMenuItem = createMainMenuItem({
-        channelName,
-        onActivated: () => onActivated(),
-        onRightClick: handleMainMenuItemRightClicked,
-        initialPlaybackStatus
-    });
-    menuItemContainer.add_child(mainMenuItem.actor);
-    return {
-        setPlaybackStatus: mainMenuItem.setPlaybackStatus,
-        actor: menuItemContainer,
-        getChannelName: () => channelName,
-        closeContextMenu
-    };
+    return container;
 };
 
-;// CONCATENATED MODULE: ./src/ui/RadioPopupMenu/ChannelList.ts
+;// CONCATENATED MODULE: ./src/lib/utils.ts
+const { Bin: utils_Bin } = imports.gi.St;
+const getTextColor = () => {
+    let dummyActor = new utils_Bin({
+        style_class: "menu",
+        visible: false,
+    });
+    global.stage.add_child(dummyActor);
+    const foregroundColor = dummyActor.get_theme_node().get_foreground_color();
+    dummyActor.destroy();
+    dummyActor = undefined;
+    return foregroundColor.to_string().substring(0, 7);
+};
+
+;// CONCATENATED MODULE: ./src/ui/RadioPopupMenu/EditChannelMenuSection.ts
 
 
-
-
-
-const { BoxLayout: ChannelList_BoxLayout } = imports.gi.St;
-function createChannelList() {
-    const { getPlaybackStatus, getCurrentChannelName: getCurrentChannel, addChannelChangeHandler, addPlaybackStatusChangeHandler, setUrl } = mpvHandler || {};
-    const { addStationsListChangeHandler, settingsObject } = configs;
-    const subMenu = createSubMenu({ text: 'My Stations' });
-    const getUserStationNames = () => {
-        return settingsObject.userStations.flatMap(station => station.inc ? [station.name] : []);
-    };
-    const findUrl = (channelName) => {
-        const channel = settingsObject.userStations.find(station => station.name === channelName && station.inc);
-        if (!channel)
-            throw new Error(`couldn't find a url for the provided name. That should not have happened :-/`);
-        return channel.url;
-    };
-    const handleChannelRemoveClicked = (channelName) => {
-        const previousStations = configs.settingsObject.userStations;
-        configs.settingsObject.userStations = previousStations.filter((cnl) => cnl.name !== channelName);
-    };
-    // the channelItems are saved here to the map as well as to the container as on the container only the reduced name are shown. Theoretically it therefore couldn't be differentiated between two long channel names with the same first 30 (or so) characters   
-    let channelItems = [];
-    const closeAllChannelContextMenus = (props) => {
-        const { exceptionChannelName } = props || {};
-        channelItems.forEach((channelItem) => {
-            if (channelItem.getChannelName() !== exceptionChannelName) {
-                channelItem.closeContextMenu();
-            }
-        });
-    };
-    const setRefreshList = (names) => {
-        channelItems = [];
-        subMenu.box.destroy_all_children();
-        names.forEach((name, index) => {
-            const channelPlaybackstatus = (name === getCurrentChannel()) ? getPlaybackStatus() : 'Stopped';
-            // TODO: addd this to createChannelMenuItem
-            const channelItemContainer = new ChannelList_BoxLayout({ vertical: true });
-            const channelItem = createChannelMenuItem({
-                channelName: name,
-                onActivated: () => {
-                    closeAllChannelContextMenus();
-                    setUrl(findUrl(name));
-                },
-                initialPlaybackStatus: channelPlaybackstatus,
-                onRemoveClick: () => handleChannelRemoveClicked(name),
-                onContextMenuOpened: () => closeAllChannelContextMenus({ exceptionChannelName: name })
-            });
-            channelItemContainer.add_child(channelItem.actor);
-            channelItems.push(channelItem);
-            subMenu.box.add_child(channelItemContainer);
-        });
-    };
-    function updateChannel(name) {
-        channelItems.forEach(item => {
-            item.getChannelName() === name ? item.setPlaybackStatus(getPlaybackStatus()) : item.setPlaybackStatus('Stopped');
-        });
-    }
-    function updatePlaybackStatus(playbackStatus) {
-        if (playbackStatus === 'Stopped')
-            channelItems.forEach(item => item.setPlaybackStatus('Stopped'));
-        const currentChannel = channelItems.find(channelItem => channelItem.getChannelName() === getCurrentChannel());
-        currentChannel === null || currentChannel === void 0 ? void 0 : currentChannel.setPlaybackStatus(playbackStatus);
-    }
-    setRefreshList(getUserStationNames());
-    addChannelChangeHandler === null || addChannelChangeHandler === void 0 ? void 0 : addChannelChangeHandler((newChannel) => updateChannel(newChannel));
-    addPlaybackStatusChangeHandler((newStatus) => updatePlaybackStatus(newStatus));
-    addStationsListChangeHandler(() => setRefreshList(getUserStationNames()));
-    radioPopupMenu.addPopupMenuCloseHandler(() => closeAllChannelContextMenus());
-    return subMenu.actor;
-}
+const { BoxLayout: EditChannelMenuSection_BoxLayout, Entry: EditChannelMenuSection_Entry, Align: EditChannelMenuSection_Align, Label: EditChannelMenuSection_Label, Button, Widget } = imports.gi.St;
+const { GridLayout } = imports.gi.Clutter;
+const createEditChannelMenuSection = () => {
+    const box = new EditChannelMenuSection_BoxLayout({
+        vertical: true,
+        style: "padding: 6px;",
+    });
+    const confirmButton = new Button({
+        child: new EditChannelMenuSection_Label({ text: "Confirm" }),
+        track_hover: true,
+        can_focus: true,
+        x_expand: false,
+        x_align: EditChannelMenuSection_Align.END,
+        style: `border: solid 1px ${getTextColor()}; margin-top: 12px`,
+        style_class: "popup-menu-item",
+    });
+    confirmButton.connect("notify::hover", () => {
+        confirmButton.change_style_pseudo_class("active", confirmButton.hover);
+    });
+    [
+        createInput({ labelText: "Name", style: 'padding-bottom: 10px;' }),
+        createInput({ labelText: "Url" }),
+    ].forEach((widget) => {
+        box.add(widget);
+    });
+    box.add(confirmButton, {
+        x_align: EditChannelMenuSection_Align.END,
+        y_align: EditChannelMenuSection_Align.START,
+        x_fill: false,
+        y_fill: false,
+        expand: false,
+    });
+    return box;
+};
 
 ;// CONCATENATED MODULE: ./src/ui/RadioPopupMenu/MediaControlToolbar/ControlBtn.ts
 
-const { Button, Icon: ControlBtn_Icon, IconType: ControlBtn_IconType } = imports.gi.St;
+const { Button: ControlBtn_Button, Icon: ControlBtn_Icon, IconType: ControlBtn_IconType } = imports.gi.St;
 const { Tooltip: ControlBtn_Tooltip } = imports.ui.tooltips;
 function createControlBtn(args) {
     const { iconName, tooltipTxt, onClick } = args;
@@ -5303,7 +5171,7 @@ function createControlBtn(args) {
         icon_name: iconName || '',
         style_class: 'popup-menu-icon' // this specifies the icon-size
     });
-    const btn = new Button({
+    const btn = new ControlBtn_Button({
         reactive: true,
         can_focus: true,
         // It is challenging to get a reasonable style on all themes. I have tried using the 'sound-player-overlay' class but didn't get it working. However might be possible anyway.  
@@ -5480,7 +5348,8 @@ const initRadioPopupMenu = (props) => {
         radioActiveSection.add_child(createSeparatorMenuItem());
         radioActiveSection.add_child(widget);
     });
-    radioPopupMenu.add_child(createChannelList());
+    // radioPopupMenu.add_child(createChannelList())
+    radioPopupMenu.add_child(createEditChannelMenuSection());
     radioPopupMenu.add_child(radioActiveSection);
     addPlaybackStatusChangeHandler((newValue) => {
         radioActiveSection.visible = newValue !== 'Stopped';
