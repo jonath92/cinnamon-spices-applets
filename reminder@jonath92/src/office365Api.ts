@@ -102,8 +102,10 @@ export class Office365Api implements CalendarApi {
             ...clientIDSecret, 
             grant_type: 'authorization_code', 
             code: this.authorizatonCode, 
-            redirect_uri: 'http://localhost:8080' 
+            redirect_uri: 'http://localhost:8080'  
         }
+
+        log(`tokenRequest, ${JSON.stringify(tokenRequest)}`)
 
  
         const requestParams: LoadJsonArgs<TokenRequest>  = {
@@ -121,7 +123,7 @@ export class Office365Api implements CalendarApi {
             const response = await loadJsonAsync<TokenResponse>(requestParams)
 
             // TODO: better error handling
-           // global.log('response', response)
+           log(`response: ${JSON.stringify(response)}`)
 
             const { access_token, refresh_token } = response
 

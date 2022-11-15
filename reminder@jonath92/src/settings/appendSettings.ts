@@ -1,4 +1,4 @@
-import { logInfo } from "Logger";
+// import { logInfo } from "Logger";
 import { Office365Api } from "office365Api";
 import { Account, loadSettingsFromFile, saveSettingsToFile } from "utils";
 
@@ -10,7 +10,7 @@ export async function addAccountToSettings(account: AccountWithAuthorizationCode
     const {authCode, ...otherAccProps} = account
     const settings = loadSettingsFromFile()
 
-    logInfo('add Account to Settings called')
+    log('add Account to Settings called')
 
 
     const office365Api = new Office365Api({
@@ -27,7 +27,7 @@ export async function addAccountToSettings(account: AccountWithAuthorizationCode
         mail
     })
 
-    logInfo(mail)
+    global.log(mail)
 
     saveSettingsToFile(settings)
 }

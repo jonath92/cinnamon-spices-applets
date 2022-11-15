@@ -11,6 +11,7 @@ const { Bytes, PRIORITY_DEFAULT } = imports.gi.GLib
 
 // const DEBUG_FILE_EXIST = file_new_for_path(APPLET_PATH + './DEBUG').query_exists(null)
 
+// @ts-ignore
 const LOG_PREFIX = `[${META.uuid}]:`
 
 // This is the process that we'll be running
@@ -50,6 +51,7 @@ let stdinStream: imports.gi.Gio.OutputStream | undefined
 try {
 
     log('inside try block')
+    // @ts-ignore
     const proc = Subprocess.new(
         ['bash', '-c', script],
         (SubprocessFlags.STDIN_PIPE | SubprocessFlags.STDOUT_PIPE)
@@ -70,6 +72,7 @@ try {
 
         // Get the `stdin`and `stdout` pipes, wrapping `stdout` to make it easier to
     // read lines of text
+    // @ts-ignore
     stdinStream = proc.get_stdin_pipe();
 
 

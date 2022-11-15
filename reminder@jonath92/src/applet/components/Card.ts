@@ -20,6 +20,7 @@ export function createCard(args: Arguments) {
         style_class: 'notification-applet-padding',
     })
 
+    // @ts-ignore
     button.connect('button-press-event', () => {
         spawnCommandLine(`xdg-open ${onlineMeetingUrl}`)
     })

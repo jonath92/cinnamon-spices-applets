@@ -14,6 +14,7 @@ export function monitorSettingsFile() {
         // TODO: validate file
         // TODO: not really a string :O
         const newSettingsString = file.load_contents(null)[1]
+        // @ts-ignore
         const newSettings: Settings = JSON.parse(newSettingsString)
         dispatch(settingsFileChanged(newSettings))
     })

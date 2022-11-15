@@ -23,6 +23,7 @@ export function loadSettingsFromFile(): Settings {
 
     try {
         const [success, contents] = settingsFile.load_contents(null)
+        // @ts-ignore
         settings = JSON.parse(contents)
         // TODO: validate settings
     } catch (error) {

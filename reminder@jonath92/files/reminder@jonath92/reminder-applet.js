@@ -71,11 +71,13 @@ var reminderApplet;
                     var freeSpaceHeight = (freeSpace.bottom - freeSpace.top) / global.ui_scale;
                     var boxThemeNode = box.get_theme_node();
                     var binThemeNode = bin.get_theme_node();
-                    var paddingTop = boxThemeNode.get_padding(Side.TOP);
-                    var paddingBottom = boxThemeNode.get_padding(Side.BOTTOM);
-                    var borderWidthTop = binThemeNode.get_border_width(Side.TOP);
-                    var borderWidthBottom = binThemeNode.get_border_width(Side.BOTTOM);
-                    var maxHeight = freeSpaceHeight - paddingBottom - paddingTop - borderWidthTop - borderWidthBottom;
+                    var paddingTopBox = boxThemeNode.get_padding(Side.TOP);
+                    var paddingBottomBox = boxThemeNode.get_padding(Side.BOTTOM);
+                    var borderWidthTopBin = binThemeNode.get_border_width(Side.TOP);
+                    var borderWidthBottomBIN = binThemeNode.get_border_width(Side.BOTTOM);
+                    var paddingTopBin = binThemeNode.get_padding(Side.TOP);
+                    var paddingBottomBin = binThemeNode.get_padding(Side.BOTTOM);
+                    var maxHeight = freeSpaceHeight - paddingBottomBox - paddingTopBox - borderWidthTopBin - borderWidthBottomBIN - paddingTopBin - paddingBottomBin;
                     return maxHeight;
                 }
                 function calculatePosition(maxHeight, freeSpace) {
@@ -4735,6 +4737,13 @@ var reminderApplet;
                         return [ ...result, [ encode(key, options), "[]=", encode(value, options) ].join("") ];
                     };
 
+                  case "colon-list-separator":
+                    return key => (result, value) => {
+                        if (void 0 === value || options.skipNull && null === value || options.skipEmptyString && "" === value) return result;
+                        if (null === value) return [ ...result, [ encode(key, options), ":list=" ].join("") ];
+                        return [ ...result, [ encode(key, options), ":list=", encode(value, options) ].join("") ];
+                    };
+
                   case "comma":
                   case "separator":
                   case "bracket-separator":
@@ -4775,6 +4784,21 @@ var reminderApplet;
                     return (key, value, accumulator) => {
                         result = /(\[\])$/.exec(key);
                         key = key.replace(/\[\]$/, "");
+                        if (!result) {
+                            accumulator[key] = value;
+                            return;
+                        }
+                        if (void 0 === accumulator[key]) {
+                            accumulator[key] = [ value ];
+                            return;
+                        }
+                        accumulator[key] = [].concat(accumulator[key], value);
+                    };
+
+                  case "colon-list-separator":
+                    return (key, value, accumulator) => {
+                        result = /(:list)$/.exec(key);
+                        key = key.replace(/:list$/, "");
                         if (!result) {
                             accumulator[key] = value;
                             return;
@@ -5049,47 +5073,48 @@ var reminderApplet;
             messageSource.notify(notification);
         }
         function n(n) {
-            for (var t = arguments.length, r = Array(t > 1 ? t - 1 : 0), e = 1; e < t; e++) r[e - 1] = arguments[e];
+            for (var r = arguments.length, t = Array(r > 1 ? r - 1 : 0), e = 1; e < r; e++) t[e - 1] = arguments[e];
             if (false) ;
-            throw Error("[Immer] minified error nr: " + n + (r.length ? " " + r.map((function(n) {
+            throw Error("[Immer] minified error nr: " + n + (t.length ? " " + t.map((function(n) {
                 return "'" + n + "'";
             })).join(",") : "") + ". Find the full error at: https://bit.ly/3cXEKWf");
         }
-        function t(n) {
+        function r(n) {
             return !!n && !!n[Q];
         }
-        function r(n) {
+        function t(n) {
+            var r;
             return !!n && (function(n) {
                 if (!n || "object" != typeof n) return !1;
-                var t = Object.getPrototypeOf(n);
-                if (null === t) return !0;
-                var r = Object.hasOwnProperty.call(t, "constructor") && t.constructor;
-                return r === Object || "function" == typeof r && Function.toString.call(r) === Z;
-            }(n) || Array.isArray(n) || !!n[L] || !!n.constructor[L] || s(n) || v(n));
+                var r = Object.getPrototypeOf(n);
+                if (null === r) return !0;
+                var t = Object.hasOwnProperty.call(r, "constructor") && r.constructor;
+                return t === Object || "function" == typeof t && Function.toString.call(t) === Z;
+            }(n) || Array.isArray(n) || !!n[L] || !!(null === (r = n.constructor) || void 0 === r ? void 0 : r[L]) || s(n) || v(n));
         }
-        function i(n, t, r) {
-            void 0 === r && (r = !1), 0 === o(n) ? (r ? Object.keys : nn)(n).forEach((function(e) {
-                r && "symbol" == typeof e || t(e, n[e], n);
-            })) : n.forEach((function(r, e) {
-                return t(e, r, n);
+        function i(n, r, t) {
+            void 0 === t && (t = !1), 0 === o(n) ? (t ? Object.keys : nn)(n).forEach((function(e) {
+                t && "symbol" == typeof e || r(e, n[e], n);
+            })) : n.forEach((function(t, e) {
+                return r(e, t, n);
             }));
         }
         function o(n) {
-            var t = n[Q];
-            return t ? t.i > 3 ? t.i - 4 : t.i : Array.isArray(n) ? 1 : s(n) ? 2 : v(n) ? 3 : 0;
+            var r = n[Q];
+            return r ? r.i > 3 ? r.i - 4 : r.i : Array.isArray(n) ? 1 : s(n) ? 2 : v(n) ? 3 : 0;
         }
-        function u(n, t) {
-            return 2 === o(n) ? n.has(t) : Object.prototype.hasOwnProperty.call(n, t);
+        function u(n, r) {
+            return 2 === o(n) ? n.has(r) : Object.prototype.hasOwnProperty.call(n, r);
         }
-        function a(n, t) {
-            return 2 === o(n) ? n.get(t) : n[t];
+        function a(n, r) {
+            return 2 === o(n) ? n.get(r) : n[r];
         }
-        function f(n, t, r) {
+        function f(n, r, t) {
             var e = o(n);
-            2 === e ? n.set(t, r) : 3 === e ? (n.delete(t), n.add(r)) : n[t] = r;
+            2 === e ? n.set(r, t) : 3 === e ? (n.delete(r), n.add(t)) : n[r] = t;
         }
-        function c(n, t) {
-            return n === t ? 0 !== n || 1 / n == 1 / t : n != n && t != t;
+        function c(n, r) {
+            return n === r ? 0 !== n || 1 / n == 1 / r : n != n && r != r;
         }
         function s(n) {
             return X && n instanceof Map;
@@ -5102,23 +5127,23 @@ var reminderApplet;
         }
         function l(n) {
             if (Array.isArray(n)) return Array.prototype.slice.call(n);
-            var t = tn(n);
-            delete t[Q];
-            for (var r = nn(t), e = 0; e < r.length; e++) {
-                var i = r[e], o = t[i];
-                !1 === o.writable && (o.writable = !0, o.configurable = !0), (o.get || o.set) && (t[i] = {
+            var r = rn(n);
+            delete r[Q];
+            for (var t = nn(r), e = 0; e < t.length; e++) {
+                var i = t[e], o = r[i];
+                !1 === o.writable && (o.writable = !0, o.configurable = !0), (o.get || o.set) && (r[i] = {
                     configurable: !0,
                     writable: !0,
                     enumerable: o.enumerable,
                     value: n[i]
                 });
             }
-            return Object.create(Object.getPrototypeOf(n), t);
+            return Object.create(Object.getPrototypeOf(n), r);
         }
         function d(n, e) {
-            return void 0 === e && (e = !1), y(n) || t(n) || !r(n) ? n : (o(n) > 1 && (n.set = n.add = n.clear = n.delete = h), 
-            Object.freeze(n), e && i(n, (function(n, t) {
-                return d(t, !0);
+            return void 0 === e && (e = !1), y(n) || r(n) || !t(n) ? n : (o(n) > 1 && (n.set = n.add = n.clear = n.delete = h), 
+            Object.freeze(n), e && i(n, (function(n, r) {
+                return d(r, !0);
             }), !0), n);
         }
         function h() {
@@ -5127,18 +5152,18 @@ var reminderApplet;
         function y(n) {
             return null == n || "object" != typeof n || Object.isFrozen(n);
         }
-        function b(t) {
-            var r = rn[t];
-            return r || n(18, t), r;
+        function b(r) {
+            var t = tn[r];
+            return t || n(18, r), t;
         }
-        function m(n, t) {
-            rn[n] || (rn[n] = t);
+        function m(n, r) {
+            tn[n] || (tn[n] = r);
         }
         function _() {
             return true || 0, U;
         }
-        function j(n, t) {
-            t && (b("Patches"), n.u = [], n.s = [], n.v = t);
+        function j(n, r) {
+            r && (b("Patches"), n.u = [], n.s = [], n.v = r);
         }
         function O(n) {
             g(n), n.p.forEach(S), n.p = null;
@@ -5156,56 +5181,56 @@ var reminderApplet;
             };
         }
         function S(n) {
-            var t = n[Q];
-            0 === t.i || 1 === t.i ? t.j() : t.O = !0;
+            var r = n[Q];
+            0 === r.i || 1 === r.i ? r.j() : r.O = !0;
         }
-        function P(t, e) {
+        function P(r, e) {
             e._ = e.p.length;
-            var i = e.p[0], o = void 0 !== t && t !== i;
-            return e.h.g || b("ES5").S(e, t, o), o ? (i[Q].P && (O(e), n(4)), r(t) && (t = M(e, t), 
-            e.l || x(e, t)), e.u && b("Patches").M(i[Q], t, e.u, e.s)) : t = M(e, i, []), O(e), 
-            e.u && e.v(e.u, e.s), t !== H ? t : void 0;
+            var i = e.p[0], o = void 0 !== r && r !== i;
+            return e.h.g || b("ES5").S(e, r, o), o ? (i[Q].P && (O(e), n(4)), t(r) && (r = M(e, r), 
+            e.l || x(e, r)), e.u && b("Patches").M(i[Q].t, r, e.u, e.s)) : r = M(e, i, []), 
+            O(e), e.u && e.v(e.u, e.s), r !== H ? r : void 0;
         }
-        function M(n, t, r) {
-            if (y(t)) return t;
-            var e = t[Q];
-            if (!e) return i(t, (function(i, o) {
-                return A(n, e, t, i, o, r);
-            }), !0), t;
-            if (e.A !== n) return t;
+        function M(n, r, t) {
+            if (y(r)) return r;
+            var e = r[Q];
+            if (!e) return i(r, (function(i, o) {
+                return A(n, e, r, i, o, t);
+            }), !0), r;
+            if (e.A !== n) return r;
             if (!e.P) return x(n, e.t, !0), e.t;
             if (!e.I) {
                 e.I = !0, e.A._--;
                 var o = 4 === e.i || 5 === e.i ? e.o = l(e.k) : e.o;
-                i(3 === e.i ? new Set(o) : o, (function(t, i) {
-                    return A(n, e, o, t, i, r);
-                })), x(n, o, !1), r && n.u && b("Patches").R(e, r, n.u, n.s);
+                i(3 === e.i ? new Set(o) : o, (function(r, i) {
+                    return A(n, e, o, r, i, t);
+                })), x(n, o, !1), t && n.u && b("Patches").R(e, t, n.u, n.s);
             }
             return e.o;
         }
         function A(e, i, o, a, c, s) {
-            if (false && 0, t(c)) {
+            if (false && 0, r(c)) {
                 var v = M(e, c, s && i && 3 !== i.i && !u(i.D, a) ? s.concat(a) : void 0);
-                if (f(o, a, v), !t(v)) return;
+                if (f(o, a, v), !r(v)) return;
                 e.m = !1;
             }
-            if (r(c) && !y(c)) {
+            if (t(c) && !y(c)) {
                 if (!e.h.F && e._ < 1) return;
                 M(e, c), i && i.A.l || x(e, c);
             }
         }
-        function x(n, t, r) {
-            void 0 === r && (r = !1), n.h.F && n.m && d(t, r);
+        function x(n, r, t) {
+            void 0 === t && (t = !1), n.h.F && n.m && d(r, t);
         }
-        function z(n, t) {
-            var r = n[Q];
-            return (r ? p(r) : n)[t];
+        function z(n, r) {
+            var t = n[Q];
+            return (t ? p(t) : n)[r];
         }
-        function I(n, t) {
-            if (t in n) for (var r = Object.getPrototypeOf(n); r; ) {
-                var e = Object.getOwnPropertyDescriptor(r, t);
+        function I(n, r) {
+            if (r in n) for (var t = Object.getPrototypeOf(n); t; ) {
+                var e = Object.getOwnPropertyDescriptor(t, r);
                 if (e) return e;
-                r = Object.getPrototypeOf(r);
+                t = Object.getPrototypeOf(t);
             }
         }
         function k(n) {
@@ -5214,42 +5239,42 @@ var reminderApplet;
         function E(n) {
             n.o || (n.o = l(n.t));
         }
-        function R(n, t, r) {
-            var e = s(t) ? b("MapSet").N(t, r) : v(t) ? b("MapSet").T(t, r) : n.g ? function(n, t) {
-                var r = Array.isArray(n), e = {
-                    i: r ? 1 : 0,
-                    A: t ? t.A : _(),
+        function R(n, r, t) {
+            var e = s(r) ? b("MapSet").N(r, t) : v(r) ? b("MapSet").T(r, t) : n.g ? function(n, r) {
+                var t = Array.isArray(n), e = {
+                    i: t ? 1 : 0,
+                    A: r ? r.A : _(),
                     P: !1,
                     I: !1,
                     D: {},
-                    l: t,
+                    l: r,
                     t: n,
                     k: null,
                     o: null,
                     j: null,
                     C: !1
                 }, i = e, o = en;
-                r && (i = [ e ], o = on);
+                t && (i = [ e ], o = on);
                 var u = Proxy.revocable(i, o), a = u.revoke, f = u.proxy;
                 return e.k = f, e.j = a, f;
-            }(t, r) : b("ES5").J(t, r);
-            return (r ? r.A : _()).p.push(e), e;
+            }(r, t) : b("ES5").J(r, t);
+            return (t ? t.A : _()).p.push(e), e;
         }
         function D(e) {
-            return t(e) || n(22, e), function n(t) {
-                if (!r(t)) return t;
-                var e, u = t[Q], c = o(t);
+            return r(e) || n(22, e), function n(r) {
+                if (!t(r)) return r;
+                var e, u = r[Q], c = o(r);
                 if (u) {
                     if (!u.P && (u.i < 4 || !b("ES5").K(u))) return u.t;
-                    u.I = !0, e = F(t, c), u.I = !1;
-                } else e = F(t, c);
-                return i(e, (function(t, r) {
-                    u && a(u.t, t) === r || f(e, t, n(r));
+                    u.I = !0, e = F(r, c), u.I = !1;
+                } else e = F(r, c);
+                return i(e, (function(r, t) {
+                    u && a(u.t, r) === t || f(e, r, n(t));
                 })), 3 === c ? new Set(e) : e;
             }(e);
         }
-        function F(n, t) {
-            switch (t) {
+        function F(n, r) {
+            switch (r) {
               case 2:
                 return new Map(n);
 
@@ -5259,75 +5284,77 @@ var reminderApplet;
             return l(n);
         }
         function N() {
-            function r(n, t) {
-                var r = s[n];
-                return r ? r.enumerable = t : s[n] = r = {
+            function t(n, r) {
+                var t = s[n];
+                return t ? t.enumerable = r : s[n] = t = {
                     configurable: !0,
-                    enumerable: t,
+                    enumerable: r,
                     get: function() {
-                        var t = this[Q];
-                        return false && 0, en.get(t, n);
-                    },
-                    set: function(t) {
                         var r = this[Q];
-                        false && 0, en.set(r, n, t);
+                        return false && 0, en.get(r, n);
+                    },
+                    set: function(r) {
+                        var t = this[Q];
+                        false && 0, en.set(t, n, r);
                     }
-                }, r;
+                }, t;
             }
             function e(n) {
-                for (var t = n.length - 1; t >= 0; t--) {
-                    var r = n[t][Q];
-                    if (!r.P) switch (r.i) {
+                for (var r = n.length - 1; r >= 0; r--) {
+                    var t = n[r][Q];
+                    if (!t.P) switch (t.i) {
                       case 5:
-                        a(r) && k(r);
+                        a(t) && k(t);
                         break;
 
                       case 4:
-                        o(r) && k(r);
+                        o(t) && k(t);
                     }
                 }
             }
             function o(n) {
-                for (var t = n.t, r = n.k, e = nn(r), i = e.length - 1; i >= 0; i--) {
+                for (var r = n.t, t = n.k, e = nn(t), i = e.length - 1; i >= 0; i--) {
                     var o = e[i];
                     if (o !== Q) {
-                        var a = t[o];
-                        if (void 0 === a && !u(t, o)) return !0;
-                        var f = r[o], s = f && f[Q];
+                        var a = r[o];
+                        if (void 0 === a && !u(r, o)) return !0;
+                        var f = t[o], s = f && f[Q];
                         if (s ? s.t !== a : !c(f, a)) return !0;
                     }
                 }
-                var v = !!t[Q];
-                return e.length !== nn(t).length + (v ? 0 : 1);
+                var v = !!r[Q];
+                return e.length !== nn(r).length + (v ? 0 : 1);
             }
             function a(n) {
-                var t = n.k;
-                if (t.length !== n.t.length) return !0;
-                var r = Object.getOwnPropertyDescriptor(t, t.length - 1);
-                return !(!r || r.get);
+                var r = n.k;
+                if (r.length !== n.t.length) return !0;
+                var t = Object.getOwnPropertyDescriptor(r, r.length - 1);
+                if (t && !t.get) return !0;
+                for (var e = 0; e < r.length; e++) if (!r.hasOwnProperty(e)) return !0;
+                return !1;
             }
             var s = {};
             m("ES5", {
-                J: function(n, t) {
-                    var e = Array.isArray(n), i = function(n, t) {
+                J: function(n, r) {
+                    var e = Array.isArray(n), i = function(n, r) {
                         if (n) {
-                            for (var e = Array(t.length), i = 0; i < t.length; i++) Object.defineProperty(e, "" + i, r(i, !0));
+                            for (var e = Array(r.length), i = 0; i < r.length; i++) Object.defineProperty(e, "" + i, t(i, !0));
                             return e;
                         }
-                        var o = tn(t);
+                        var o = rn(r);
                         delete o[Q];
                         for (var u = nn(o), a = 0; a < u.length; a++) {
                             var f = u[a];
-                            o[f] = r(f, n || !!o[f].enumerable);
+                            o[f] = t(f, n || !!o[f].enumerable);
                         }
-                        return Object.create(Object.getPrototypeOf(t), o);
+                        return Object.create(Object.getPrototypeOf(r), o);
                     }(e, n), o = {
                         i: e ? 5 : 4,
-                        A: t ? t.A : _(),
+                        A: r ? r.A : _(),
                         P: !1,
                         I: !1,
                         D: {},
-                        l: t,
+                        l: r,
                         t: n,
                         k: i,
                         o: null,
@@ -5339,19 +5366,20 @@ var reminderApplet;
                         writable: !0
                     }), i;
                 },
-                S: function(n, r, o) {
-                    o ? t(r) && r[Q].A === n && e(n.p) : (n.u && function n(t) {
-                        if (t && "object" == typeof t) {
-                            var r = t[Q];
-                            if (r) {
-                                var e = r.t, o = r.k, f = r.D, c = r.i;
-                                if (4 === c) i(o, (function(t) {
-                                    t !== Q && (void 0 !== e[t] || u(e, t) ? f[t] || n(o[t]) : (f[t] = !0, k(r)));
+                S: function(n, t, o) {
+                    o ? r(t) && t[Q].A === n && e(n.p) : (n.u && function n(r) {
+                        if (r && "object" == typeof r) {
+                            var t = r[Q];
+                            if (t) {
+                                var e = t.t, o = t.k, f = t.D, c = t.i;
+                                if (4 === c) i(o, (function(r) {
+                                    r !== Q && (void 0 !== e[r] || u(e, r) ? f[r] || n(o[r]) : (f[r] = !0, k(t)));
                                 })), i(e, (function(n) {
-                                    void 0 !== o[n] || u(o, n) || (f[n] = !1, k(r));
+                                    void 0 !== o[n] || u(o, n) || (f[n] = !1, k(t));
                                 })); else if (5 === c) {
-                                    if (a(r) && (k(r), f.length = !0), o.length < e.length) for (var s = o.length; s < e.length; s++) f[s] = !1; else for (var v = e.length; v < o.length; v++) f[v] = !0;
-                                    for (var p = Math.min(o.length, e.length), l = 0; l < p; l++) void 0 === f[l] && n(o[l]);
+                                    if (a(t) && (k(t), f.length = !0), o.length < e.length) for (var s = o.length; s < e.length; s++) f[s] = !1; else for (var v = e.length; v < o.length; v++) f[v] = !0;
+                                    for (var p = Math.min(o.length, e.length), l = 0; l < p; l++) o.hasOwnProperty(l) || (f[l] = !0), 
+                                    void 0 === f[l] && n(o[l]);
                                 }
                             }
                         }
@@ -5366,51 +5394,51 @@ var reminderApplet;
         G), L = W ? Symbol.for("immer-draftable") : "__$immer_draftable", Q = W ? Symbol.for("immer-state") : "__$immer_state", Z = ("undefined" != typeof Symbol && Symbol.iterator, 
         "" + Object.prototype.constructor), nn = "undefined" != typeof Reflect && Reflect.ownKeys ? Reflect.ownKeys : void 0 !== Object.getOwnPropertySymbols ? function(n) {
             return Object.getOwnPropertyNames(n).concat(Object.getOwnPropertySymbols(n));
-        } : Object.getOwnPropertyNames, tn = Object.getOwnPropertyDescriptors || function(n) {
-            var t = {};
-            return nn(n).forEach((function(r) {
-                t[r] = Object.getOwnPropertyDescriptor(n, r);
-            })), t;
-        }, rn = {}, en = {
-            get: function(n, t) {
-                if (t === Q) return n;
+        } : Object.getOwnPropertyNames, rn = Object.getOwnPropertyDescriptors || function(n) {
+            var r = {};
+            return nn(n).forEach((function(t) {
+                r[t] = Object.getOwnPropertyDescriptor(n, t);
+            })), r;
+        }, tn = {}, en = {
+            get: function(n, r) {
+                if (r === Q) return n;
                 var e = p(n);
-                if (!u(e, t)) return function(n, t, r) {
-                    var e, i = I(t, r);
+                if (!u(e, r)) return function(n, r, t) {
+                    var e, i = I(r, t);
                     return i ? "value" in i ? i.value : null === (e = i.get) || void 0 === e ? void 0 : e.call(n.k) : void 0;
-                }(n, e, t);
-                var i = e[t];
-                return n.I || !r(i) ? i : i === z(n.t, t) ? (E(n), n.o[t] = R(n.A.h, i, n)) : i;
+                }(n, e, r);
+                var i = e[r];
+                return n.I || !t(i) ? i : i === z(n.t, r) ? (E(n), n.o[r] = R(n.A.h, i, n)) : i;
             },
-            has: function(n, t) {
-                return t in p(n);
+            has: function(n, r) {
+                return r in p(n);
             },
             ownKeys: function(n) {
                 return Reflect.ownKeys(p(n));
             },
-            set: function(n, t, r) {
-                var e = I(p(n), t);
-                if (null == e ? void 0 : e.set) return e.set.call(n.k, r), !0;
+            set: function(n, r, t) {
+                var e = I(p(n), r);
+                if (null == e ? void 0 : e.set) return e.set.call(n.k, t), !0;
                 if (!n.P) {
-                    var i = z(p(n), t), o = null == i ? void 0 : i[Q];
-                    if (o && o.t === r) return n.o[t] = r, n.D[t] = !1, !0;
-                    if (c(r, i) && (void 0 !== r || u(n.t, t))) return !0;
+                    var i = z(p(n), r), o = null == i ? void 0 : i[Q];
+                    if (o && o.t === t) return n.o[r] = t, n.D[r] = !1, !0;
+                    if (c(t, i) && (void 0 !== t || u(n.t, r))) return !0;
                     E(n), k(n);
                 }
-                return n.o[t] === r && "number" != typeof r && (void 0 !== r || t in n.o) || (n.o[t] = r, 
-                n.D[t] = !0, !0);
+                return n.o[r] === t && "number" != typeof t && (void 0 !== t || r in n.o) || (n.o[r] = t, 
+                n.D[r] = !0, !0);
             },
-            deleteProperty: function(n, t) {
-                return void 0 !== z(n.t, t) || t in n.t ? (n.D[t] = !1, E(n), k(n)) : delete n.D[t], 
-                n.o && delete n.o[t], !0;
+            deleteProperty: function(n, r) {
+                return void 0 !== z(n.t, r) || r in n.t ? (n.D[r] = !1, E(n), k(n)) : delete n.D[r], 
+                n.o && delete n.o[r], !0;
             },
-            getOwnPropertyDescriptor: function(n, t) {
-                var r = p(n), e = Reflect.getOwnPropertyDescriptor(r, t);
+            getOwnPropertyDescriptor: function(n, r) {
+                var t = p(n), e = Reflect.getOwnPropertyDescriptor(t, r);
                 return e ? {
                     writable: !0,
-                    configurable: 1 !== n.i || "length" !== t,
+                    configurable: 1 !== n.i || "length" !== r,
                     enumerable: e.enumerable,
-                    value: r[t]
+                    value: t[r]
                 } : e;
             },
             defineProperty: function() {
@@ -5423,37 +5451,37 @@ var reminderApplet;
                 n(12);
             }
         }, on = {};
-        i(en, (function(n, t) {
+        i(en, (function(n, r) {
             on[n] = function() {
-                return arguments[0] = arguments[0][0], t.apply(this, arguments);
+                return arguments[0] = arguments[0][0], r.apply(this, arguments);
             };
-        })), on.deleteProperty = function(t, r) {
-            return false && 0, en.deleteProperty.call(this, t[0], r);
-        }, on.set = function(t, r, e) {
-            return false && 0, en.set.call(this, t[0], r, e, t[0]);
+        })), on.deleteProperty = function(r, t) {
+            return false && 0, on.set.call(this, r, t, void 0);
+        }, on.set = function(r, t, e) {
+            return false && 0, en.set.call(this, r[0], t, e, r[0]);
         };
         var un = function() {
-            function e(t) {
+            function e(r) {
                 var e = this;
-                this.g = B, this.F = !0, this.produce = function(t, i, o) {
-                    if ("function" == typeof t && "function" != typeof i) {
+                this.g = B, this.F = !0, this.produce = function(r, i, o) {
+                    if ("function" == typeof r && "function" != typeof i) {
                         var u = i;
-                        i = t;
+                        i = r;
                         var a = e;
                         return function(n) {
-                            var t = this;
+                            var r = this;
                             void 0 === n && (n = u);
-                            for (var r = arguments.length, e = Array(r > 1 ? r - 1 : 0), o = 1; o < r; o++) e[o - 1] = arguments[o];
+                            for (var t = arguments.length, e = Array(t > 1 ? t - 1 : 0), o = 1; o < t; o++) e[o - 1] = arguments[o];
                             return a.produce(n, (function(n) {
-                                var r;
-                                return (r = i).call.apply(r, [ t, n ].concat(e));
+                                var t;
+                                return (t = i).call.apply(t, [ r, n ].concat(e));
                             }));
                         };
                     }
                     var f;
                     if ("function" != typeof i && n(6), void 0 !== o && "function" != typeof o && n(7), 
-                    r(t)) {
-                        var c = w(e), s = R(e, t, void 0), v = !0;
+                    t(r)) {
+                        var c = w(e), s = R(e, r, void 0), v = !0;
                         try {
                             f = i(s), v = !1;
                         } finally {
@@ -5465,116 +5493,64 @@ var reminderApplet;
                             throw O(c), n;
                         })) : (j(c, o), P(f, c));
                     }
-                    if (!t || "object" != typeof t) {
-                        if ((f = i(t)) === H) return;
-                        return void 0 === f && (f = t), e.F && d(f, !0), f;
+                    if (!r || "object" != typeof r) {
+                        if (void 0 === (f = i(r)) && (f = r), f === H && (f = void 0), e.F && d(f, !0), 
+                        o) {
+                            var p = [], l = [];
+                            b("Patches").M(r, f, p, l), o(p, l);
+                        }
+                        return f;
                     }
-                    n(21, t);
-                }, this.produceWithPatches = function(n, t) {
-                    return "function" == typeof n ? function(t) {
-                        for (var r = arguments.length, i = Array(r > 1 ? r - 1 : 0), o = 1; o < r; o++) i[o - 1] = arguments[o];
-                        return e.produceWithPatches(t, (function(t) {
-                            return n.apply(void 0, [ t ].concat(i));
+                    n(21, r);
+                }, this.produceWithPatches = function(n, r) {
+                    if ("function" == typeof n) return function(r) {
+                        for (var t = arguments.length, i = Array(t > 1 ? t - 1 : 0), o = 1; o < t; o++) i[o - 1] = arguments[o];
+                        return e.produceWithPatches(r, (function(r) {
+                            return n.apply(void 0, [ r ].concat(i));
                         }));
-                    } : [ e.produce(n, t, (function(n, t) {
-                        r = n, i = t;
-                    })), r, i ];
-                    var r, i;
-                }, "boolean" == typeof (null == t ? void 0 : t.useProxies) && this.setUseProxies(t.useProxies), 
-                "boolean" == typeof (null == t ? void 0 : t.autoFreeze) && this.setAutoFreeze(t.autoFreeze);
+                    };
+                    var t, i, o = e.produce(n, r, (function(n, r) {
+                        t = n, i = r;
+                    }));
+                    return "undefined" != typeof Promise && o instanceof Promise ? o.then((function(n) {
+                        return [ n, t, i ];
+                    })) : [ o, t, i ];
+                }, "boolean" == typeof (null == r ? void 0 : r.useProxies) && this.setUseProxies(r.useProxies), 
+                "boolean" == typeof (null == r ? void 0 : r.autoFreeze) && this.setAutoFreeze(r.autoFreeze);
             }
             var i = e.prototype;
             return i.createDraft = function(e) {
-                r(e) || n(8), t(e) && (e = D(e));
+                t(e) || n(8), r(e) && (e = D(e));
                 var i = w(this), o = R(this, e, void 0);
                 return o[Q].C = !0, g(i), o;
-            }, i.finishDraft = function(t, r) {
-                var e = t && t[Q];
+            }, i.finishDraft = function(r, t) {
+                var e = r && r[Q];
                 false && 0;
                 var i = e.A;
-                return j(i, r), P(void 0, i);
+                return j(i, t), P(void 0, i);
             }, i.setAutoFreeze = function(n) {
                 this.F = n;
-            }, i.setUseProxies = function(t) {
-                t && !B && n(20), this.g = t;
-            }, i.applyPatches = function(n, r) {
+            }, i.setUseProxies = function(r) {
+                r && !B && n(20), this.g = r;
+            }, i.applyPatches = function(n, t) {
                 var e;
-                for (e = r.length - 1; e >= 0; e--) {
-                    var i = r[e];
+                for (e = t.length - 1; e >= 0; e--) {
+                    var i = t[e];
                     if (0 === i.path.length && "replace" === i.op) {
                         n = i.value;
                         break;
                     }
                 }
+                e > -1 && (t = t.slice(e + 1));
                 var o = b("Patches").$;
-                return t(n) ? o(n, r) : this.produce(n, (function(n) {
-                    return o(n, r.slice(e + 1));
+                return r(n) ? o(n, t) : this.produce(n, (function(n) {
+                    return o(n, t);
                 }));
             }, e;
         }(), an = new un, fn = an.produce;
         an.produceWithPatches.bind(an), an.setAutoFreeze.bind(an), an.setUseProxies.bind(an), 
         an.applyPatches.bind(an), an.createDraft.bind(an), an.finishDraft.bind(an);
         const immer_esm = fn;
-        function defaultEqualityCheck(a, b) {
-            return a === b;
-        }
-        function areArgumentsShallowlyEqual(equalityCheck, prev, next) {
-            if (null === prev || null === next || prev.length !== next.length) return false;
-            var length = prev.length;
-            for (var i = 0; i < length; i++) if (!equalityCheck(prev[i], next[i])) return false;
-            return true;
-        }
-        function defaultMemoize(func) {
-            var equalityCheck = arguments.length > 1 && void 0 !== arguments[1] ? arguments[1] : defaultEqualityCheck;
-            var lastArgs = null;
-            var lastResult = null;
-            return function() {
-                if (!areArgumentsShallowlyEqual(equalityCheck, lastArgs, arguments)) lastResult = func.apply(null, arguments);
-                lastArgs = arguments;
-                return lastResult;
-            };
-        }
-        function getDependencies(funcs) {
-            var dependencies = Array.isArray(funcs[0]) ? funcs[0] : funcs;
-            if (!dependencies.every((function(dep) {
-                return "function" === typeof dep;
-            }))) {
-                var dependencyTypes = dependencies.map((function(dep) {
-                    return typeof dep;
-                })).join(", ");
-                throw new Error("Selector creators expect all input-selectors to be functions, " + "instead received the following types: [" + dependencyTypes + "]");
-            }
-            return dependencies;
-        }
-        function createSelectorCreator(memoize) {
-            for (var _len = arguments.length, memoizeOptions = Array(_len > 1 ? _len - 1 : 0), _key = 1; _key < _len; _key++) memoizeOptions[_key - 1] = arguments[_key];
-            return function() {
-                for (var _len2 = arguments.length, funcs = Array(_len2), _key2 = 0; _key2 < _len2; _key2++) funcs[_key2] = arguments[_key2];
-                var recomputations = 0;
-                var resultFunc = funcs.pop();
-                var dependencies = getDependencies(funcs);
-                var memoizedResultFunc = memoize.apply(void 0, [ function() {
-                    recomputations++;
-                    return resultFunc.apply(null, arguments);
-                } ].concat(memoizeOptions));
-                var selector = memoize((function() {
-                    var params = [];
-                    var length = dependencies.length;
-                    for (var i = 0; i < length; i++) params.push(dependencies[i].apply(null, arguments));
-                    return memoizedResultFunc.apply(null, params);
-                }));
-                selector.resultFunc = resultFunc;
-                selector.dependencies = dependencies;
-                selector.recomputations = function() {
-                    return recomputations;
-                };
-                selector.resetRecomputations = function() {
-                    return recomputations = 0;
-                };
-                return selector;
-            };
-        }
-        createSelectorCreator(defaultMemoize);
         function _defineProperty(obj, key, value) {
             if (key in obj) Object.defineProperty(obj, key, {
                 value,
@@ -5588,19 +5564,18 @@ var reminderApplet;
             var keys = Object.keys(object);
             if (Object.getOwnPropertySymbols) {
                 var symbols = Object.getOwnPropertySymbols(object);
-                if (enumerableOnly) symbols = symbols.filter((function(sym) {
+                enumerableOnly && (symbols = symbols.filter((function(sym) {
                     return Object.getOwnPropertyDescriptor(object, sym).enumerable;
-                }));
-                keys.push.apply(keys, symbols);
+                }))), keys.push.apply(keys, symbols);
             }
             return keys;
         }
         function _objectSpread2(target) {
             for (var i = 1; i < arguments.length; i++) {
                 var source = null != arguments[i] ? arguments[i] : {};
-                if (i % 2) ownKeys(Object(source), true).forEach((function(key) {
+                i % 2 ? ownKeys(Object(source), !0).forEach((function(key) {
                     _defineProperty(target, key, source[key]);
-                })); else if (Object.getOwnPropertyDescriptors) Object.defineProperties(target, Object.getOwnPropertyDescriptors(source)); else ownKeys(Object(source)).forEach((function(key) {
+                })) : Object.getOwnPropertyDescriptors ? Object.defineProperties(target, Object.getOwnPropertyDescriptors(source)) : ownKeys(Object(source)).forEach((function(key) {
                     Object.defineProperty(target, key, Object.getOwnPropertyDescriptor(source, key));
                 }));
             }
@@ -5809,7 +5784,7 @@ var reminderApplet;
         }
         if (false) ;
         function createThunkMiddleware(extraArgument) {
-            return function(_ref) {
+            var middleware = function(_ref) {
                 var dispatch = _ref.dispatch, getState = _ref.getState;
                 return function(next) {
                     return function(action) {
@@ -5818,6 +5793,7 @@ var reminderApplet;
                     };
                 };
             };
+            return middleware;
         }
         var thunk = createThunkMiddleware();
         thunk.withExtraArgument = createThunkMiddleware;
@@ -5842,14 +5818,102 @@ var reminderApplet;
                 d.prototype = null === b ? Object.create(b) : (__.prototype = b.prototype, new __);
             };
         }();
-        void 0 && (void 0).__generator;
+        var __generator = void 0 && (void 0).__generator || function(thisArg, body) {
+            var f, y, t, g, _ = {
+                label: 0,
+                sent: function() {
+                    if (1 & t[0]) throw t[1];
+                    return t[1];
+                },
+                trys: [],
+                ops: []
+            };
+            return g = {
+                next: verb(0),
+                throw: verb(1),
+                return: verb(2)
+            }, "function" === typeof Symbol && (g[Symbol.iterator] = function() {
+                return this;
+            }), g;
+            function verb(n) {
+                return function(v) {
+                    return step([ n, v ]);
+                };
+            }
+            function step(op) {
+                if (f) throw new TypeError("Generator is already executing.");
+                while (_) try {
+                    if (f = 1, y && (t = 2 & op[0] ? y["return"] : op[0] ? y["throw"] || ((t = y["return"]) && t.call(y), 
+                    0) : y.next) && !(t = t.call(y, op[1])).done) return t;
+                    if (y = 0, t) op = [ 2 & op[0], t.value ];
+                    switch (op[0]) {
+                      case 0:
+                      case 1:
+                        t = op;
+                        break;
+
+                      case 4:
+                        _.label++;
+                        return {
+                            value: op[1],
+                            done: false
+                        };
+
+                      case 5:
+                        _.label++;
+                        y = op[1];
+                        op = [ 0 ];
+                        continue;
+
+                      case 7:
+                        op = _.ops.pop();
+                        _.trys.pop();
+                        continue;
+
+                      default:
+                        if (!(t = _.trys, t = t.length > 0 && t[t.length - 1]) && (6 === op[0] || 2 === op[0])) {
+                            _ = 0;
+                            continue;
+                        }
+                        if (3 === op[0] && (!t || op[1] > t[0] && op[1] < t[3])) {
+                            _.label = op[1];
+                            break;
+                        }
+                        if (6 === op[0] && _.label < t[1]) {
+                            _.label = t[1];
+                            t = op;
+                            break;
+                        }
+                        if (t && _.label < t[2]) {
+                            _.label = t[2];
+                            _.ops.push(op);
+                            break;
+                        }
+                        if (t[2]) _.ops.pop();
+                        _.trys.pop();
+                        continue;
+                    }
+                    op = body.call(thisArg, _);
+                } catch (e) {
+                    op = [ 6, e ];
+                    y = 0;
+                } finally {
+                    f = t = 0;
+                }
+                if (5 & op[0]) throw op[1];
+                return {
+                    value: op[0] ? op[1] : void 0,
+                    done: true
+                };
+            }
+        };
         var __spreadArray = void 0 && (void 0).__spreadArray || function(to, from) {
             for (var i = 0, il = from.length, j = to.length; i < il; i++, j++) to[j] = from[i];
             return to;
         };
         var __defProp = Object.defineProperty;
-        Object.defineProperties;
-        Object.getOwnPropertyDescriptors;
+        var __defProps = Object.defineProperties;
+        var __getOwnPropDescs = Object.getOwnPropertyDescriptors;
         var __getOwnPropSymbols = Object.getOwnPropertySymbols;
         var __hasOwnProp = Object.prototype.hasOwnProperty;
         var __propIsEnum = Object.prototype.propertyIsEnumerable;
@@ -5863,11 +5927,36 @@ var reminderApplet;
         };
         var __spreadValues = function(a, b) {
             for (var prop in b || (b = {})) if (__hasOwnProp.call(b, prop)) __defNormalProp(a, prop, b[prop]);
-            if (__getOwnPropSymbols) for (var _i = 0, _b = __getOwnPropSymbols(b); _i < _b.length; _i++) {
-                prop = _b[_i];
+            if (__getOwnPropSymbols) for (var _i = 0, _c = __getOwnPropSymbols(b); _i < _c.length; _i++) {
+                prop = _c[_i];
                 if (__propIsEnum.call(b, prop)) __defNormalProp(a, prop, b[prop]);
             }
             return a;
+        };
+        var __spreadProps = function(a, b) {
+            return __defProps(a, __getOwnPropDescs(b));
+        };
+        var __async = function(__this, __arguments, generator) {
+            return new Promise((function(resolve, reject) {
+                var fulfilled = function(value) {
+                    try {
+                        step(generator.next(value));
+                    } catch (e) {
+                        reject(e);
+                    }
+                };
+                var rejected = function(value) {
+                    try {
+                        step(generator.throw(value));
+                    } catch (e) {
+                        reject(e);
+                    }
+                };
+                var step = function(x) {
+                    return x.done ? resolve(x.value) : Promise.resolve(x.value).then(fulfilled, rejected);
+                };
+                step((generator = generator.apply(__this, __arguments)).next());
+            }));
         };
         var composeWithDevTools = "undefined" !== typeof window && window.__REDUX_DEVTOOLS_EXTENSION_COMPOSE__ ? window.__REDUX_DEVTOOLS_EXTENSION_COMPOSE__ : function() {
             if (0 === arguments.length) return;
@@ -5877,9 +5966,11 @@ var reminderApplet;
         "undefined" !== typeof window && window.__REDUX_DEVTOOLS_EXTENSION__ && window.__REDUX_DEVTOOLS_EXTENSION__;
         function redux_toolkit_esm_isPlainObject(value) {
             if ("object" !== typeof value || null === value) return false;
-            var proto = value;
-            while (null !== Object.getPrototypeOf(proto)) proto = Object.getPrototypeOf(proto);
-            return Object.getPrototypeOf(value) === proto;
+            var proto = Object.getPrototypeOf(value);
+            if (null === proto) return true;
+            var baseProto = proto;
+            while (null !== Object.getPrototypeOf(baseProto)) baseProto = Object.getPrototypeOf(baseProto);
+            return proto === baseProto;
         }
         var MiddlewareArray = function(_super) {
             __extends(MiddlewareArray, _super);
@@ -5910,6 +6001,9 @@ var reminderApplet;
             };
             return MiddlewareArray;
         }(Array);
+        function freezeDraftable(val) {
+            return t(val) ? immer_esm(val, (function() {})) : val;
+        }
         function isBoolean(x) {
             return "boolean" === typeof x;
         }
@@ -5920,7 +6014,7 @@ var reminderApplet;
         }
         function getDefaultMiddleware(options) {
             if (void 0 === options) options = {};
-            var _b = options.thunk, thunk = void 0 === _b ? true : _b;
+            var _c = options.thunk, thunk = void 0 === _c ? true : _c;
             options.immutableCheck, options.serializableCheck;
             var middlewareArray = new MiddlewareArray;
             if (thunk) if (isBoolean(thunk)) middlewareArray.push(es); else middlewareArray.push(es.withExtraArgument(thunk.extraArgument));
@@ -5930,7 +6024,7 @@ var reminderApplet;
         var IS_PRODUCTION = "production" === "production";
         function configureStore(options) {
             var curriedGetDefaultMiddleware = curryGetDefaultMiddleware();
-            var _b = options || {}, _c = _b.reducer, reducer = void 0 === _c ? void 0 : _c, _d = _b.middleware, middleware = void 0 === _d ? curriedGetDefaultMiddleware() : _d, _e = _b.devTools, devTools = void 0 === _e ? true : _e, _f = _b.preloadedState, preloadedState = void 0 === _f ? void 0 : _f, _g = _b.enhancers, enhancers = void 0 === _g ? void 0 : _g;
+            var _c = options || {}, _d = _c.reducer, reducer = void 0 === _d ? void 0 : _d, _e = _c.middleware, middleware = void 0 === _e ? curriedGetDefaultMiddleware() : _e, _f = _c.devTools, devTools = void 0 === _f ? true : _f, _g = _c.preloadedState, preloadedState = void 0 === _g ? void 0 : _g, _h = _c.enhancers, enhancers = void 0 === _h ? void 0 : _h;
             var rootReducer;
             if ("function" === typeof reducer) rootReducer = reducer; else if (redux_toolkit_esm_isPlainObject(reducer)) rootReducer = combineReducers(reducer); else throw new Error('"reducer" is a required argument, and must be a function or an object of functions that can be passed to combineReducers');
             var finalMiddleware = middleware;
@@ -6010,31 +6104,43 @@ var reminderApplet;
             builderCallback(builder);
             return [ actionsMap, actionMatchers, defaultCaseReducer ];
         }
+        function isStateFunction(x) {
+            return "function" === typeof x;
+        }
         function createReducer(initialState, mapOrBuilderCallback, actionMatchers, defaultCaseReducer) {
             if (void 0 === actionMatchers) actionMatchers = [];
-            var _b = "function" === typeof mapOrBuilderCallback ? executeReducerBuilderCallback(mapOrBuilderCallback) : [ mapOrBuilderCallback, actionMatchers, defaultCaseReducer ], actionsMap = _b[0], finalActionMatchers = _b[1], finalDefaultCaseReducer = _b[2];
-            var frozenInitialState = immer_esm(initialState, (function() {}));
-            return function(state, action) {
-                if (void 0 === state) state = frozenInitialState;
-                var caseReducers = __spreadArray([ actionsMap[action.type] ], finalActionMatchers.filter((function(_b) {
-                    var matcher = _b.matcher;
+            if (false) ;
+            var _c = "function" === typeof mapOrBuilderCallback ? executeReducerBuilderCallback(mapOrBuilderCallback) : [ mapOrBuilderCallback, actionMatchers, defaultCaseReducer ], actionsMap = _c[0], finalActionMatchers = _c[1], finalDefaultCaseReducer = _c[2];
+            var getInitialState;
+            if (isStateFunction(initialState)) getInitialState = function() {
+                return freezeDraftable(initialState());
+            }; else {
+                var frozenInitialState_1 = freezeDraftable(initialState);
+                getInitialState = function() {
+                    return frozenInitialState_1;
+                };
+            }
+            function reducer(state, action) {
+                if (void 0 === state) state = getInitialState();
+                var caseReducers = __spreadArray([ actionsMap[action.type] ], finalActionMatchers.filter((function(_c) {
+                    var matcher = _c.matcher;
                     return matcher(action);
-                })).map((function(_b) {
-                    var reducer = _b.reducer;
-                    return reducer;
+                })).map((function(_c) {
+                    var reducer2 = _c.reducer;
+                    return reducer2;
                 })));
                 if (0 === caseReducers.filter((function(cr) {
                     return !!cr;
                 })).length) caseReducers = [ finalDefaultCaseReducer ];
                 return caseReducers.reduce((function(previousState, caseReducer) {
-                    if (caseReducer) if (t(previousState)) {
+                    if (caseReducer) if (r(previousState)) {
                         var draft = previousState;
                         var result = caseReducer(draft, action);
-                        if ("undefined" === typeof result) return previousState;
+                        if (void 0 === result) return previousState;
                         return result;
-                    } else if (!r(previousState)) {
+                    } else if (!t(previousState)) {
                         result = caseReducer(previousState, action);
-                        if ("undefined" === typeof result) {
+                        if (void 0 === result) {
                             if (null === previousState) return previousState;
                             throw Error("A case reducer on a non-draftable value must not return undefined");
                         }
@@ -6044,16 +6150,19 @@ var reminderApplet;
                     }));
                     return previousState;
                 }), state);
-            };
+            }
+            reducer.getInitialState = getInitialState;
+            return reducer;
         }
         function getType2(slice, actionKey) {
             return slice + "/" + actionKey;
         }
         function createSlice(options) {
-            var name = options.name, initialState = options.initialState;
+            var name = options.name;
             if (!name) throw new Error("`name` is a required option for createSlice");
+            if ("undefined" !== typeof process && "production" === "development") ;
+            var initialState = "function" == typeof options.initialState ? options.initialState : freezeDraftable(options.initialState);
             var reducers = options.reducers || {};
-            var _b = "function" === typeof options.extraReducers ? executeReducerBuilderCallback(options.extraReducers) : [ options.extraReducers ], _c = _b[0], extraReducers = void 0 === _c ? {} : _c, _d = _b[1], actionMatchers = void 0 === _d ? [] : _d, _e = _b[2], defaultCaseReducer = void 0 === _e ? void 0 : _e;
             var reducerNames = Object.keys(reducers);
             var sliceCaseReducersByName = {};
             var sliceCaseReducersByType = {};
@@ -6071,27 +6180,255 @@ var reminderApplet;
                 sliceCaseReducersByType[type] = caseReducer;
                 actionCreators[reducerName] = prepareCallback ? createAction(type, prepareCallback) : createAction(type);
             }));
-            var finalCaseReducers = __spreadValues(__spreadValues({}, extraReducers), sliceCaseReducersByType);
-            var reducer = createReducer(initialState, finalCaseReducers, actionMatchers, defaultCaseReducer);
+            function buildReducer() {
+                if (false) ;
+                var _c = "function" === typeof options.extraReducers ? executeReducerBuilderCallback(options.extraReducers) : [ options.extraReducers ], _d = _c[0], extraReducers = void 0 === _d ? {} : _d, _e = _c[1], actionMatchers = void 0 === _e ? [] : _e, _f = _c[2], defaultCaseReducer = void 0 === _f ? void 0 : _f;
+                var finalCaseReducers = __spreadValues(__spreadValues({}, extraReducers), sliceCaseReducersByType);
+                return createReducer(initialState, (function(builder) {
+                    for (var key in finalCaseReducers) builder.addCase(key, finalCaseReducers[key]);
+                    for (var _i = 0, actionMatchers_1 = actionMatchers; _i < actionMatchers_1.length; _i++) {
+                        var m = actionMatchers_1[_i];
+                        builder.addMatcher(m.matcher, m.reducer);
+                    }
+                    if (defaultCaseReducer) builder.addDefaultCase(defaultCaseReducer);
+                }));
+            }
+            var _reducer;
             return {
                 name,
-                reducer,
+                reducer: function(state, action) {
+                    if (!_reducer) _reducer = buildReducer();
+                    return _reducer(state, action);
+                },
                 actions: actionCreators,
-                caseReducers: sliceCaseReducersByName
+                caseReducers: sliceCaseReducersByName,
+                getInitialState: function() {
+                    if (!_reducer) _reducer = buildReducer();
+                    return _reducer.getInitialState();
+                }
             };
         }
-        (function() {
+        var urlAlphabet = "ModuleSymbhasOwnPr-0123456789ABCDEFGHNRVfgctiUvz_KqYTJkLxpZXIjQW";
+        var nanoid = function(size) {
+            if (void 0 === size) size = 21;
+            var id = "";
+            var i = size;
+            while (i--) id += urlAlphabet[64 * Math.random() | 0];
+            return id;
+        };
+        var commonProperties = [ "name", "message", "stack", "code" ];
+        var RejectWithValue = function() {
             function RejectWithValue(payload, meta) {
                 this.payload = payload;
                 this.meta = meta;
             }
-        })();
-        (function() {
+            return RejectWithValue;
+        }();
+        var FulfillWithMeta = function() {
             function FulfillWithMeta(payload, meta) {
                 this.payload = payload;
                 this.meta = meta;
             }
+            return FulfillWithMeta;
+        }();
+        var miniSerializeError = function(value) {
+            if ("object" === typeof value && null !== value) {
+                var simpleError = {};
+                for (var _i = 0, commonProperties_1 = commonProperties; _i < commonProperties_1.length; _i++) {
+                    var property = commonProperties_1[_i];
+                    if ("string" === typeof value[property]) simpleError[property] = value[property];
+                }
+                return simpleError;
+            }
+            return {
+                message: String(value)
+            };
+        };
+        (function() {
+            function createAsyncThunk2(typePrefix, payloadCreator, options) {
+                var fulfilled = createAction(typePrefix + "/fulfilled", (function(payload, requestId, arg, meta) {
+                    return {
+                        payload,
+                        meta: __spreadProps(__spreadValues({}, meta || {}), {
+                            arg,
+                            requestId,
+                            requestStatus: "fulfilled"
+                        })
+                    };
+                }));
+                var pending = createAction(typePrefix + "/pending", (function(requestId, arg, meta) {
+                    return {
+                        payload: void 0,
+                        meta: __spreadProps(__spreadValues({}, meta || {}), {
+                            arg,
+                            requestId,
+                            requestStatus: "pending"
+                        })
+                    };
+                }));
+                var rejected = createAction(typePrefix + "/rejected", (function(error, requestId, arg, payload, meta) {
+                    return {
+                        payload,
+                        error: (options && options.serializeError || miniSerializeError)(error || "Rejected"),
+                        meta: __spreadProps(__spreadValues({}, meta || {}), {
+                            arg,
+                            requestId,
+                            rejectedWithValue: !!payload,
+                            requestStatus: "rejected",
+                            aborted: "AbortError" === (null == error ? void 0 : error.name),
+                            condition: "ConditionError" === (null == error ? void 0 : error.name)
+                        })
+                    };
+                }));
+                var AC = "undefined" !== typeof AbortController ? AbortController : function() {
+                    function class_1() {
+                        this.signal = {
+                            aborted: false,
+                            addEventListener: function() {},
+                            dispatchEvent: function() {
+                                return false;
+                            },
+                            onabort: function() {},
+                            removeEventListener: function() {},
+                            reason: void 0,
+                            throwIfAborted: function() {}
+                        };
+                    }
+                    class_1.prototype.abort = function() {
+                        if (false) ;
+                    };
+                    return class_1;
+                }();
+                function actionCreator(arg) {
+                    return function(dispatch, getState, extra) {
+                        var requestId = (null == options ? void 0 : options.idGenerator) ? options.idGenerator(arg) : nanoid();
+                        var abortController = new AC;
+                        var abortReason;
+                        var abortedPromise = new Promise((function(_, reject) {
+                            return abortController.signal.addEventListener("abort", (function() {
+                                return reject({
+                                    name: "AbortError",
+                                    message: abortReason || "Aborted"
+                                });
+                            }));
+                        }));
+                        var started = false;
+                        function abort(reason) {
+                            if (started) {
+                                abortReason = reason;
+                                abortController.abort();
+                            }
+                        }
+                        var promise2 = function() {
+                            return __async(this, null, (function() {
+                                var _a, _b, finalAction, conditionResult, err_1, skipDispatch;
+                                return __generator(this, (function(_c) {
+                                    switch (_c.label) {
+                                      case 0:
+                                        _c.trys.push([ 0, 4, , 5 ]);
+                                        conditionResult = null == (_a = null == options ? void 0 : options.condition) ? void 0 : _a.call(options, arg, {
+                                            getState,
+                                            extra
+                                        });
+                                        if (!isThenable(conditionResult)) return [ 3, 2 ];
+                                        return [ 4, conditionResult ];
+
+                                      case 1:
+                                        conditionResult = _c.sent();
+                                        _c.label = 2;
+
+                                      case 2:
+                                        if (false === conditionResult) throw {
+                                            name: "ConditionError",
+                                            message: "Aborted due to condition callback returning false."
+                                        };
+                                        started = true;
+                                        dispatch(pending(requestId, arg, null == (_b = null == options ? void 0 : options.getPendingMeta) ? void 0 : _b.call(options, {
+                                            requestId,
+                                            arg
+                                        }, {
+                                            getState,
+                                            extra
+                                        })));
+                                        return [ 4, Promise.race([ abortedPromise, Promise.resolve(payloadCreator(arg, {
+                                            dispatch,
+                                            getState,
+                                            extra,
+                                            requestId,
+                                            signal: abortController.signal,
+                                            abort,
+                                            rejectWithValue: function(value, meta) {
+                                                return new RejectWithValue(value, meta);
+                                            },
+                                            fulfillWithValue: function(value, meta) {
+                                                return new FulfillWithMeta(value, meta);
+                                            }
+                                        })).then((function(result) {
+                                            if (result instanceof RejectWithValue) throw result;
+                                            if (result instanceof FulfillWithMeta) return fulfilled(result.payload, requestId, arg, result.meta);
+                                            return fulfilled(result, requestId, arg);
+                                        })) ]) ];
+
+                                      case 3:
+                                        finalAction = _c.sent();
+                                        return [ 3, 5 ];
+
+                                      case 4:
+                                        err_1 = _c.sent();
+                                        finalAction = err_1 instanceof RejectWithValue ? rejected(null, requestId, arg, err_1.payload, err_1.meta) : rejected(err_1, requestId, arg);
+                                        return [ 3, 5 ];
+
+                                      case 5:
+                                        skipDispatch = options && !options.dispatchConditionRejection && rejected.match(finalAction) && finalAction.meta.condition;
+                                        if (!skipDispatch) dispatch(finalAction);
+                                        return [ 2, finalAction ];
+                                    }
+                                }));
+                            }));
+                        }();
+                        return Object.assign(promise2, {
+                            abort,
+                            requestId,
+                            arg,
+                            unwrap: function() {
+                                return promise2.then(unwrapResult);
+                            }
+                        });
+                    };
+                }
+                return Object.assign(actionCreator, {
+                    pending,
+                    rejected,
+                    fulfilled,
+                    typePrefix
+                });
+            }
+            createAsyncThunk2.withTypes = createAsyncThunk2;
         })();
+        function unwrapResult(action) {
+            if (action.meta && action.meta.rejectedWithValue) throw action.payload;
+            if (action.error) throw action.error;
+            return action.payload;
+        }
+        function isThenable(value) {
+            return null !== value && "object" === typeof value && "function" === typeof value.then;
+        }
+        var task = "task";
+        var cancelled = "cancelled";
+        (function() {
+            function TaskAbortError(code) {
+                this.code = code;
+                this.name = "TaskAbortError";
+                this.message = task + " " + cancelled + " (reason: " + code + ")";
+            }
+        })();
+        Object.assign;
+        var alm = "listenerMiddleware";
+        createAction(alm + "/add");
+        createAction(alm + "/removeAll");
+        createAction(alm + "/remove");
+        var promise;
+        "function" === typeof queueMicrotask && queueMicrotask.bind("undefined" !== typeof window ? window : global);
         N();
         const {get_home_dir} = imports.gi.GLib;
         const CONFIG_DIR = `${get_home_dir()}/.cinnamon/configs/${{
@@ -6257,112 +6594,6 @@ var reminderApplet;
             constructor() {
                 super("Zone is an abstract class");
             }
-        }
-        const monthsLong = [ "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December" ];
-        const monthsShort = [ "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" ];
-        const monthsNarrow = [ "J", "F", "M", "A", "M", "J", "J", "A", "S", "O", "N", "D" ];
-        function months(length) {
-            switch (length) {
-              case "narrow":
-                return [ ...monthsNarrow ];
-
-              case "short":
-                return [ ...monthsShort ];
-
-              case "long":
-                return [ ...monthsLong ];
-
-              case "numeric":
-                return [ "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12" ];
-
-              case "2-digit":
-                return [ "01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12" ];
-
-              default:
-                return null;
-            }
-        }
-        const weekdaysLong = [ "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday" ];
-        const weekdaysShort = [ "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun" ];
-        const weekdaysNarrow = [ "M", "T", "W", "T", "F", "S", "S" ];
-        function weekdays(length) {
-            switch (length) {
-              case "narrow":
-                return [ ...weekdaysNarrow ];
-
-              case "short":
-                return [ ...weekdaysShort ];
-
-              case "long":
-                return [ ...weekdaysLong ];
-
-              case "numeric":
-                return [ "1", "2", "3", "4", "5", "6", "7" ];
-
-              default:
-                return null;
-            }
-        }
-        const meridiems = [ "AM", "PM" ];
-        const erasLong = [ "Before Christ", "Anno Domini" ];
-        const erasShort = [ "BC", "AD" ];
-        const erasNarrow = [ "B", "A" ];
-        function eras(length) {
-            switch (length) {
-              case "narrow":
-                return [ ...erasNarrow ];
-
-              case "short":
-                return [ ...erasShort ];
-
-              case "long":
-                return [ ...erasLong ];
-
-              default:
-                return null;
-            }
-        }
-        function meridiemForDateTime(dt) {
-            return meridiems[dt.hour < 12 ? 0 : 1];
-        }
-        function weekdayForDateTime(dt, length) {
-            return weekdays(length)[dt.weekday - 1];
-        }
-        function monthForDateTime(dt, length) {
-            return months(length)[dt.month - 1];
-        }
-        function eraForDateTime(dt, length) {
-            return eras(length)[dt.year < 0 ? 0 : 1];
-        }
-        function formatRelativeTime(unit, count, numeric = "always", narrow = false) {
-            const units = {
-                years: [ "year", "yr." ],
-                quarters: [ "quarter", "qtr." ],
-                months: [ "month", "mo." ],
-                weeks: [ "week", "wk." ],
-                days: [ "day", "day", "days" ],
-                hours: [ "hour", "hr." ],
-                minutes: [ "minute", "min." ],
-                seconds: [ "second", "sec." ]
-            };
-            const lastable = -1 === [ "hours", "minutes", "seconds" ].indexOf(unit);
-            if ("auto" === numeric && lastable) {
-                const isDay = "days" === unit;
-                switch (count) {
-                  case 1:
-                    return isDay ? "tomorrow" : `next ${units[unit][0]}`;
-
-                  case -1:
-                    return isDay ? "yesterday" : `last ${units[unit][0]}`;
-
-                  case 0:
-                    return isDay ? "today" : `this ${units[unit][0]}`;
-
-                  default:
-                }
-            }
-            const isInPast = Object.is(count, -0) || count < 0, fmtValue = Math.abs(count), singular = 1 === fmtValue, lilUnits = units[unit], fmtUnit = narrow ? singular ? lilUnits[1] : lilUnits[2] || lilUnits[1] : singular ? units[unit][0] : unit;
-            return isInPast ? `${fmtValue} ${fmtUnit} ago` : `in ${fmtValue} ${fmtUnit}`;
         }
         const formats_n = "numeric", formats_s = "short", formats_l = "long";
         const DATE_SHORT = {
@@ -6560,14 +6791,16 @@ var reminderApplet;
             return x - n * Math.floor(x / n);
         }
         function padStart(input, n = 2) {
-            const minus = input < 0 ? "-" : "";
-            const target = minus ? -1 * input : input;
-            let result;
-            if (target.toString().length < n) result = ("0".repeat(n) + target).slice(-n); else result = target.toString();
-            return `${minus}${result}`;
+            const isNeg = input < 0;
+            let padded;
+            if (isNeg) padded = "-" + ("" + -input).padStart(n, "0"); else padded = ("" + input).padStart(n, "0");
+            return padded;
         }
         function parseInteger(string) {
             if (isUndefined(string) || null === string || "" === string) return; else return parseInt(string, 10);
+        }
+        function parseFloating(string) {
+            if (isUndefined(string) || null === string || "" === string) return; else return parseFloat(string);
         }
         function parseMillis(fraction) {
             if (isUndefined(fraction) || null === fraction || "" === fraction) return; else {
@@ -6660,7 +6893,113 @@ var reminderApplet;
         function timeObject(obj) {
             return util_pick(obj, [ "hour", "minute", "second", "millisecond" ]);
         }
-        const ianaRegex = /[A-Za-z_+-]{1,256}(:?\/[A-Za-z_+-]{1,256}(\/[A-Za-z_+-]{1,256})?)?/;
+        const ianaRegex = /[A-Za-z_+-]{1,256}(?::?\/[A-Za-z0-9_+-]{1,256}(?:\/[A-Za-z0-9_+-]{1,256})?)?/;
+        const monthsLong = [ "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December" ];
+        const monthsShort = [ "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" ];
+        const monthsNarrow = [ "J", "F", "M", "A", "M", "J", "J", "A", "S", "O", "N", "D" ];
+        function months(length) {
+            switch (length) {
+              case "narrow":
+                return [ ...monthsNarrow ];
+
+              case "short":
+                return [ ...monthsShort ];
+
+              case "long":
+                return [ ...monthsLong ];
+
+              case "numeric":
+                return [ "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12" ];
+
+              case "2-digit":
+                return [ "01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12" ];
+
+              default:
+                return null;
+            }
+        }
+        const weekdaysLong = [ "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday" ];
+        const weekdaysShort = [ "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun" ];
+        const weekdaysNarrow = [ "M", "T", "W", "T", "F", "S", "S" ];
+        function weekdays(length) {
+            switch (length) {
+              case "narrow":
+                return [ ...weekdaysNarrow ];
+
+              case "short":
+                return [ ...weekdaysShort ];
+
+              case "long":
+                return [ ...weekdaysLong ];
+
+              case "numeric":
+                return [ "1", "2", "3", "4", "5", "6", "7" ];
+
+              default:
+                return null;
+            }
+        }
+        const meridiems = [ "AM", "PM" ];
+        const erasLong = [ "Before Christ", "Anno Domini" ];
+        const erasShort = [ "BC", "AD" ];
+        const erasNarrow = [ "B", "A" ];
+        function eras(length) {
+            switch (length) {
+              case "narrow":
+                return [ ...erasNarrow ];
+
+              case "short":
+                return [ ...erasShort ];
+
+              case "long":
+                return [ ...erasLong ];
+
+              default:
+                return null;
+            }
+        }
+        function meridiemForDateTime(dt) {
+            return meridiems[dt.hour < 12 ? 0 : 1];
+        }
+        function weekdayForDateTime(dt, length) {
+            return weekdays(length)[dt.weekday - 1];
+        }
+        function monthForDateTime(dt, length) {
+            return months(length)[dt.month - 1];
+        }
+        function eraForDateTime(dt, length) {
+            return eras(length)[dt.year < 0 ? 0 : 1];
+        }
+        function formatRelativeTime(unit, count, numeric = "always", narrow = false) {
+            const units = {
+                years: [ "year", "yr." ],
+                quarters: [ "quarter", "qtr." ],
+                months: [ "month", "mo." ],
+                weeks: [ "week", "wk." ],
+                days: [ "day", "day", "days" ],
+                hours: [ "hour", "hr." ],
+                minutes: [ "minute", "min." ],
+                seconds: [ "second", "sec." ]
+            };
+            const lastable = -1 === [ "hours", "minutes", "seconds" ].indexOf(unit);
+            if ("auto" === numeric && lastable) {
+                const isDay = "days" === unit;
+                switch (count) {
+                  case 1:
+                    return isDay ? "tomorrow" : `next ${units[unit][0]}`;
+
+                  case -1:
+                    return isDay ? "yesterday" : `last ${units[unit][0]}`;
+
+                  case 0:
+                    return isDay ? "today" : `this ${units[unit][0]}`;
+
+                  default:
+                }
+            }
+            const isInPast = Object.is(count, -0) || count < 0, fmtValue = Math.abs(count), singular = 1 === fmtValue, lilUnits = units[unit], fmtUnit = narrow ? singular ? lilUnits[1] : lilUnits[2] || lilUnits[1] : singular ? units[unit][0] : unit;
+            return isInPast ? `${fmtValue} ${fmtUnit} ago` : `in ${fmtValue} ${fmtUnit}`;
+        }
         function stringifyTokens(splits, tokenToString) {
             let s = "";
             for (const token of splits) if (token.literal) s += token.val; else s += tokenToString(token.val);
@@ -6802,6 +7141,12 @@ var reminderApplet;
 
                       case "ss":
                         return this.num(dt.second, 2);
+
+                      case "uu":
+                        return this.num(Math.floor(dt.millisecond / 10), 2);
+
+                      case "uuu":
+                        return this.num(Math.floor(dt.millisecond / 100));
 
                       case "m":
                         return this.num(dt.minute);
@@ -7014,6 +7359,9 @@ var reminderApplet;
                       case "d":
                         return "day";
 
+                      case "w":
+                        return "week";
+
                       case "M":
                         return "month";
 
@@ -7045,6 +7393,9 @@ var reminderApplet;
             }
             get name() {
                 throw new ZoneIsAbstractError;
+            }
+            get ianaName() {
+                return this.name;
             }
             get isUniversal() {
                 throw new ZoneIsAbstractError;
@@ -7096,18 +7447,18 @@ var reminderApplet;
                 return true;
             }
         }
-        const matchingRegex = RegExp(`^${ianaRegex.source}$`);
         let dtfCache = {};
         function makeDTF(zone) {
             if (!dtfCache[zone]) dtfCache[zone] = new Intl.DateTimeFormat("en-US", {
-                hourCycle: "h23",
+                hour12: false,
                 timeZone: zone,
                 year: "numeric",
                 month: "2-digit",
                 day: "2-digit",
                 hour: "2-digit",
                 minute: "2-digit",
-                second: "2-digit"
+                second: "2-digit",
+                era: "short"
             });
             return dtfCache[zone];
         }
@@ -7115,19 +7466,22 @@ var reminderApplet;
             year: 0,
             month: 1,
             day: 2,
-            hour: 3,
-            minute: 4,
-            second: 5
+            era: 3,
+            hour: 4,
+            minute: 5,
+            second: 6
         };
         function hackyOffset(dtf, date) {
-            const formatted = dtf.format(date).replace(/\u200E/g, ""), parsed = /(\d+)\/(\d+)\/(\d+),? (\d+):(\d+):(\d+)/.exec(formatted), [, fMonth, fDay, fYear, fHour, fMinute, fSecond] = parsed;
-            return [ fYear, fMonth, fDay, fHour, fMinute, fSecond ];
+            const formatted = dtf.format(date).replace(/\u200E/g, ""), parsed = /(\d+)\/(\d+)\/(\d+) (AD|BC),? (\d+):(\d+):(\d+)/.exec(formatted), [, fMonth, fDay, fYear, fadOrBc, fHour, fMinute, fSecond] = parsed;
+            return [ fYear, fMonth, fDay, fadOrBc, fHour, fMinute, fSecond ];
         }
         function partsOffset(dtf, date) {
-            const formatted = dtf.formatToParts(date), filled = [];
+            const formatted = dtf.formatToParts(date);
+            const filled = [];
             for (let i = 0; i < formatted.length; i++) {
-                const {type, value} = formatted[i], pos = typeToPos[type];
-                if (!isUndefined(pos)) filled[pos] = parseInt(value, 10);
+                const {type, value} = formatted[i];
+                const pos = typeToPos[type];
+                if ("era" === type) filled[pos] = value; else if (!isUndefined(pos)) filled[pos] = parseInt(value, 10);
             }
             return filled;
         }
@@ -7142,9 +7496,10 @@ var reminderApplet;
                 dtfCache = {};
             }
             static isValidSpecifier(s) {
-                return !!(s && s.match(matchingRegex));
+                return this.isValidZone(s);
             }
             static isValidZone(zone) {
+                if (!zone) return false;
                 try {
                     new Intl.DateTimeFormat("en-US", {
                         timeZone: zone
@@ -7153,13 +7508,6 @@ var reminderApplet;
                 } catch (e) {
                     return false;
                 }
-            }
-            static parseGMTOffset(specifier) {
-                if (specifier) {
-                    const match = specifier.match(/^Etc\/GMT(0|[+-]\d{1,2})$/i);
-                    if (match) return -60 * parseInt(match[1]);
-                }
-                return null;
             }
             constructor(name) {
                 super();
@@ -7184,12 +7532,15 @@ var reminderApplet;
             offset(ts) {
                 const date = new Date(ts);
                 if (isNaN(date)) return NaN;
-                const dtf = makeDTF(this.name), [year, month, day, hour, minute, second] = dtf.formatToParts ? partsOffset(dtf, date) : hackyOffset(dtf, date);
+                const dtf = makeDTF(this.name);
+                let [year, month, day, adOrBc, hour, minute, second] = dtf.formatToParts ? partsOffset(dtf, date) : hackyOffset(dtf, date);
+                if ("BC" === adOrBc) year = -Math.abs(year) + 1;
+                const adjustedHour = 24 === hour ? 0 : hour;
                 const asUTC = objToLocalTS({
                     year,
                     month,
                     day,
-                    hour,
+                    hour: adjustedHour,
                     minute,
                     second,
                     millisecond: 0
@@ -7231,6 +7582,9 @@ var reminderApplet;
             }
             get name() {
                 return 0 === this.fixed ? "UTC" : `UTC${formatOffset(this.fixed, "narrow")}`;
+            }
+            get ianaName() {
+                if (0 === this.fixed) return "Etc/UTC"; else return `Etc/GMT${formatOffset(-this.fixed, "narrow")}`;
             }
             offsetName() {
                 return this.name;
@@ -7282,10 +7636,9 @@ var reminderApplet;
             }
         }
         function normalizeZone(input, defaultZone) {
-            let offset;
             if (isUndefined(input) || null === input) return defaultZone; else if (input instanceof Zone) return input; else if (isString(input)) {
                 const lowered = input.toLowerCase();
-                if ("local" === lowered || "system" === lowered) return defaultZone; else if ("utc" === lowered || "gmt" === lowered) return FixedOffsetZone.utcInstance; else if (null != (offset = IANAZone.parseGMTOffset(input))) return FixedOffsetZone.instance(offset); else if (IANAZone.isValidSpecifier(lowered)) return IANAZone.create(input); else return FixedOffsetZone.parseSpecifier(lowered) || new InvalidZone(input);
+                if ("local" === lowered || "system" === lowered) return defaultZone; else if ("utc" === lowered || "gmt" === lowered) return FixedOffsetZone.utcInstance; else return FixedOffsetZone.parseSpecifier(lowered) || IANAZone.create(input);
             } else if (isNumber(input)) return FixedOffsetZone.instance(input); else if ("object" === typeof input && input.offset && "number" === typeof input.offset) return input; else return new InvalidZone(input);
         }
         let throwOnInvalid, now = () => Date.now(), defaultZone = "system", defaultLocale = null, defaultNumberingSystem = null, defaultOutputCalendar = null;
@@ -7330,6 +7683,16 @@ var reminderApplet;
                 Locale.resetCache();
                 IANAZone.resetCache();
             }
+        }
+        let intlLFCache = {};
+        function getCachedLF(locString, opts = {}) {
+            const key = JSON.stringify([ locString, opts ]);
+            let dtf = intlLFCache[key];
+            if (!dtf) {
+                dtf = new Intl.ListFormat(locString, opts);
+                intlLFCache[key] = dtf;
+            }
+            return dtf;
         }
         let intlDTCache = {};
         function getCachedDTF(locString, opts = {}) {
@@ -7418,9 +7781,11 @@ var reminderApplet;
             constructor(intl, forceSimple, opts) {
                 this.padTo = opts.padTo || 0;
                 this.floor = opts.floor || false;
-                if (!forceSimple) {
+                const {padTo, floor, ...otherOpts} = opts;
+                if (!forceSimple || Object.keys(otherOpts).length > 0) {
                     const intlOpts = {
-                        useGrouping: false
+                        useGrouping: false,
+                        ...opts
                     };
                     if (opts.padTo > 0) intlOpts.minimumIntegerDigits = opts.padTo;
                     this.inf = getCachedINF(intl, intlOpts);
@@ -7443,8 +7808,7 @@ var reminderApplet;
                 if (dt.zone.isUniversal) {
                     const gmtOffset = -1 * (dt.offset / 60);
                     const offsetZ = gmtOffset >= 0 ? `Etc/GMT+${gmtOffset}` : `Etc/GMT${gmtOffset}`;
-                    const isOffsetZoneSupported = IANAZone.isValidZone(offsetZ);
-                    if (0 !== dt.offset && isOffsetZoneSupported) {
+                    if (0 !== dt.offset && IANAZone.create(offsetZ).valid) {
                         z = offsetZ;
                         this.dt = dt;
                     } else {
@@ -7529,7 +7893,7 @@ var reminderApplet;
                 if (null == this.fastNumbersCached) this.fastNumbersCached = supportsFastNumbers(this);
                 return this.fastNumbersCached;
             }
-            listingMode(defaultOK = true) {
+            listingMode() {
                 const isActuallyEn = this.isEnglish();
                 const hasNoWeirdness = (null === this.numberingSystem || "latn" === this.numberingSystem) && (null === this.outputCalendar || "gregory" === this.outputCalendar);
                 return isActuallyEn && hasNoWeirdness ? "en" : "intl";
@@ -7609,6 +7973,9 @@ var reminderApplet;
             relFormatter(opts = {}) {
                 return new PolyRelFormatter(this.intl, this.isEnglish(), opts);
             }
+            listFormatter(opts = {}) {
+                return getCachedLF(this.intl, opts);
+            }
             isEnglish() {
                 return "en" === this.locale || "en-us" === this.locale.toLowerCase() || new Intl.DateTimeFormat(this.intl).resolvedOptions().locale.startsWith("en-us");
             }
@@ -7626,7 +7993,7 @@ var reminderApplet;
                 return [ {
                     ...mergedVals,
                     ...val
-                }, mergedZone || zone, next ];
+                }, zone || mergedZone, next ];
             }), [ {}, null, 1 ]).slice(0, 2);
         }
         function parse(s, ...patterns) {
@@ -7645,7 +8012,19 @@ var reminderApplet;
                 return [ ret, null, cursor + i ];
             };
         }
-        const offsetRegex = /(?:(Z)|([+-]\d\d)(?::?(\d\d))?)/, isoTimeBaseRegex = /(\d\d)(?::?(\d\d)(?::?(\d\d)(?:[.,](\d{1,30}))?)?)?/, isoTimeRegex = RegExp(`${isoTimeBaseRegex.source}${offsetRegex.source}?`), isoTimeExtensionRegex = RegExp(`(?:T${isoTimeRegex.source})?`), isoYmdRegex = /([+-]\d{6}|\d{4})(?:-?(\d\d)(?:-?(\d\d))?)?/, isoWeekRegex = /(\d{4})-?W(\d\d)(?:-?(\d))?/, isoOrdinalRegex = /(\d{4})-?(\d{3})/, extractISOWeekData = simpleParse("weekYear", "weekNumber", "weekDay"), extractISOOrdinalData = simpleParse("year", "ordinal"), sqlYmdRegex = /(\d{4})-(\d\d)-(\d\d)/, sqlTimeRegex = RegExp(`${isoTimeBaseRegex.source} ?(?:${offsetRegex.source}|(${ianaRegex.source}))?`), sqlTimeExtensionRegex = RegExp(`(?: ${sqlTimeRegex.source})?`);
+        const offsetRegex = /(?:(Z)|([+-]\d\d)(?::?(\d\d))?)/;
+        const isoExtendedZone = `(?:${offsetRegex.source}?(?:\\[(${ianaRegex.source})\\])?)?`;
+        const isoTimeBaseRegex = /(\d\d)(?::?(\d\d)(?::?(\d\d)(?:[.,](\d{1,30}))?)?)?/;
+        const isoTimeRegex = RegExp(`${isoTimeBaseRegex.source}${isoExtendedZone}`);
+        const isoTimeExtensionRegex = RegExp(`(?:T${isoTimeRegex.source})?`);
+        const isoYmdRegex = /([+-]\d{6}|\d{4})(?:-?(\d\d)(?:-?(\d\d))?)?/;
+        const isoWeekRegex = /(\d{4})-?W(\d\d)(?:-?(\d))?/;
+        const isoOrdinalRegex = /(\d{4})-?(\d{3})/;
+        const extractISOWeekData = simpleParse("weekYear", "weekNumber", "weekDay");
+        const extractISOOrdinalData = simpleParse("year", "ordinal");
+        const sqlYmdRegex = /(\d{4})-(\d\d)-(\d\d)/;
+        const sqlTimeRegex = RegExp(`${isoTimeBaseRegex.source} ?(?:${offsetRegex.source}|(${ianaRegex.source}))?`);
+        const sqlTimeExtensionRegex = RegExp(`(?: ${sqlTimeRegex.source})?`);
         function regexParser_int(match, pos, fallback) {
             const m = match[pos];
             return isUndefined(m) ? fallback : parseInteger(m);
@@ -7676,20 +8055,20 @@ var reminderApplet;
             return [ {}, zone, cursor + 1 ];
         }
         const isoTimeOnly = RegExp(`^T?${isoTimeBaseRegex.source}$`);
-        const isoDuration = /^-?P(?:(?:(-?\d{1,9})Y)?(?:(-?\d{1,9})M)?(?:(-?\d{1,9})W)?(?:(-?\d{1,9})D)?(?:T(?:(-?\d{1,9})H)?(?:(-?\d{1,9})M)?(?:(-?\d{1,20})(?:[.,](-?\d{1,9}))?S)?)?)$/;
+        const isoDuration = /^-?P(?:(?:(-?\d{1,20}(?:\.\d{1,20})?)Y)?(?:(-?\d{1,20}(?:\.\d{1,20})?)M)?(?:(-?\d{1,20}(?:\.\d{1,20})?)W)?(?:(-?\d{1,20}(?:\.\d{1,20})?)D)?(?:T(?:(-?\d{1,20}(?:\.\d{1,20})?)H)?(?:(-?\d{1,20}(?:\.\d{1,20})?)M)?(?:(-?\d{1,20})(?:[.,](-?\d{1,20}))?S)?)?)$/;
         function extractISODuration(match) {
             const [s, yearStr, monthStr, weekStr, dayStr, hourStr, minuteStr, secondStr, millisecondsStr] = match;
             const hasNegativePrefix = "-" === s[0];
             const negativeSeconds = secondStr && "-" === secondStr[0];
             const maybeNegate = (num, force = false) => void 0 !== num && (force || num && hasNegativePrefix) ? -num : num;
             return [ {
-                years: maybeNegate(parseInteger(yearStr)),
-                months: maybeNegate(parseInteger(monthStr)),
-                weeks: maybeNegate(parseInteger(weekStr)),
-                days: maybeNegate(parseInteger(dayStr)),
-                hours: maybeNegate(parseInteger(hourStr)),
-                minutes: maybeNegate(parseInteger(minuteStr)),
-                seconds: maybeNegate(parseInteger(secondStr), "-0" === secondStr),
+                years: maybeNegate(parseFloating(yearStr)),
+                months: maybeNegate(parseFloating(monthStr)),
+                weeks: maybeNegate(parseFloating(weekStr)),
+                days: maybeNegate(parseFloating(dayStr)),
+                hours: maybeNegate(parseFloating(hourStr)),
+                minutes: maybeNegate(parseFloating(minuteStr)),
+                seconds: maybeNegate(parseFloating(secondStr), "-0" === secondStr),
                 milliseconds: maybeNegate(parseMillis(millisecondsStr), negativeSeconds)
             } ];
         }
@@ -7726,7 +8105,7 @@ var reminderApplet;
         function preprocessRFC2822(s) {
             return s.replace(/\([^)]*\)|[\n\t]/g, " ").replace(/(\s\s+)/g, " ").trim();
         }
-        const rfc1123 = /^(Mon|Tue|Wed|Thu|Fri|Sat|Sun), (\d\d) (Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec) (\d{4}) (\d\d):(\d\d):(\d\d) GMT$/, rfc850 = /^(Monday|Tuesday|Wedsday|Thursday|Friday|Saturday|Sunday), (\d\d)-(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)-(\d\d) (\d\d):(\d\d):(\d\d) GMT$/, ascii = /^(Mon|Tue|Wed|Thu|Fri|Sat|Sun) (Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec) ( \d|\d\d) (\d\d):(\d\d):(\d\d) (\d{4})$/;
+        const rfc1123 = /^(Mon|Tue|Wed|Thu|Fri|Sat|Sun), (\d\d) (Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec) (\d{4}) (\d\d):(\d\d):(\d\d) GMT$/, rfc850 = /^(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday), (\d\d)-(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)-(\d\d) (\d\d):(\d\d):(\d\d) GMT$/, ascii = /^(Mon|Tue|Wed|Thu|Fri|Sat|Sun) (Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec) ( \d|\d\d) (\d\d):(\d\d):(\d\d) (\d{4})$/;
         function extractRFC1123Or850(match) {
             const [, weekdayStr, dayStr, monthStr, yearStr, hourStr, minuteStr, secondStr] = match, result = fromStrings(weekdayStr, yearStr, monthStr, dayStr, hourStr, minuteStr, secondStr);
             return [ result, FixedOffsetZone.utcInstance ];
@@ -7739,10 +8118,10 @@ var reminderApplet;
         const isoWeekWithTimeExtensionRegex = combineRegexes(isoWeekRegex, isoTimeExtensionRegex);
         const isoOrdinalWithTimeExtensionRegex = combineRegexes(isoOrdinalRegex, isoTimeExtensionRegex);
         const isoTimeCombinedRegex = combineRegexes(isoTimeRegex);
-        const extractISOYmdTimeAndOffset = combineExtractors(extractISOYmd, extractISOTime, extractISOOffset);
-        const extractISOWeekTimeAndOffset = combineExtractors(extractISOWeekData, extractISOTime, extractISOOffset);
-        const extractISOOrdinalDateAndTime = combineExtractors(extractISOOrdinalData, extractISOTime, extractISOOffset);
-        const extractISOTimeAndOffset = combineExtractors(extractISOTime, extractISOOffset);
+        const extractISOYmdTimeAndOffset = combineExtractors(extractISOYmd, extractISOTime, extractISOOffset, extractIANAZone);
+        const extractISOWeekTimeAndOffset = combineExtractors(extractISOWeekData, extractISOTime, extractISOOffset, extractIANAZone);
+        const extractISOOrdinalDateAndTime = combineExtractors(extractISOOrdinalData, extractISOTime, extractISOOffset, extractIANAZone);
+        const extractISOTimeAndOffset = combineExtractors(extractISOTime, extractISOOffset, extractIANAZone);
         function parseISODate(s) {
             return parse(s, [ isoYmdWithTimeExtensionRegex, extractISOYmdTimeAndOffset ], [ isoWeekWithTimeExtensionRegex, extractISOWeekTimeAndOffset ], [ isoOrdinalWithTimeExtensionRegex, extractISOOrdinalDateAndTime ], [ isoTimeCombinedRegex, extractISOTimeAndOffset ]);
         }
@@ -7761,10 +8140,9 @@ var reminderApplet;
         }
         const sqlYmdWithTimeExtensionRegex = combineRegexes(sqlYmdRegex, sqlTimeExtensionRegex);
         const sqlTimeCombinedRegex = combineRegexes(sqlTimeRegex);
-        const extractISOYmdTimeOffsetAndIANAZone = combineExtractors(extractISOYmd, extractISOTime, extractISOOffset, extractIANAZone);
         const extractISOTimeOffsetAndIANAZone = combineExtractors(extractISOTime, extractISOOffset, extractIANAZone);
         function parseSQL(s) {
-            return parse(s, [ sqlYmdWithTimeExtensionRegex, extractISOYmdTimeOffsetAndIANAZone ], [ sqlTimeCombinedRegex, extractISOTimeOffsetAndIANAZone ]);
+            return parse(s, [ sqlYmdWithTimeExtensionRegex, extractISOYmdTimeAndOffset ], [ sqlTimeCombinedRegex, extractISOTimeOffsetAndIANAZone ]);
         }
         const INVALID = "Invalid Duration";
         const lowOrderMatrix = {
@@ -7904,6 +8282,9 @@ var reminderApplet;
                     conversionAccuracy: opts.conversionAccuracy
                 });
             }
+            static fromDurationLike(durationLike) {
+                if (isNumber(durationLike)) return Duration.fromMillis(durationLike); else if (Duration.isDuration(durationLike)) return durationLike; else if ("object" === typeof durationLike) return Duration.fromObject(durationLike); else throw new InvalidArgumentError(`Unknown duration argument ${durationLike} of type ${typeof durationLike}`);
+            }
             static fromISO(text, opts) {
                 const [parsed] = parseISODuration(text);
                 if (parsed) return Duration.fromObject(parsed, opts); else return Duration.invalid("unparsable", `the input "${text}" can't be parsed as ISO 8601`);
@@ -7958,6 +8339,23 @@ var reminderApplet;
                     floor: false !== opts.round && false !== opts.floor
                 };
                 return this.isValid ? Formatter.create(this.loc, fmtOpts).formatDurationFromString(this, fmt) : INVALID;
+            }
+            toHuman(opts = {}) {
+                const l = orderedUnits.map((unit => {
+                    const val = this.values[unit];
+                    if (isUndefined(val)) return null;
+                    return this.loc.numberFormatter({
+                        style: "unit",
+                        unitDisplay: "long",
+                        ...opts,
+                        unit: unit.slice(0, -1)
+                    }).format(val);
+                })).filter((n => n));
+                return this.loc.listFormatter({
+                    type: "conjunction",
+                    style: opts.listStyle || "narrow",
+                    ...opts
+                }).format(l);
             }
             toObject() {
                 if (!this.isValid) return {};
@@ -8014,7 +8412,7 @@ var reminderApplet;
             }
             plus(duration) {
                 if (!this.isValid) return this;
-                const dur = friendlyDuration(duration), result = {};
+                const dur = Duration.fromDurationLike(duration), result = {};
                 for (const k of orderedUnits) if (util_hasOwnProperty(dur.values, k) || util_hasOwnProperty(this.values, k)) result[k] = dur.get(k) + this.get(k);
                 return clone(this, {
                     values: result
@@ -8022,7 +8420,7 @@ var reminderApplet;
             }
             minus(duration) {
                 if (!this.isValid) return this;
-                const dur = friendlyDuration(duration);
+                const dur = Duration.fromDurationLike(duration);
                 return this.plus(dur.negate());
             }
             mapUnits(fn) {
@@ -8083,7 +8481,7 @@ var reminderApplet;
                     if (isNumber(vals[k])) own += vals[k];
                     const i = Math.trunc(own);
                     built[k] = i;
-                    accumulated[k] = own - i;
+                    accumulated[k] = (1e3 * own - 1e3 * i) / 1e3;
                     for (const down in vals) if (orderedUnits.indexOf(down) > orderedUnits.indexOf(k)) convert(this.matrix, vals, down, built, k);
                 } else if (isNumber(vals[k])) accumulated[k] = vals[k];
                 for (const key in accumulated) if (0 !== accumulated[key]) built[lastUnit] += key === lastUnit ? accumulated[key] : accumulated[key] / this.matrix[lastUnit][key];
@@ -8094,7 +8492,7 @@ var reminderApplet;
             negate() {
                 if (!this.isValid) return this;
                 const negated = {};
-                for (const k of Object.keys(this.values)) negated[k] = -this.values[k];
+                for (const k of Object.keys(this.values)) negated[k] = 0 === this.values[k] ? 0 : -this.values[k];
                 return clone(this, {
                     values: negated
                 }, true);
@@ -8146,9 +8544,6 @@ var reminderApplet;
                 return true;
             }
         }
-        function friendlyDuration(durationish) {
-            if (isNumber(durationish)) return Duration.fromMillis(durationish); else if (Duration.isDuration(durationish)) return durationish; else if ("object" === typeof durationish) return Duration.fromObject(durationish); else throw new InvalidArgumentError(`Unknown duration argument ${durationish} of type ${typeof durationish}`);
-        }
         const interval_INVALID = "Invalid Interval";
         function validateStartEnd(start, end) {
             if (!start || !start.isValid) return Interval.invalid("missing or invalid start"); else if (!end || !end.isValid) return Interval.invalid("missing or invalid end"); else if (end < start) return Interval.invalid("end before start", `The end of an interval must be after its start, but you had start=${start.toISO()} and end=${end.toISO()}`); else return null;
@@ -8176,11 +8571,11 @@ var reminderApplet;
                 }); else return validateError;
             }
             static after(start, duration) {
-                const dur = friendlyDuration(duration), dt = friendlyDateTime(start);
+                const dur = Duration.fromDurationLike(duration), dt = friendlyDateTime(start);
                 return Interval.fromDateTimes(dt, dt.plus(dur));
             }
             static before(end, duration) {
-                const dur = friendlyDuration(duration), dt = friendlyDateTime(end);
+                const dur = Duration.fromDurationLike(duration), dt = friendlyDateTime(end);
                 return Interval.fromDateTimes(dt.minus(dur), dt);
             }
             static fromISO(text, opts) {
@@ -8272,7 +8667,7 @@ var reminderApplet;
                 return results;
             }
             splitBy(duration) {
-                const dur = friendlyDuration(duration);
+                const dur = Duration.fromDurationLike(duration);
                 if (!this.isValid || !dur.isValid || 0 === dur.as("milliseconds")) return [];
                 let next, {s} = this, idx = 1;
                 const results = [];
@@ -8384,7 +8779,7 @@ var reminderApplet;
                 }).offset;
             }
             static isValidIANAZone(zone) {
-                return IANAZone.isValidSpecifier(zone) && IANAZone.isValidZone(zone);
+                return IANAZone.isValidZone(zone);
             }
             static normalizeZone(input) {
                 return normalizeZone(input, Settings.defaultZone);
@@ -8525,7 +8920,7 @@ var reminderApplet;
             };
         }
         const NBSP = String.fromCharCode(160);
-        const spaceOrNBSP = `( |${NBSP})`;
+        const spaceOrNBSP = `[ ${NBSP}]`;
         const spaceOrNBSPRegExp = new RegExp(spaceOrNBSP, "g");
         function fixListRegex(s) {
             return s.replace(/\./g, "\\.?").replace(spaceOrNBSPRegExp, spaceOrNBSP);
@@ -8658,6 +9053,12 @@ var reminderApplet;
 
                   case "u":
                     return simple(oneToNine);
+
+                  case "uu":
+                    return simple(oneOrTwo);
+
+                  case "uuu":
+                    return intUnit(one);
 
                   case "a":
                     return oneOf(loc.meridiems(), 0);
@@ -8822,8 +9223,13 @@ var reminderApplet;
                     return null;
                 }
             };
-            let zone;
-            if (!isUndefined(matches.Z)) zone = new FixedOffsetZone(matches.Z); else if (!isUndefined(matches.z)) zone = IANAZone.create(matches.z); else zone = null;
+            let zone = null;
+            let specificOffset;
+            if (!isUndefined(matches.z)) zone = IANAZone.create(matches.z);
+            if (!isUndefined(matches.Z)) {
+                if (!zone) zone = new FixedOffsetZone(matches.Z);
+                specificOffset = matches.Z;
+            }
             if (!isUndefined(matches.q)) matches.M = 3 * (matches.q - 1) + 1;
             if (!isUndefined(matches.h)) if (matches.h < 12 && 1 === matches.a) matches.h += 12; else if (12 === matches.h && 0 === matches.a) matches.h = 0;
             if (0 === matches.G && matches.y) matches.y = -matches.y;
@@ -8833,7 +9239,7 @@ var reminderApplet;
                 if (f) r[f] = matches[k];
                 return r;
             }), {});
-            return [ vals, zone ];
+            return [ vals, zone, specificOffset ];
         }
         let dummyDateTimeCache = null;
         function getDummyDateTime() {
@@ -8860,7 +9266,7 @@ var reminderApplet;
                 tokens,
                 invalidReason: disqualifyingUnit.invalidReason
             }; else {
-                const [regexString, handlers] = buildRegex(units), regex = RegExp(regexString, "i"), [rawMatches, matches] = match(input, regex, handlers), [result, zone] = matches ? dateTimeFromMatches(matches) : [ null, null ];
+                const [regexString, handlers] = buildRegex(units), regex = RegExp(regexString, "i"), [rawMatches, matches] = match(input, regex, handlers), [result, zone, specificOffset] = matches ? dateTimeFromMatches(matches) : [ null, null, void 0 ];
                 if (util_hasOwnProperty(matches, "a") && util_hasOwnProperty(matches, "H")) throw new ConflictingSpecificationError("Can't include meridiem when specifying 24-hour format");
                 return {
                     input,
@@ -8869,20 +9275,23 @@ var reminderApplet;
                     rawMatches,
                     matches,
                     result,
-                    zone
+                    zone,
+                    specificOffset
                 };
             }
         }
         function parseFromTokens(locale, input, format) {
-            const {result, zone, invalidReason} = explainFromTokens(locale, input, format);
-            return [ result, zone, invalidReason ];
+            const {result, zone, specificOffset, invalidReason} = explainFromTokens(locale, input, format);
+            return [ result, zone, specificOffset, invalidReason ];
         }
         const nonLeapLadder = [ 0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334 ], leapLadder = [ 0, 31, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335 ];
         function unitOutOfRange(unit, value) {
             return new Invalid("unit out of range", `you specified ${value} (of type ${typeof value}) as a ${unit}, which is invalid`);
         }
         function dayOfWeek(year, month, day) {
-            const js = new Date(Date.UTC(year, month - 1, day)).getUTCDay();
+            const d = new Date(Date.UTC(year, month - 1, day));
+            if (year < 100 && year >= 0) d.setUTCFullYear(d.getUTCFullYear() - 1900);
+            const js = d.getUTCDay();
             return 0 === js ? 7 : js;
         }
         function computeOrdinal(year, month, day) {
@@ -9042,12 +9451,13 @@ var reminderApplet;
                 o
             };
         }
-        function parseDataToDateTime(parsed, parsedZone, opts, format, text) {
+        function parseDataToDateTime(parsed, parsedZone, opts, format, text, specificOffset) {
             const {setZone, zone} = opts;
             if (parsed && 0 !== Object.keys(parsed).length) {
                 const interpretationZone = parsedZone || zone, inst = DateTime.fromObject(parsed, {
                     ...opts,
-                    zone: interpretationZone
+                    zone: interpretationZone,
+                    specificOffset
                 });
                 return setZone ? inst : inst.setZone(zone);
             } else return DateTime.invalid(new Invalid("unparsable", `the input "${text}" can't be parsed as ${format}`));
@@ -9058,17 +9468,49 @@ var reminderApplet;
                 forceSimple: true
             }).formatDateTimeFromString(dt, format) : null;
         }
-        function toTechTimeFormat(dt, {suppressSeconds = false, suppressMilliseconds = false, includeOffset, includePrefix = false, includeZone = false, spaceZone = false, format = "extended"}) {
-            let fmt = "basic" === format ? "HHmm" : "HH:mm";
-            if (!suppressSeconds || 0 !== dt.second || 0 !== dt.millisecond) {
-                fmt += "basic" === format ? "ss" : ":ss";
-                if (!suppressMilliseconds || 0 !== dt.millisecond) fmt += ".SSS";
+        function toISODate(o, extended) {
+            const longFormat = o.c.year > 9999 || o.c.year < 0;
+            let c = "";
+            if (longFormat && o.c.year >= 0) c += "+";
+            c += padStart(o.c.year, longFormat ? 6 : 4);
+            if (extended) {
+                c += "-";
+                c += padStart(o.c.month);
+                c += "-";
+                c += padStart(o.c.day);
+            } else {
+                c += padStart(o.c.month);
+                c += padStart(o.c.day);
             }
-            if ((includeZone || includeOffset) && spaceZone) fmt += " ";
-            if (includeZone) fmt += "z"; else if (includeOffset) fmt += "basic" === format ? "ZZZ" : "ZZ";
-            let str = toTechFormat(dt, fmt);
-            if (includePrefix) str = "T" + str;
-            return str;
+            return c;
+        }
+        function toISOTime(o, extended, suppressSeconds, suppressMilliseconds, includeOffset, extendedZone) {
+            let c = padStart(o.c.hour);
+            if (extended) {
+                c += ":";
+                c += padStart(o.c.minute);
+                if (0 !== o.c.second || !suppressSeconds) c += ":";
+            } else c += padStart(o.c.minute);
+            if (0 !== o.c.second || !suppressSeconds) {
+                c += padStart(o.c.second);
+                if (0 !== o.c.millisecond || !suppressMilliseconds) {
+                    c += ".";
+                    c += padStart(o.c.millisecond, 3);
+                }
+            }
+            if (includeOffset) if (o.isOffsetFixed && 0 === o.offset && !extendedZone) c += "Z"; else if (o.o < 0) {
+                c += "-";
+                c += padStart(Math.trunc(-o.o / 60));
+                c += ":";
+                c += padStart(Math.trunc(-o.o % 60));
+            } else {
+                c += "+";
+                c += padStart(Math.trunc(o.o / 60));
+                c += ":";
+                c += padStart(Math.trunc(o.o % 60));
+            }
+            if (extendedZone) c += "[" + o.zone.ianaName + "]";
+            return c;
         }
         const defaultUnitValues = {
             month: 1,
@@ -9243,7 +9685,7 @@ var reminderApplet;
                 obj = obj || {};
                 const zoneToUse = normalizeZone(opts.zone, Settings.defaultZone);
                 if (!zoneToUse.isValid) return DateTime.invalid(unsupportedZone(zoneToUse));
-                const tsNow = Settings.now(), offsetProvis = zoneToUse.offset(tsNow), normalized = normalizeObject(obj, normalizeUnit), containsOrdinal = !isUndefined(normalized.ordinal), containsGregorYear = !isUndefined(normalized.year), containsGregorMD = !isUndefined(normalized.month) || !isUndefined(normalized.day), containsGregor = containsGregorYear || containsGregorMD, definiteWeekDef = normalized.weekYear || normalized.weekNumber, loc = Locale.fromObject(opts);
+                const tsNow = Settings.now(), offsetProvis = !isUndefined(opts.specificOffset) ? opts.specificOffset : zoneToUse.offset(tsNow), normalized = normalizeObject(obj, normalizeUnit), containsOrdinal = !isUndefined(normalized.ordinal), containsGregorYear = !isUndefined(normalized.year), containsGregorMD = !isUndefined(normalized.month) || !isUndefined(normalized.day), containsGregor = containsGregorYear || containsGregorMD, definiteWeekDef = normalized.weekYear || normalized.weekNumber, loc = Locale.fromObject(opts);
                 if ((containsGregor || containsOrdinal) && definiteWeekDef) throw new ConflictingSpecificationError("Can't mix weekYear/weekNumber units with year/month/day or ordinals");
                 if (containsGregorMD && containsOrdinal) throw new ConflictingSpecificationError("Can't mix ordinal dates with month/day");
                 const useWeekData = definiteWeekDef || normalized.weekday && !containsGregor;
@@ -9294,8 +9736,8 @@ var reminderApplet;
                     locale,
                     numberingSystem,
                     defaultToEN: true
-                }), [vals, parsedZone, invalid] = parseFromTokens(localeToUse, text, fmt);
-                if (invalid) return DateTime.invalid(invalid); else return parseDataToDateTime(vals, parsedZone, opts, `format ${fmt}`, text);
+                }), [vals, parsedZone, specificOffset, invalid] = parseFromTokens(localeToUse, text, fmt);
+                if (invalid) return DateTime.invalid(invalid); else return parseDataToDateTime(vals, parsedZone, opts, `format ${fmt}`, text, specificOffset);
             }
             static fromString(text, fmt, opts = {}) {
                 return DateTime.fromFormat(text, fmt, opts);
@@ -9417,7 +9859,8 @@ var reminderApplet;
             }
             get isInDST() {
                 if (this.isOffsetFixed) return false; else return this.offset > this.set({
-                    month: 1
+                    month: 1,
+                    day: 1
                 }).offset || this.offset > this.set({
                     month: 5
                 }).offset;
@@ -9505,12 +9948,12 @@ var reminderApplet;
             }
             plus(duration) {
                 if (!this.isValid) return this;
-                const dur = friendlyDuration(duration);
+                const dur = Duration.fromDurationLike(duration);
                 return datetime_clone(this, adjustTime(this, dur));
             }
             minus(duration) {
                 if (!this.isValid) return this;
-                const dur = friendlyDuration(duration).negate();
+                const dur = Duration.fromDurationLike(duration).negate();
                 return datetime_clone(this, adjustTime(this, dur));
             }
             startOf(unit) {
@@ -9562,26 +10005,25 @@ var reminderApplet;
             toLocaleParts(opts = {}) {
                 return this.isValid ? Formatter.create(this.loc.clone(opts), opts).formatDateTimeParts(this) : [];
             }
-            toISO(opts = {}) {
+            toISO({format = "extended", suppressSeconds = false, suppressMilliseconds = false, includeOffset = true, extendedZone = false} = {}) {
                 if (!this.isValid) return null;
-                return `${this.toISODate(opts)}T${this.toISOTime(opts)}`;
+                const ext = "extended" === format;
+                let c = toISODate(this, ext);
+                c += "T";
+                c += toISOTime(this, ext, suppressSeconds, suppressMilliseconds, includeOffset, extendedZone);
+                return c;
             }
             toISODate({format = "extended"} = {}) {
-                let fmt = "basic" === format ? "yyyyMMdd" : "yyyy-MM-dd";
-                if (this.year > 9999) fmt = "+" + fmt;
-                return toTechFormat(this, fmt);
+                if (!this.isValid) return null;
+                return toISODate(this, "extended" === format);
             }
             toISOWeekDate() {
                 return toTechFormat(this, "kkkk-'W'WW-c");
             }
-            toISOTime({suppressMilliseconds = false, suppressSeconds = false, includeOffset = true, includePrefix = false, format = "extended"} = {}) {
-                return toTechTimeFormat(this, {
-                    suppressSeconds,
-                    suppressMilliseconds,
-                    includeOffset,
-                    includePrefix,
-                    format
-                });
+            toISOTime({suppressMilliseconds = false, suppressSeconds = false, includeOffset = true, includePrefix = false, extendedZone = false, format = "extended"} = {}) {
+                if (!this.isValid) return null;
+                let c = includePrefix ? "T" : "";
+                return c + toISOTime(this, "extended" === format, suppressSeconds, suppressMilliseconds, includeOffset, extendedZone);
             }
             toRFC2822() {
                 return toTechFormat(this, "EEE, dd LLL yyyy HH:mm:ss ZZZ", false);
@@ -9590,14 +10032,16 @@ var reminderApplet;
                 return toTechFormat(this.toUTC(), "EEE, dd LLL yyyy HH:mm:ss 'GMT'");
             }
             toSQLDate() {
-                return toTechFormat(this, "yyyy-MM-dd");
+                if (!this.isValid) return null;
+                return toISODate(this, true);
             }
-            toSQLTime({includeOffset = true, includeZone = false} = {}) {
-                return toTechTimeFormat(this, {
-                    includeOffset,
-                    includeZone,
-                    spaceZone: true
-                });
+            toSQLTime({includeOffset = true, includeZone = false, includeOffsetSpace = true} = {}) {
+                let fmt = "HH:mm:ss.SSS";
+                if (includeZone || includeOffset) {
+                    if (includeOffsetSpace) fmt += " ";
+                    if (includeZone) fmt += "z"; else if (includeOffset) fmt += "ZZ";
+                }
+                return toTechFormat(this, fmt, true);
             }
             toSQL(opts = {}) {
                 if (!this.isValid) return null;
@@ -9614,6 +10058,9 @@ var reminderApplet;
             }
             toSeconds() {
                 return this.isValid ? this.ts / 1e3 : NaN;
+            }
+            toUnixInteger() {
+                return this.isValid ? Math.floor(this.ts / 1e3) : NaN;
             }
             toJSON() {
                 return this.toISO();
@@ -9655,10 +10102,10 @@ var reminderApplet;
             hasSame(otherDateTime, unit) {
                 if (!this.isValid) return false;
                 const inputMs = otherDateTime.valueOf();
-                const otherZoneDateTime = this.setZone(otherDateTime.zone, {
+                const adjustedToZone = this.setZone(otherDateTime.zone, {
                     keepLocalTime: true
                 });
-                return otherZoneDateTime.startOf(unit) <= inputMs && inputMs <= otherZoneDateTime.endOf(unit);
+                return adjustedToZone.startOf(unit) <= inputMs && inputMs <= adjustedToZone.endOf(unit);
             }
             equals(other) {
                 return this.isValid && other.isValid && this.valueOf() === other.valueOf() && this.zone.equals(other.zone) && this.loc.equals(other.loc);
@@ -9866,6 +10313,7 @@ var reminderApplet;
                     code: this.authorizatonCode,
                     redirect_uri: "http://localhost:8080"
                 });
+                log(`tokenRequest, ${JSON.stringify(tokenRequest)}`);
                 const requestParams = {
                     method: "POST",
                     url: OFFICE365_TOKEN_ENDPOINT,
@@ -9876,6 +10324,7 @@ var reminderApplet;
                 };
                 try {
                     const response = await loadJsonAsync(requestParams);
+                    log(`response: ${JSON.stringify(response)}`);
                     const {access_token, refresh_token} = response;
                     this.accessToken = access_token;
                     if (this.refreshToken !== refresh_token) {
@@ -10197,27 +10646,18 @@ var reminderApplet;
             }));
             return container;
         }
-        function toVal(mix) {
-            var k, y, str = "";
-            if ("string" === typeof mix || "number" === typeof mix) str += mix; else if ("object" === typeof mix) if (Array.isArray(mix)) {
-                for (k = 0; k < mix.length; k++) if (mix[k]) if (y = toVal(mix[k])) {
-                    str && (str += " ");
-                    str += y;
-                }
-            } else for (k in mix) if (mix[k]) {
-                str && (str += " ");
-                str += k;
-            }
-            return str;
+        function clsx_m_r(e) {
+            var t, f, n = "";
+            if ("string" == typeof e || "number" == typeof e) n += e; else if ("object" == typeof e) if (Array.isArray(e)) for (t = 0; t < e.length; t++) e[t] && (f = clsx_m_r(e[t])) && (n && (n += " "), 
+            n += f); else for (t in e) e[t] && (n && (n += " "), n += t);
+            return n;
         }
-        function clsx_m() {
-            var tmp, x, i = 0, str = "";
-            while (i < arguments.length) if (tmp = arguments[i++]) if (x = toVal(tmp)) {
-                str && (str += " ");
-                str += x;
-            }
-            return str;
+        function clsx() {
+            for (var e, t, f = 0, n = ""; f < arguments.length; ) (e = arguments[f++]) && (t = clsx_m_r(e)) && (n && (n += " "), 
+            n += t);
+            return n;
         }
+        const clsx_m = clsx;
         imports.gi.Cinnamon;
         const {Table, Label: Calendar_Label, Align, BoxLayout: Calendar_BoxLayout, Button, Bin} = imports.gi.St;
         const WEEKDAY_ABBREVATIONS = [ "Mo", "Tu", "We", "Th", "Fr", "Sa", "Su" ];

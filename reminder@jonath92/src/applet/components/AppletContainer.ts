@@ -30,6 +30,7 @@ export function createAppletBox(args: AppletArguments): InstanceType<typeof Appl
     const popupMenu = getCalendarPopupMenu({ launcher: appletBox.actor })
     const contextMenu = getContextMenu({ launcher: appletBox.actor, instanceId })
 
+    // @ts-ignore
     appletBox.on_applet_clicked = popupMenu.toggle
 
     appletBox.actor.connect('event', (actor, event) => {

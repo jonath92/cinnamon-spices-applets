@@ -1,26 +1,4 @@
-/// <reference path="/home/jonathan/Projekte/types-gjs/Atk-1.0.d.ts" />
-/// <reference path="/home/jonathan/Projekte/types-gjs/ByteArray.d.ts" />
-/// <reference path="/home/jonathan/Projekte/types-gjs/cairo-1.0.d.ts" />
-/// <reference path="/home/jonathan/Projekte/types-gjs/Caribou.d.ts" />
-/// <reference path="/home/jonathan/Projekte/types-gjs/CDesktopEnums.d.ts" />
-/// <reference path="/home/jonathan/Projekte/types-gjs/Clutter.d.ts" />
-/// <reference path="/home/jonathan/Projekte/types-gjs/Cvc.d.ts" />
-/// <reference path="/home/jonathan/Projekte/types-gjs/Gdk-2.0.d.ts" />
-/// <reference path="/home/jonathan/Projekte/types-gjs/GdkPixbuf-2.0.d.ts" />
-/// <reference path="/home/jonathan/Projekte/types-gjs/Gio-2.0.d.ts" />
-/// <reference path="/home/jonathan/Projekte/types-gjs/Glib-2.0.d.ts" />
-/// <reference path="/home/jonathan/Projekte/types-gjs/GObject-2.0.d.ts" />
-/// <reference path="/home/jonathan/Projekte/types-gjs/Meta.d.ts" />
-/// <reference path="/home/jonathan/Projekte/types-gjs/Pango-1.0.d.ts" />
-/// <reference path="/home/jonathan/Projekte/types-gjs/Soup.d.ts" />
-/// <reference path="/home/jonathan/Projekte/types-gjs/St.d.ts" />
-/// <reference path="/home/jonathan/Projekte/types-gjs/WebKit2.d.ts" />
-/// <reference path="/home/jonathan/Projekte/types-gjs/xlib-2.0.d.ts" />
-/// <reference path="/home/jonathan/Projekte/types-gjs/UPowerGlib.d.ts" />
-
-// import "@ci-types/cjs";
-///// <reference path="/home/jonathan/Projekte/types-cjs/index.d.ts" />
-
+import "@ci-types/cjs";
 
 interface Meta {
     uuid: string, 

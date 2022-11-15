@@ -82,16 +82,18 @@ export function loadJsonAsync<T1>(args: LoadJsonArgs): Promise<T1> {
     const message = Message.new(method, uri)
 
     Object.entries(headers).forEach(([key, value]) => {
+        // @ts-ignore
         message.request_headers.append(key, value)
     })
 
     if (bodyParams) {
         const bodyParamsStringified = stringify(bodyParams)
+        // @ts-ignore
         message.request_body.append(ByteArray.fromString(bodyParamsStringified, 'UTF-8'))
     }
 
     return new Promise((resolve, reject) => {
-
+        // @ts-ignore
         httpSession.queue_message(message, (session, msgResponse) => {
 
             const error = checkForHttpError(msgResponse);
