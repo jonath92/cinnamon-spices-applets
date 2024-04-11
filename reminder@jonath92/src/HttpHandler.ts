@@ -1,6 +1,9 @@
+import { stringify } from "query-string";
+
 const { Message, SessionAsync, Session } = imports.gi.Soup;
 const { PRIORITY_DEFAULT } = imports.gi.GLib;
-const ByteArray = imports.byteArray;
+
+const httpSession = new Session() as any;
 
 export interface HTTPParams {
   [key: string]: boolean | string | number | undefined;
@@ -24,14 +27,16 @@ interface Headers {
   Authorization?: string;
 }
 
-export interface LoadJsonArgs<T1> {
+// FIXME: why is T1 not allowed to be of type HTTPParams?
+export interface LoadJsonArgs<T1 = any, T2 = HTTPParams> {
   url: string;
   method?: Method;
-  headers?: Headers;
-  onSuccess: (resp: T1) => void;
-  onErr: (err: HttpError) => void;
-  onSettled?: () => void;
+  bodyParams?: T1;
+  queryParams?: T2;
+  headers: Headers;
 }
+
+const ByteArray = imports.byteArray;
 
 function checkForHttpError(
   message: imports.gi.Soup.Message
@@ -58,110 +63,48 @@ function checkForHttpError(
     : false;
 }
 
-type HttpHandler = {
-  makeJsonHttpRequest: <T1>(args: LoadJsonArgs<T1>) => void;
-};
+export function loadJsonAsync<T1>(args: LoadJsonArgs): Promise<T1> {
+  const { url, method = "GET", bodyParams, queryParams, headers } = args;
 
-const createSoup2HttpHandler = (): HttpHandler => {
-  const httpSession = new SessionAsync();
+  const uri = queryParams ? `${url}?${stringify(queryParams)}` : url;
+  const message = Message.new(method, uri);
 
-  return {
-    makeJsonHttpRequest: <T1>(args: LoadJsonArgs<T1>) => {
-      const {
-        url,
-        method = "GET",
-        onErr,
-        onSuccess,
-        onSettled,
-        headers,
-      } = args;
+  Object.entries(headers).forEach(([key, value]) => {
+    // @ts-ignore
+    message.request_headers.append(key, value);
+  });
 
-      // const uri = queryParams ? `${url}?${stringify(queryParams)}` : url
-      const message = Message.new(method, url);
+  if (bodyParams) {
+    const bodyParamsStringified = stringify(bodyParams);
+    // @ts-ignore
+    message.request_body.append(
+      ByteArray.fromString(bodyParamsStringified, "UTF-8")
+    );
+  }
 
-      if (!message) {
-        throw new Error(`Message Object couldn't be created`);
-      }
+  return new Promise((resolve, reject) => {
+    httpSession.send_and_read_async(
+      message,
+      PRIORITY_DEFAULT,
+      null,
+      (session: any, result: any) => {
+        const res: imports.gi.GLib.Bytes | null =
+          httpSession.send_and_read_finish(result);
 
-      headers &&
-        Object.entries(headers).forEach(([key, value]) => {
-          message.request_headers.append(key, value);
-        });
-
-      httpSession.queue_message(message, (session, msgResponse) => {
-        onSettled?.();
-        const error = checkForHttpError(msgResponse);
-
-        if (error) {
-          onErr(error);
-          return;
-        }
-
-        // TODO: We should actually check if this is really of type T1
-        const data = JSON.parse(msgResponse.response_body.data) as T1;
-        onSuccess(data);
-      });
-    },
-  };
-};
-
-const createSoup3HttpHandler = (): HttpHandler => {
-  const httpSession = new Session() as any;
-
-  return {
-    makeJsonHttpRequest: <T1>(args: LoadJsonArgs<T1>) => {
-      const {
-        url,
-        method = "GET",
-        onErr,
-        onSuccess,
-        onSettled,
-        headers,
-      } = args;
-
-      const message = Message.new(method, url);
-
-      if (!message) {
-        throw new Error(`Message Object couldn't be created`);
-      }
-
-      headers &&
-        Object.entries(headers).forEach(([key, value]) => {
-          message.request_headers.append(key, value);
-        });
-
-      httpSession.send_and_read_async(
-        message,
-        PRIORITY_DEFAULT,
-        null,
-        (session: any, result: any) => {
-          const res: imports.gi.GLib.Bytes | null =
-            httpSession.send_and_read_finish(result);
-
-          // TODO: check for error
-          const responseBody =
-            res != null ? ByteArray.toString(ByteArray.fromGBytes(res)) : null;
+          const responseBody = res != null ? ByteArray.toString(ByteArray.fromGBytes(res)) : null;
 
           if (!responseBody) {
-            onErr({
-              code: 0,
-              reason_phrase: "no network response",
-              message: "no response body",
-            });
-            return;
+            return; 
+            // TODO. error handling
           }
 
-          if (responseBody) {
-            const data = JSON.parse(responseBody) as T1;
-            onSuccess(data);
-          }
-        }
-      );
-    },
-  };
-};
+          const data = JSON.parse(responseBody) as T1;
+          resolve(data);
 
-export const { makeJsonHttpRequest } =
-  imports.gi.Soup.MAJOR_VERSION == 2
-    ? createSoup2HttpHandler()
-    : createSoup3HttpHandler();
+      }
+
+
+    );
+
+  });
+}

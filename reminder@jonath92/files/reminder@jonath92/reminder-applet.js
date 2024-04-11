@@ -6530,24 +6530,13 @@ var reminderApplet;
         const dispatch = store.dispatch;
         const selectEvents = () => getState().calendarEvents;
         var query_string = __webpack_require__(563);
-        const {Message, SessionAsync} = imports.gi.Soup;
-        const httpSession = new SessionAsync;
+        const {Message, SessionAsync, Session} = imports.gi.Soup;
+        const {PRIORITY_DEFAULT} = imports.gi.GLib;
+        const httpSession = new Session;
         function isHttpError(x) {
             return "string" === typeof x.reason_phrase;
         }
         const HttpHandler_ByteArray = imports.byteArray;
-        function checkForHttpError(message) {
-            var _a;
-            const code = 0 | (null === message || void 0 === message ? void 0 : message.status_code);
-            const reason_phrase = (null === message || void 0 === message ? void 0 : message.reason_phrase) || "no network response";
-            let errMessage;
-            if (code < 100) errMessage = "no network response"; else if (code < 200 || code > 300) errMessage = "bad status code"; else if (!(null === (_a = message.response_body) || void 0 === _a ? void 0 : _a.data)) errMessage = "no response body";
-            return errMessage ? {
-                code,
-                reason_phrase,
-                message: errMessage
-            } : false;
-        }
         function loadJsonAsync(args) {
             const {url, method = "GET", bodyParams, queryParams, headers} = args;
             const uri = queryParams ? `${url}?${(0, query_string.stringify)(queryParams)}` : url;
@@ -6560,9 +6549,11 @@ var reminderApplet;
                 message.request_body.append(HttpHandler_ByteArray.fromString(bodyParamsStringified, "UTF-8"));
             }
             return new Promise(((resolve, reject) => {
-                httpSession.queue_message(message, ((session, msgResponse) => {
-                    checkForHttpError(msgResponse);
-                    const data = JSON.parse(msgResponse.response_body.data);
+                httpSession.send_and_read_async(message, PRIORITY_DEFAULT, null, ((session, result) => {
+                    const res = httpSession.send_and_read_finish(result);
+                    const responseBody = null != res ? HttpHandler_ByteArray.toString(HttpHandler_ByteArray.fromGBytes(res)) : null;
+                    if (!responseBody) return;
+                    const data = JSON.parse(responseBody);
                     resolve(data);
                 }));
             }));
@@ -10232,7 +10223,7 @@ var reminderApplet;
         const {new_for_path: Logger_new_for_path} = imports.gi.Gio.File;
         Logger_new_for_path(LOG_FILE_PATH);
         const {FileCreateFlags: Logger_FileCreateFlags, Subprocess: Logger_Subprocess, SubprocessFlags: Logger_SubprocessFlags} = imports.gi.Gio;
-        const {Bytes, PRIORITY_DEFAULT} = imports.gi.GLib;
+        const {Bytes, PRIORITY_DEFAULT: Logger_PRIORITY_DEFAULT} = imports.gi.GLib;
         ({
             uuid: "reminder@jonath92",
             path: "/home/jonathan/Projekte/cinnamon-spices-applets/reminder@jonath92/files/reminder@jonath92"
@@ -10240,7 +10231,7 @@ var reminderApplet;
         const script = `\necho "BEGIN";\n\nwhile read line; do\n  echo "$line" >> /home/jonathan/Tmp/logger ;\n  sleep 1;\ndone;\n`;
         function writeInput(stdin, value) {
             (new Date).toLocaleString();
-            stdin.write_bytes_async(new Bytes(`${value}\n`), PRIORITY_DEFAULT, null, ((stdin, res) => {
+            stdin.write_bytes_async(new Bytes(`${value}\n`), Logger_PRIORITY_DEFAULT, null, ((stdin, res) => {
                 try {
                     stdin.write_bytes_finish(res);
                     log(`WROTE: ${value}`);
