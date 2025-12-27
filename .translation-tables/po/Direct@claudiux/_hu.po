@@ -1,0 +1,88 @@
+# DIRECT
+# This file is put in the public domain.
+# claudiux, 2016
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: Direct@claudiux 1.0.0\n"
+"Report-Msgid-Bugs-To: https://github.com/linuxmint/cinnamon-spices-applets/"
+"issues\n"
+"POT-Creation-Date: 2025-12-23 15:47+0100\n"
+"PO-Revision-Date: 2025-11-17 10:08+0100\n"
+"Last-Translator: Kálmán „KAMI” Szalai <kami911@gmail.com>\n"
+"Language-Team: \n"
+"Language: hu\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"X-Generator: Poedit 3.8\n"
+
+#. applet.js:45 applet.js:798
+msgid "CUSTOM"
+msgstr ""
+
+#. applet.js:629 applet.js:669 applet.js:700 applet.js:731 applet.js:762
+#. applet.js:806
+msgid "Configure"
+msgstr ""
+
+#. settings-schema.json->customPage->title
+msgid "Custom"
+msgstr ""
+
+#. settings-schema.json->customSection->title
+msgid "Custom documents"
+msgstr ""
+
+#. settings-schema.json->textSize->description
+msgid "Text width"
+msgstr ""
+
+#. settings-schema.json->textSize->tooltip
+msgid "0 means: automatic"
+msgstr ""
+
+#. settings-schema.json->showUserSettingsAccessIcon->description
+#. settings-schema.json->showSystemSettingsAccessIcon->description
+#. settings-schema.json->showFavoritesSettingsAccessIcon->description
+#. settings-schema.json->showRecentSettingsAccessIcon->description
+#. settings-schema.json->showCustomSettingsAccessIcon->description
+msgid "Show the settings access icon"
+msgstr ""
+
+#. settings-schema.json->favoriteSortingMethod->options
+msgid "Custom Sort"
+msgstr ""
+
+#. settings-schema.json->favoriteLabel->description
+msgid ""
+"Below are the favorite documents displayed in the menu when checked.\n"
+"The Name can be changed here, but is unchanged in menu.\n"
+"The URI must not be changed.\n"
+"Favorite documents can only be managed by nemo."
+msgstr ""
+
+#. settings-schema.json->favoriteCustomList->columns->title
+msgid "⚠️ Name"
+msgstr ""
+
+#. settings-schema.json->favoriteCustomList->columns->title
+msgid "⚠️ URI"
+msgstr ""
+
+#. settings-schema.json->favoritePopulateButton->description
+msgid "Add all your Favorite Documents"
+msgstr ""
+
+#. settings-schema.json->showCustomDocuments->description
+msgid "Show Custom documents"
+msgstr ""
+
+#. settings-schema.json->labelCustomDocuments->description
+msgid ""
+"URI: Enter the link to your custom document or application-name.desktop here "
+"(as in /usr/share/applications/).\n"
+"To separate them into categories, you can add a line without a URI, but with "
+"a name as the category title (no icon is necessary)."
+msgstr ""
