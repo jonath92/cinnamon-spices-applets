@@ -322,7 +322,11 @@ function createMpvHandler() {
             }
 
             const command = `mpv --config=no --no-video --script=${MPRIS_PLUGIN_PATH} 
-                --scripts-append=${__meta.path}/mpv-reconnect.lua 
+                --scripts-append=${__meta.path}/mpv-reconnect.lua --idle=yes
+                --keep-open --keep-open-pause=no
+                --stream-lavf-o-append=reconnect_streamed=yes
+                --stream-lavf-o-append=reconnect_on_network_error=yes
+                --stream-lavf-o-append=reconnect_delay_max=30
                 ${url} --volume=${initialVolume}`
             spawnCommandLine(command)
             return
