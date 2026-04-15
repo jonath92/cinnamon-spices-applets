@@ -198,8 +198,22 @@ function createMpvHandler() {
         })
 
         ipcClient.onEvent((event) => {
-            if (event.event === 'end-file' || event.event === 'shutdown') {
+            if (event.event === 'shutdown') {
                 handleMpvStopped()
+            } else if (event.event === 'end-file') {
+                // end-file with reason 'error' or 'eof' while idle means mpv
+                // finished a track but is still alive (--idle=yes).  Only quit
+                // events mean the process is gone.  A 'redirect' reason means
+                // loadfile replaced the track – totally normal for channel switch.
+                const reason = event.reason
+                if (reason === 'quit') {
+                    handleMpvStopped()
+                } else if (reason === 'stop') {
+                    // User hit stop – mpv goes idle, update UI state
+                    handleMpvIdleStopped()
+                }
+                // For other reasons (error, eof, redirect) mpv stays alive
+                // in idle mode – do nothing.
             }
         })
 
@@ -221,6 +235,14 @@ function createMpvHandler() {
             if (title) {
                 currentTitle = title
                 titleChangeHandler.forEach(h => h(title))
+                mprisService?.updateState({
+                    metadata: {
+                        'mpris:trackid': currentTrackId,
+                        'xesam:title': title,
+                        'xesam:url': currentUrl || undefined,
+                        'mpris:length': currentLength * 1_000_000,
+                    },
+                })
             }
         }).catch(() => {})
 
@@ -252,6 +274,20 @@ function createMpvHandler() {
         mpvRunning = false
         currentUrl = null
 
+        playbackStatusChangeHandler.forEach(handler => handler('Stopped'))
+        settingsObject.lastVolume = lastVolume
+    }
+
+    /** mpv went idle after a 'stop' command but the process is still alive */
+    function handleMpvIdleStopped(): void {
+        isLoading = false
+        currentLength = 0
+        currentPosition = 0
+        currentPlaybackStatus = 'Stopped'
+        currentTitle = undefined
+        stopPositionTimer()
+
+        mprisService?.updateState({ playbackStatus: 'Stopped' })
         playbackStatusChangeHandler.forEach(handler => handler('Stopped'))
         settingsObject.lastVolume = lastVolume
     }

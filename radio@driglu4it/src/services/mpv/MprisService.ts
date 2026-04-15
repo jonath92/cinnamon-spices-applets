@@ -15,15 +15,11 @@ const Gio = imports.gi.Gio;
 const GLib = imports.gi.GLib;
 
 // ── D-Bus introspection XML ──────────────────────────────────────────
-// We need both /org/mpris/MediaPlayer2 interfaces on the same object
-// path.  wrapJSObject accepts a single <interface> but Cinnamon's own
-// code (screenshot.js, cinnamonDBus.js) simply concatenates multiple
-// interfaces inside a single <node> element.  We export the Player
-// interface (which is the only one the applet actually needs).
-// The root MediaPlayer2 interface is also included for completeness –
-// some clients query Identity / DesktopEntry.
+// wrapJSObject() only registers the FIRST <interface> in the XML, so we
+// must split root and player into separate XMLs and export each one as
+// its own DBusExportedObject on the same object path.
 
-const MPRIS_IFACE = `
+const ROOT_IFACE = `
 <node>
   <interface name="org.mpris.MediaPlayer2">
     <method name="Raise"/>
@@ -36,7 +32,10 @@ const MPRIS_IFACE = `
     <property name="SupportedMimeTypes" type="as" access="read"/>
     <property name="DesktopEntry" type="s" access="read"/>
   </interface>
+</node>`;
 
+const PLAYER_IFACE = `
+<node>
   <interface name="org.mpris.MediaPlayer2.Player">
     <method name="Next"/>
     <method name="Previous"/>
@@ -176,9 +175,8 @@ export function createMprisService(callbacks: MprisMethodCallbacks): MprisServic
         );
     }
 
-    // ── The JS object that backs the D-Bus interface ───────────────
-    const ifaceImpl = {
-        // --- org.mpris.MediaPlayer2 ---
+    // ── The JS object that backs the root interface ──────────────
+    const rootImpl = {
         Raise() { /* no-op */ },
         Quit() { callbacks.onQuit(); },
 
@@ -189,8 +187,10 @@ export function createMprisService(callbacks: MprisMethodCallbacks): MprisServic
         get DesktopEntry() { return 'mpv'; },
         get SupportedUriSchemes() { return ['http', 'https', 'file']; },
         get SupportedMimeTypes() { return ['audio/mpeg', 'audio/ogg', 'audio/flac', 'audio/x-wav', 'application/ogg']; },
+    };
 
-        // --- org.mpris.MediaPlayer2.Player ---
+    // ── The JS object that backs the Player interface ─────────────
+    const playerImpl = {
         Next() { callbacks.onNext(); },
         Previous() { callbacks.onPrevious(); },
         Pause() { callbacks.onPause(); },
@@ -225,9 +225,15 @@ export function createMprisService(callbacks: MprisMethodCallbacks): MprisServic
         get CanControl() { return state.canControl; },
     };
 
-    // ── Export on session bus ──────────────────────────────────────
-    const dbusExportedObject = (Gio as any).DBusExportedObject.wrapJSObject(MPRIS_IFACE, ifaceImpl);
-    dbusExportedObject.export(Gio.DBus.session, '/org/mpris/MediaPlayer2');
+    // ── Export both interfaces on the same path ───────────────────
+    const wrapJSObject = (Gio as any).DBusExportedObject.wrapJSObject;
+    const objectPath = '/org/mpris/MediaPlayer2';
+
+    const rootExported = wrapJSObject(ROOT_IFACE, rootImpl);
+    rootExported.export(Gio.DBus.session, objectPath);
+
+    const playerExported = wrapJSObject(PLAYER_IFACE, playerImpl);
+    playerExported.export(Gio.DBus.session, objectPath);
 
     const busNameId = Gio.bus_own_name_on_connection(
         Gio.DBus.session,
@@ -261,7 +267,7 @@ export function createMprisService(callbacks: MprisMethodCallbacks): MprisServic
             invalidatedVariant,
         ]);
 
-        dbusExportedObject.emit_signal('PropertiesChanged', params);
+        playerExported.emit_signal('PropertiesChanged', params);
     }
 
     return {
@@ -321,7 +327,7 @@ export function createMprisService(callbacks: MprisMethodCallbacks): MprisServic
 
         emitSeeked(positionMicroseconds: number) {
             state.position = positionMicroseconds;
-            dbusExportedObject.emit_signal(
+            playerExported.emit_signal(
                 'Seeked',
                 GLib.Variant.new_tuple([GLib.Variant.new_int64(positionMicroseconds)])
             );
@@ -329,7 +335,8 @@ export function createMprisService(callbacks: MprisMethodCallbacks): MprisServic
 
         destroy() {
             Gio.bus_unown_name(busNameId);
-            dbusExportedObject.unexport();
+            playerExported.unexport();
+            rootExported.unexport();
         },
     };
 }

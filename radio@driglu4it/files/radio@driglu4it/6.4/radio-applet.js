@@ -2823,14 +2823,10 @@ function createMpvIpcClient(socketPath) {
 const MprisService_Gio = imports.gi.Gio;
 const MprisService_GLib = imports.gi.GLib;
 // ── D-Bus introspection XML ──────────────────────────────────────────
-// We need both /org/mpris/MediaPlayer2 interfaces on the same object
-// path.  wrapJSObject accepts a single <interface> but Cinnamon's own
-// code (screenshot.js, cinnamonDBus.js) simply concatenates multiple
-// interfaces inside a single <node> element.  We export the Player
-// interface (which is the only one the applet actually needs).
-// The root MediaPlayer2 interface is also included for completeness –
-// some clients query Identity / DesktopEntry.
-const MPRIS_IFACE = `
+// wrapJSObject() only registers the FIRST <interface> in the XML, so we
+// must split root and player into separate XMLs and export each one as
+// its own DBusExportedObject on the same object path.
+const ROOT_IFACE = `
 <node>
   <interface name="org.mpris.MediaPlayer2">
     <method name="Raise"/>
@@ -2843,7 +2839,9 @@ const MPRIS_IFACE = `
     <property name="SupportedMimeTypes" type="as" access="read"/>
     <property name="DesktopEntry" type="s" access="read"/>
   </interface>
-
+</node>`;
+const PLAYER_IFACE = `
+<node>
   <interface name="org.mpris.MediaPlayer2.Player">
     <method name="Next"/>
     <method name="Previous"/>
@@ -2916,9 +2914,8 @@ function createMprisService(callbacks) {
         }
         return MprisService_GLib.Variant.new_array(MprisService_GLib.VariantType.new('{sv}'), entries);
     }
-    // ── The JS object that backs the D-Bus interface ───────────────
-    const ifaceImpl = {
-        // --- org.mpris.MediaPlayer2 ---
+    // ── The JS object that backs the root interface ──────────────
+    const rootImpl = {
         Raise() { },
         Quit() { callbacks.onQuit(); },
         get CanQuit() { return true; },
@@ -2928,7 +2925,9 @@ function createMprisService(callbacks) {
         get DesktopEntry() { return 'mpv'; },
         get SupportedUriSchemes() { return ['http', 'https', 'file']; },
         get SupportedMimeTypes() { return ['audio/mpeg', 'audio/ogg', 'audio/flac', 'audio/x-wav', 'application/ogg']; },
-        // --- org.mpris.MediaPlayer2.Player ---
+    };
+    // ── The JS object that backs the Player interface ─────────────
+    const playerImpl = {
         Next() { callbacks.onNext(); },
         Previous() { callbacks.onPrevious(); },
         Pause() { callbacks.onPause(); },
@@ -2961,9 +2960,13 @@ function createMprisService(callbacks) {
         get CanSeek() { return state.canSeek; },
         get CanControl() { return state.canControl; },
     };
-    // ── Export on session bus ──────────────────────────────────────
-    const dbusExportedObject = MprisService_Gio.DBusExportedObject.wrapJSObject(MPRIS_IFACE, ifaceImpl);
-    dbusExportedObject.export(MprisService_Gio.DBus.session, '/org/mpris/MediaPlayer2');
+    // ── Export both interfaces on the same path ───────────────────
+    const wrapJSObject = MprisService_Gio.DBusExportedObject.wrapJSObject;
+    const objectPath = '/org/mpris/MediaPlayer2';
+    const rootExported = wrapJSObject(ROOT_IFACE, rootImpl);
+    rootExported.export(MprisService_Gio.DBus.session, objectPath);
+    const playerExported = wrapJSObject(PLAYER_IFACE, playerImpl);
+    playerExported.export(MprisService_Gio.DBus.session, objectPath);
     const busNameId = MprisService_Gio.bus_own_name_on_connection(MprisService_Gio.DBus.session, 'org.mpris.MediaPlayer2.mpv', MprisService_Gio.BusNameOwnerFlags.NONE, null, null);
     // ── Emit PropertiesChanged ────────────────────────────────────
     function emitPropertiesChanged(iface, changed, invalidated = []) {
@@ -2977,7 +2980,7 @@ function createMprisService(callbacks) {
             changedVariant,
             invalidatedVariant,
         ]);
-        dbusExportedObject.emit_signal('PropertiesChanged', params);
+        playerExported.emit_signal('PropertiesChanged', params);
     }
     return {
         updateState(partial) {
@@ -3033,11 +3036,12 @@ function createMprisService(callbacks) {
         },
         emitSeeked(positionMicroseconds) {
             state.position = positionMicroseconds;
-            dbusExportedObject.emit_signal('Seeked', MprisService_GLib.Variant.new_tuple([MprisService_GLib.Variant.new_int64(positionMicroseconds)]));
+            playerExported.emit_signal('Seeked', MprisService_GLib.Variant.new_tuple([MprisService_GLib.Variant.new_int64(positionMicroseconds)]));
         },
         destroy() {
             MprisService_Gio.bus_unown_name(busNameId);
-            dbusExportedObject.unexport();
+            playerExported.unexport();
+            rootExported.unexport();
         },
     };
 }
@@ -3211,8 +3215,24 @@ function createMpvHandler() {
             }
         });
         ipcClient.onEvent((event) => {
-            if (event.event === 'end-file' || event.event === 'shutdown') {
+            if (event.event === 'shutdown') {
                 handleMpvStopped();
+            }
+            else if (event.event === 'end-file') {
+                // end-file with reason 'error' or 'eof' while idle means mpv
+                // finished a track but is still alive (--idle=yes).  Only quit
+                // events mean the process is gone.  A 'redirect' reason means
+                // loadfile replaced the track – totally normal for channel switch.
+                const reason = event.reason;
+                if (reason === 'quit') {
+                    handleMpvStopped();
+                }
+                else if (reason === 'stop') {
+                    // User hit stop – mpv goes idle, update UI state
+                    handleMpvIdleStopped();
+                }
+                // For other reasons (error, eof, redirect) mpv stays alive
+                // in idle mode – do nothing.
             }
         });
         pauseAllOtherMediaPlayers();
@@ -3232,6 +3252,14 @@ function createMpvHandler() {
             if (title) {
                 currentTitle = title;
                 titleChangeHandler.forEach(h => h(title));
+                mprisService === null || mprisService === void 0 ? void 0 : mprisService.updateState({
+                    metadata: {
+                        'mpris:trackid': currentTrackId,
+                        'xesam:title': title,
+                        'xesam:url': currentUrl || undefined,
+                        'mpris:length': currentLength * 1000000,
+                    },
+                });
             }
         }).catch(() => { });
         ipcClient.getProperty('duration').then(dur => {
@@ -3258,6 +3286,18 @@ function createMpvHandler() {
         }
         mpvRunning = false;
         currentUrl = null;
+        playbackStatusChangeHandler.forEach(handler => handler('Stopped'));
+        settingsObject.lastVolume = lastVolume;
+    }
+    /** mpv went idle after a 'stop' command but the process is still alive */
+    function handleMpvIdleStopped() {
+        isLoading = false;
+        currentLength = 0;
+        currentPosition = 0;
+        currentPlaybackStatus = 'Stopped';
+        currentTitle = undefined;
+        stopPositionTimer();
+        mprisService === null || mprisService === void 0 ? void 0 : mprisService.updateState({ playbackStatus: 'Stopped' });
         playbackStatusChangeHandler.forEach(handler => handler('Stopped'));
         settingsObject.lastVolume = lastVolume;
     }
