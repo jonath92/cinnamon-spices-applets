@@ -2610,17 +2610,10 @@ const createConfig = () => {
 };
 
 ;// ./src/consts.ts
-const { get_home_dir, get_user_config_dir, get_user_cache_dir } = imports.gi.GLib;
-const { File } = imports.gi.Gio;
+const { get_user_cache_dir } = imports.gi.GLib;
 const APPLET_SITE = "https://cinnamon-spices.linuxmint.com/applets/view/297";
 const APPLET_CACHE_DIR_PATH = `${get_user_cache_dir()}/${__meta.uuid}`;
-const MPRIS_PLUGIN_PATH = (() => {
-    const maybePath = [
-        `${get_home_dir()}/.cinnamon/configs/${__meta.uuid}/.mpris.so`,
-    ].find((path) => File.new_for_path(path).query_exists(null));
-    return maybePath || `${APPLET_CACHE_DIR_PATH}/.mpris.so`;
-})();
-const MPRIS_PLUGIN_URL = "https://github.com/hoyon/mpv-mpris/releases/download/0.5/mpris.so";
+const MPV_IPC_SOCKET_PATH = `${get_user_cache_dir()}/${__meta.uuid}/mpv-ipc.sock`;
 const MEDIA_PLAYER_2_NAME = "org.mpris.MediaPlayer2";
 const MEDIA_PLAYER_2_PLAYER_NAME = "org.mpris.MediaPlayer2.Player";
 const MEDIA_PLAYER_2_PATH = "/org/mpris/MediaPlayer2";
@@ -2663,33 +2656,401 @@ const DOWNLOAD_ICON_NAME = "south-arrow-weather-symbolic";
 const LOADING_ICON_NAME = "view-refresh-symbolic";
 const CANCEL_ICON_NAME = "dialog-cancel";
 
+;// ./src/services/mpv/MpvIpcClient.ts
+/**
+ * Client for mpv's JSON IPC protocol over Unix socket.
+ *
+ * mpv exposes a JSON-based IPC interface when launched with
+ * `--input-ipc-server=/path/to/socket`.  Each message is a single JSON
+ * object terminated by `\n`.
+ *
+ * This module provides:
+ *   - sendCommand()    – fire-and-forget or request/response commands
+ *   - getProperty()    – convenience wrapper around `get_property`
+ *   - setProperty()    – convenience wrapper around `set_property`
+ *   - observeProperty()– observe a property and call a handler on changes
+ *   - onEvent()        – listen for mpv events (e.g. "end-file")
+ *   - destroy()        – tear down connection
+ */
+const Gio = imports.gi.Gio;
+const GLib = imports.gi.GLib;
+/**
+ * Connect to the mpv IPC socket at `socketPath` and return a client handle.
+ *
+ * The caller is responsible for ensuring the socket file exists (i.e. mpv
+ * has been started) before calling this function.  Retries are *not*
+ * performed internally – the MpvHandler orchestrates that.
+ */
+function createMpvIpcClient(socketPath) {
+    const address = Gio.UnixSocketAddress.new(socketPath);
+    const client = new Gio.SocketClient();
+    const connection = client.connect(address, null);
+    const input = new Gio.DataInputStream({
+        base_stream: connection.get_input_stream(),
+    });
+    const output = new Gio.DataOutputStream({
+        base_stream: connection.get_output_stream(),
+    });
+    let nextRequestId = 1;
+    const pendingRequests = new Map();
+    const propertyChangeHandlers = [];
+    const eventHandlers = [];
+    let destroyed = false;
+    // ---------- async read loop ----------
+    function readLoop() {
+        if (destroyed)
+            return;
+        input.read_line_async(GLib.PRIORITY_DEFAULT, null, (source, result) => {
+            if (destroyed)
+                return;
+            let lineBytes;
+            try {
+                [lineBytes] = input.read_line_finish(result);
+            }
+            catch (_a) {
+                // socket closed / error – stop reading
+                return;
+            }
+            if (lineBytes === null)
+                return; // EOF
+            let line;
+            if (lineBytes instanceof Uint8Array) {
+                // Convert byte array to string without TextDecoder
+                const chars = [];
+                for (let i = 0; i < lineBytes.length; i++) {
+                    chars.push(String.fromCharCode(lineBytes[i]));
+                }
+                line = chars.join('');
+            }
+            else {
+                line = String(lineBytes);
+            }
+            if (!line) {
+                readLoop();
+                return;
+            }
+            let msg;
+            try {
+                msg = JSON.parse(line);
+            }
+            catch (_b) {
+                readLoop();
+                return;
+            }
+            if (msg.event === 'property-change') {
+                propertyChangeHandlers.forEach(h => h(msg.name, msg.data));
+            }
+            else if (msg.event) {
+                eventHandlers.forEach(h => h(msg));
+            }
+            if ('request_id' in msg && typeof msg.request_id === 'number') {
+                const pending = pendingRequests.get(msg.request_id);
+                if (pending) {
+                    pendingRequests.delete(msg.request_id);
+                    if (msg.error === 'success') {
+                        pending.resolve(msg.data);
+                    }
+                    else {
+                        pending.reject(new Error(msg.error));
+                    }
+                }
+            }
+            readLoop();
+        });
+    }
+    readLoop();
+    // ---------- send ----------
+    function send(obj) {
+        const id = nextRequestId++;
+        obj.request_id = id;
+        const json = JSON.stringify(obj) + '\n';
+        return new Promise((resolve, reject) => {
+            pendingRequests.set(id, { resolve, reject });
+            try {
+                output.put_string(json, null);
+                output.flush(null);
+            }
+            catch (e) {
+                pendingRequests.delete(id);
+                reject(e);
+            }
+        });
+    }
+    return {
+        sendCommand(args) {
+            return send({ command: args });
+        },
+        getProperty(name) {
+            return send({ command: ['get_property', name] });
+        },
+        setProperty(name, value) {
+            return send({ command: ['set_property', name, value] });
+        },
+        observeProperty(id, name) {
+            return send({ command: ['observe_property', id, name] });
+        },
+        onPropertyChange(handler) {
+            propertyChangeHandlers.push(handler);
+        },
+        onEvent(handler) {
+            eventHandlers.push(handler);
+        },
+        destroy() {
+            destroyed = true;
+            pendingRequests.forEach(p => p.reject(new Error('destroyed')));
+            pendingRequests.clear();
+            try {
+                connection.close(null);
+            }
+            catch ( /* ignore */_a) { /* ignore */ }
+        },
+    };
+}
+
+;// ./src/services/mpv/MprisService.ts
+/**
+ * MPRIS D-Bus service implemented entirely in Cinnamon JS.
+ *
+ * Uses Gio.DBusExportedObject.wrapJSObject() (a GJS convenience) to own
+ * the well-known bus name `org.mpris.MediaPlayer2.mpv` and export the
+ * standard MPRIS interfaces so that Cinnamon's sound applet, media keys
+ * and any other MPRIS client continues to work.
+ *
+ * State is pushed in by the MpvHandler (which talks to mpv over IPC);
+ * this module only owns the D-Bus name and responds to method calls /
+ * property queries.
+ */
+const MprisService_Gio = imports.gi.Gio;
+const MprisService_GLib = imports.gi.GLib;
+// ── D-Bus introspection XML ──────────────────────────────────────────
+// We need both /org/mpris/MediaPlayer2 interfaces on the same object
+// path.  wrapJSObject accepts a single <interface> but Cinnamon's own
+// code (screenshot.js, cinnamonDBus.js) simply concatenates multiple
+// interfaces inside a single <node> element.  We export the Player
+// interface (which is the only one the applet actually needs).
+// The root MediaPlayer2 interface is also included for completeness –
+// some clients query Identity / DesktopEntry.
+const MPRIS_IFACE = `
+<node>
+  <interface name="org.mpris.MediaPlayer2">
+    <method name="Raise"/>
+    <method name="Quit"/>
+    <property name="CanQuit" type="b" access="read"/>
+    <property name="CanRaise" type="b" access="read"/>
+    <property name="HasTrackList" type="b" access="read"/>
+    <property name="Identity" type="s" access="read"/>
+    <property name="SupportedUriSchemes" type="as" access="read"/>
+    <property name="SupportedMimeTypes" type="as" access="read"/>
+    <property name="DesktopEntry" type="s" access="read"/>
+  </interface>
+
+  <interface name="org.mpris.MediaPlayer2.Player">
+    <method name="Next"/>
+    <method name="Previous"/>
+    <method name="Pause"/>
+    <method name="PlayPause"/>
+    <method name="Stop"/>
+    <method name="Play"/>
+    <method name="Seek">
+      <arg direction="in" type="x" name="Offset"/>
+    </method>
+    <method name="SetPosition">
+      <arg direction="in" type="o" name="TrackId"/>
+      <arg direction="in" type="x" name="Position"/>
+    </method>
+    <method name="OpenUri">
+      <arg direction="in" type="s" name="Uri"/>
+    </method>
+    <signal name="Seeked">
+      <arg type="x" name="Position"/>
+    </signal>
+    <property name="PlaybackStatus" type="s" access="read"/>
+    <property name="LoopStatus" type="s" access="readwrite"/>
+    <property name="Rate" type="d" access="readwrite"/>
+    <property name="Shuffle" type="b" access="readwrite"/>
+    <property name="Metadata" type="a{sv}" access="read"/>
+    <property name="Volume" type="d" access="readwrite"/>
+    <property name="Position" type="x" access="read"/>
+    <property name="MinimumRate" type="d" access="read"/>
+    <property name="MaximumRate" type="d" access="read"/>
+    <property name="CanGoNext" type="b" access="read"/>
+    <property name="CanGoPrevious" type="b" access="read"/>
+    <property name="CanPlay" type="b" access="read"/>
+    <property name="CanPause" type="b" access="read"/>
+    <property name="CanSeek" type="b" access="read"/>
+    <property name="CanControl" type="b" access="read"/>
+  </interface>
+</node>`;
+function createMprisService(callbacks) {
+    // Current state
+    const state = {
+        playbackStatus: 'Stopped',
+        loopStatus: 'None',
+        rate: 1.0,
+        shuffle: false,
+        volume: 1.0,
+        position: 0,
+        metadata: {},
+        canGoNext: false,
+        canGoPrevious: false,
+        canPlay: true,
+        canPause: true,
+        canSeek: true,
+        canControl: true,
+    };
+    // ── Build metadata GLib.Variant ────────────────────────────────
+    function buildMetadataVariant() {
+        const entries = [];
+        const m = state.metadata;
+        if (m['mpris:trackid']) {
+            entries.push(MprisService_GLib.Variant.new_dict_entry(MprisService_GLib.Variant.new_string('mpris:trackid'), MprisService_GLib.Variant.new_variant(MprisService_GLib.Variant.new_object_path(m['mpris:trackid']))));
+        }
+        if (m['xesam:title'] != null) {
+            entries.push(MprisService_GLib.Variant.new_dict_entry(MprisService_GLib.Variant.new_string('xesam:title'), MprisService_GLib.Variant.new_variant(MprisService_GLib.Variant.new_string(m['xesam:title']))));
+        }
+        if (m['xesam:url'] != null) {
+            entries.push(MprisService_GLib.Variant.new_dict_entry(MprisService_GLib.Variant.new_string('xesam:url'), MprisService_GLib.Variant.new_variant(MprisService_GLib.Variant.new_string(m['xesam:url']))));
+        }
+        if (m['mpris:length'] != null) {
+            entries.push(MprisService_GLib.Variant.new_dict_entry(MprisService_GLib.Variant.new_string('mpris:length'), MprisService_GLib.Variant.new_variant(MprisService_GLib.Variant.new_int64(m['mpris:length']))));
+        }
+        return MprisService_GLib.Variant.new_array(MprisService_GLib.VariantType.new('{sv}'), entries);
+    }
+    // ── The JS object that backs the D-Bus interface ───────────────
+    const ifaceImpl = {
+        // --- org.mpris.MediaPlayer2 ---
+        Raise() { },
+        Quit() { callbacks.onQuit(); },
+        get CanQuit() { return true; },
+        get CanRaise() { return false; },
+        get HasTrackList() { return false; },
+        get Identity() { return 'mpv Media Player'; },
+        get DesktopEntry() { return 'mpv'; },
+        get SupportedUriSchemes() { return ['http', 'https', 'file']; },
+        get SupportedMimeTypes() { return ['audio/mpeg', 'audio/ogg', 'audio/flac', 'audio/x-wav', 'application/ogg']; },
+        // --- org.mpris.MediaPlayer2.Player ---
+        Next() { callbacks.onNext(); },
+        Previous() { callbacks.onPrevious(); },
+        Pause() { callbacks.onPause(); },
+        PlayPause() { callbacks.onPlayPause(); },
+        Stop() { callbacks.onStop(); },
+        Play() { callbacks.onPlay(); },
+        Seek(offset) { callbacks.onSeek(offset); },
+        SetPosition(trackId, position) { callbacks.onSetPosition(trackId, position); },
+        OpenUri(uri) { callbacks.onOpenUri(uri); },
+        get PlaybackStatus() { return state.playbackStatus; },
+        get LoopStatus() { return state.loopStatus; },
+        set LoopStatus(value) { state.loopStatus = value; callbacks.onSetLoopStatus(value); },
+        get Rate() { return state.rate; },
+        set Rate(value) { state.rate = value; },
+        get Shuffle() { return state.shuffle; },
+        set Shuffle(value) { state.shuffle = value; },
+        get Metadata() { return buildMetadataVariant(); },
+        get Volume() { return state.volume; },
+        set Volume(value) {
+            state.volume = Math.max(0, value);
+            callbacks.onSetVolume(state.volume);
+        },
+        get Position() { return state.position; },
+        get MinimumRate() { return 1.0; },
+        get MaximumRate() { return 1.0; },
+        get CanGoNext() { return state.canGoNext; },
+        get CanGoPrevious() { return state.canGoPrevious; },
+        get CanPlay() { return state.canPlay; },
+        get CanPause() { return state.canPause; },
+        get CanSeek() { return state.canSeek; },
+        get CanControl() { return state.canControl; },
+    };
+    // ── Export on session bus ──────────────────────────────────────
+    const dbusExportedObject = MprisService_Gio.DBusExportedObject.wrapJSObject(MPRIS_IFACE, ifaceImpl);
+    dbusExportedObject.export(MprisService_Gio.DBus.session, '/org/mpris/MediaPlayer2');
+    const busNameId = MprisService_Gio.bus_own_name_on_connection(MprisService_Gio.DBus.session, 'org.mpris.MediaPlayer2.mpv', MprisService_Gio.BusNameOwnerFlags.NONE, null, null);
+    // ── Emit PropertiesChanged ────────────────────────────────────
+    function emitPropertiesChanged(iface, changed, invalidated = []) {
+        const changedEntries = Object.keys(changed).map(key => MprisService_GLib.Variant.new_dict_entry(MprisService_GLib.Variant.new_string(key), MprisService_GLib.Variant.new_variant(changed[key])));
+        const changedVariant = MprisService_GLib.Variant.new_array(MprisService_GLib.VariantType.new('{sv}'), changedEntries);
+        const invalidatedVariant = MprisService_GLib.Variant.new_strv(invalidated);
+        // Use new_tuple to combine pre-built variants – new GLib.Variant('(…)', [...])
+        // fails because the auto-packer can't handle already-constructed Variant objects.
+        const params = MprisService_GLib.Variant.new_tuple([
+            MprisService_GLib.Variant.new_string(iface),
+            changedVariant,
+            invalidatedVariant,
+        ]);
+        dbusExportedObject.emit_signal('PropertiesChanged', params);
+    }
+    return {
+        updateState(partial) {
+            const changed = {};
+            const playerIface = 'org.mpris.MediaPlayer2.Player';
+            if (partial.playbackStatus !== undefined && partial.playbackStatus !== state.playbackStatus) {
+                state.playbackStatus = partial.playbackStatus;
+                changed['PlaybackStatus'] = MprisService_GLib.Variant.new_string(state.playbackStatus);
+            }
+            if (partial.loopStatus !== undefined && partial.loopStatus !== state.loopStatus) {
+                state.loopStatus = partial.loopStatus;
+                changed['LoopStatus'] = MprisService_GLib.Variant.new_string(state.loopStatus);
+            }
+            if (partial.volume !== undefined && partial.volume !== state.volume) {
+                state.volume = partial.volume;
+                changed['Volume'] = MprisService_GLib.Variant.new_double(state.volume);
+            }
+            if (partial.shuffle !== undefined && partial.shuffle !== state.shuffle) {
+                state.shuffle = partial.shuffle;
+                changed['Shuffle'] = MprisService_GLib.Variant.new_boolean(state.shuffle);
+            }
+            if (partial.rate !== undefined && partial.rate !== state.rate) {
+                state.rate = partial.rate;
+                changed['Rate'] = MprisService_GLib.Variant.new_double(state.rate);
+            }
+            if (partial.position !== undefined) {
+                state.position = partial.position;
+                // Position does NOT emit PropertiesChanged per MPRIS spec
+            }
+            if (partial.metadata !== undefined) {
+                state.metadata = partial.metadata;
+                changed['Metadata'] = buildMetadataVariant();
+            }
+            if (partial.canSeek !== undefined && partial.canSeek !== state.canSeek) {
+                state.canSeek = partial.canSeek;
+                changed['CanSeek'] = MprisService_GLib.Variant.new_boolean(state.canSeek);
+            }
+            if (partial.canPlay !== undefined && partial.canPlay !== state.canPlay) {
+                state.canPlay = partial.canPlay;
+                changed['CanPlay'] = MprisService_GLib.Variant.new_boolean(state.canPlay);
+            }
+            if (partial.canPause !== undefined && partial.canPause !== state.canPause) {
+                state.canPause = partial.canPause;
+                changed['CanPause'] = MprisService_GLib.Variant.new_boolean(state.canPause);
+            }
+            if (partial.canControl !== undefined && partial.canControl !== state.canControl) {
+                state.canControl = partial.canControl;
+                changed['CanControl'] = MprisService_GLib.Variant.new_boolean(state.canControl);
+            }
+            if (Object.keys(changed).length > 0) {
+                emitPropertiesChanged(playerIface, changed);
+            }
+        },
+        emitSeeked(positionMicroseconds) {
+            state.position = positionMicroseconds;
+            dbusExportedObject.emit_signal('Seeked', MprisService_GLib.Variant.new_tuple([MprisService_GLib.Variant.new_int64(positionMicroseconds)]));
+        },
+        destroy() {
+            MprisService_Gio.bus_unown_name(busNameId);
+            dbusExportedObject.unexport();
+        },
+    };
+}
+
 ;// ./src/services/mpv/MpvHandler.ts
 
 
-// some streams send UTF-8 metadata that the MPRIS plugin decodes as
-// ISO‑8859‑1/ASCII, so characters like "ü" show up as "Ã¼".  We try to
-// undo that by running the string through a decoder; if it fails we return the
-// original value untouched.  The function is safe to call on normal strings as
-// well.
-function decodeMetadataString(str) {
-    try {
-        const bytes = new Uint8Array(Array.from(str, (c) => c.charCodeAt(0)));
-        const Decoder = globalThis.TextDecoder;
-        if (Decoder) {
-            return new Decoder('utf-8', { fatal: false }).decode(bytes);
-        }
-        // fallback used in existing code prior to adding TextDecoder
-        return decodeURIComponent(escape(str));
-    }
-    catch (_a) {
-        return str;
-    }
-}
-const { getDBusProperties, getDBus, getDBusProxyWithOwner } = imports.misc.interfaces;
+
+
+const { getDBus, getDBusProxyWithOwner } = imports.misc.interfaces;
 const { spawnCommandLine } = imports.misc.util;
-// see https://lazka.github.io/pgi-docs/Cvc-1.0/index.html
 const { MixerControl } = imports.gi.Cvc;
-// TODO: this is not really right as the mpvHandler is initally undefined but it is much easier that way..
+const MpvHandler_GLib = imports.gi.GLib;
 let mpvHandler;
 const initMpvHandler = () => {
     if (mpvHandler) {
@@ -2700,19 +3061,23 @@ const initMpvHandler = () => {
 };
 function createMpvHandler() {
     const { settingsObject, getInitialVolume, addStationsListChangeHandler } = configs;
-    /** the lastUrl is used to determine if mpv is initially (i.e. on cinnamon restart) running for radio purposes and not for something else. It is not sufficient to get the url from a dbus interface and check if the url is valid because some streams (such as .pls streams) change their url dynamically. This approach in not 100% foolproof but probably the best possible approach */
     const lastUrl = settingsObject.lastUrl;
-    // this is a workaround for now. Optimally the lastVolume should be saved persistently each time the volume is changed but this lead to significant performance issue on scrolling at the moment. However this shouldn't be the case as it is no problem to log the volume each time the volume changes (so it is a problem in the config implementation). As a workaround the volume is only saved persistently when the radio stops but the volume obviously can't be received anymore from dbus when the player has been already stopped ... 
     let lastVolume;
     const dbus = getDBus();
-    const mediaServerPlayer = getDBusProxyWithOwner(MEDIA_PLAYER_2_PLAYER_NAME, MPV_MPRIS_BUS_NAME);
-    const mediaProps = getDBusProperties(MPV_MPRIS_BUS_NAME, MEDIA_PLAYER_2_PATH);
     const control = new MixerControl({ name: __meta.name });
     let cvcStream;
     let isLoading = false;
+    let ipcClient = null;
+    let mprisService = null;
+    let ipcConnectTimerId = 0;
+    let mpvRunning = false;
+    let currentPlaybackStatus = 'Stopped';
+    let currentVolumeFraction = 0.5;
+    let currentTitle;
+    let currentTrackId = '/org/mpris/MediaPlayer2/TrackList/NoTrack';
     const playbackStatusChangeHandler = [];
     const channelNameChangeHandler = [];
-    const volumeChangeHandler = []; //
+    const volumeChangeHandler = [];
     const titleChangeHandler = [];
     const lengthChangeHandler = [];
     const positionChangeHandler = [];
@@ -2727,84 +3092,191 @@ function createMpvHandler() {
         });
     });
     let currentUrl = lastUrl;
-    // When no last Url is passed and mpv is running, it is assumed that mpv is not used for the radio applet (and therefore the playbackstatus is Stopped)
-    const initialPlaybackStatus = getPlaybackStatus();
-    if (initialPlaybackStatus === 'Stopped')
-        currentUrl = null;
-    let currentLength = getLength(); // in seconds
+    let currentLength = 0;
+    let currentPosition = 0;
     let positionTimerId = null;
     let bufferExceeded = false;
-    let mediaPropsListenerId = null;
-    let seekListenerId = null;
-    if (initialPlaybackStatus !== "Stopped") {
-        activateMprisPropsListener();
-        activateSeekListener();
-        startPositionTimer();
+    // On startup, try to connect to an already-running mpv instance
+    if (lastUrl) {
+        tryConnectIpc();
     }
-    const nameOwnerSignalId = dbus.connectSignal('NameOwnerChanged', (...args) => {
-        const name = args[2][0];
-        const oldOwner = args[2][1];
-        const newOwner = args[2][2];
-        if (name !== MPV_MPRIS_BUS_NAME)
+    function tryConnectIpc() {
+        if (ipcClient)
             return;
-        if (newOwner) {
-            activateMprisPropsListener();
-            activateSeekListener();
-            pauseAllOtherMediaPlayers();
+        if (!MpvHandler_GLib.file_test(MPV_IPC_SOCKET_PATH, MpvHandler_GLib.FileTest.EXISTS)) {
+            return;
         }
-        if (oldOwner) {
-            handleMpvStopped();
+        try {
+            ipcClient = createMpvIpcClient(MPV_IPC_SOCKET_PATH);
         }
-    });
+        catch (_a) {
+            return;
+        }
+        mpvRunning = true;
+        // Start the MPRIS D-Bus service
+        mprisService = createMprisService({
+            onPlay() { ipcClient === null || ipcClient === void 0 ? void 0 : ipcClient.setProperty('pause', false); },
+            onPause() { ipcClient === null || ipcClient === void 0 ? void 0 : ipcClient.setProperty('pause', true); },
+            onPlayPause() {
+                ipcClient === null || ipcClient === void 0 ? void 0 : ipcClient.getProperty('pause').then(paused => {
+                    ipcClient === null || ipcClient === void 0 ? void 0 : ipcClient.setProperty('pause', !paused);
+                });
+            },
+            onStop() { ipcClient === null || ipcClient === void 0 ? void 0 : ipcClient.sendCommand(['stop']); },
+            onNext() { },
+            onPrevious() { },
+            onSeek(offset) {
+                ipcClient === null || ipcClient === void 0 ? void 0 : ipcClient.sendCommand(['seek', offset / 1000000, 'relative']);
+            },
+            onSetPosition(_trackId, position) {
+                ipcClient === null || ipcClient === void 0 ? void 0 : ipcClient.sendCommand(['seek', position / 1000000, 'absolute']);
+            },
+            onOpenUri(uri) {
+                ipcClient === null || ipcClient === void 0 ? void 0 : ipcClient.sendCommand(['loadfile', uri, 'replace']);
+            },
+            onQuit() { ipcClient === null || ipcClient === void 0 ? void 0 : ipcClient.sendCommand(['quit']); },
+            onSetVolume(fraction) {
+                ipcClient === null || ipcClient === void 0 ? void 0 : ipcClient.setProperty('volume', fraction * 100);
+            },
+            onSetLoopStatus(status) {
+                const loopFile = status === 'Track' ? 'inf' : 'no';
+                ipcClient === null || ipcClient === void 0 ? void 0 : ipcClient.setProperty('loop-file', loopFile);
+            },
+        });
+        // Observe mpv properties via IPC
+        ipcClient.observeProperty(1, 'pause');
+        ipcClient.observeProperty(2, 'media-title');
+        ipcClient.observeProperty(3, 'volume');
+        ipcClient.observeProperty(4, 'duration');
+        ipcClient.observeProperty(5, 'time-pos');
+        ipcClient.observeProperty(6, 'path');
+        ipcClient.observeProperty(7, 'metadata');
+        let trackCounter = 0;
+        ipcClient.onPropertyChange((name, data) => {
+            if (name === 'pause') {
+                const newStatus = data ? 'Paused' : 'Playing';
+                if (newStatus !== currentPlaybackStatus) {
+                    currentPlaybackStatus = newStatus;
+                    mprisService === null || mprisService === void 0 ? void 0 : mprisService.updateState({ playbackStatus: newStatus });
+                    if (!isLoading) {
+                        playbackStatusChangeHandler.forEach(h => h(newStatus));
+                    }
+                    if (newStatus === 'Paused') {
+                        stopPositionTimer();
+                    }
+                    else {
+                        startPositionTimer();
+                    }
+                }
+            }
+            else if (name === 'media-title') {
+                const title = data != null ? String(data) : undefined;
+                currentTitle = title;
+                const metadata = {
+                    'mpris:trackid': currentTrackId,
+                    'xesam:title': title,
+                    'xesam:url': currentUrl || undefined,
+                    'mpris:length': currentLength * 1000000,
+                };
+                mprisService === null || mprisService === void 0 ? void 0 : mprisService.updateState({ metadata });
+                if (title) {
+                    titleChangeHandler.forEach(h => h(title));
+                }
+            }
+            else if (name === 'volume') {
+                if (data != null) {
+                    handleMpvVolumeChanged(Number(data));
+                }
+            }
+            else if (name === 'duration') {
+                const durationSeconds = data != null ? Math.round(Number(data)) : 0;
+                handleLengthChanged(durationSeconds * 1000000);
+            }
+            else if (name === 'time-pos') {
+                if (data != null) {
+                    currentPosition = Math.round(Number(data));
+                    mprisService === null || mprisService === void 0 ? void 0 : mprisService.updateState({ position: currentPosition * 1000000 });
+                }
+            }
+            else if (name === 'path') {
+                const url = data != null ? String(data) : null;
+                if (url && url !== currentUrl) {
+                    const newUrlValid = checkUrlValid(url);
+                    if (newUrlValid) {
+                        trackCounter++;
+                        currentTrackId = `/org/mpris/MediaPlayer2/track/${trackCounter}`;
+                        handleUrlChanged(url);
+                    }
+                }
+            }
+        });
+        ipcClient.onEvent((event) => {
+            if (event.event === 'end-file' || event.event === 'shutdown') {
+                handleMpvStopped();
+            }
+        });
+        pauseAllOtherMediaPlayers();
+        // Fetch initial state
+        ipcClient.getProperty('pause').then(paused => {
+            currentPlaybackStatus = paused ? 'Paused' : 'Playing';
+            mprisService === null || mprisService === void 0 ? void 0 : mprisService.updateState({ playbackStatus: currentPlaybackStatus });
+            if (!paused)
+                startPositionTimer();
+            playbackStatusChangeHandler.forEach(h => h(getPlaybackStatus()));
+        }).catch(() => { });
+        ipcClient.getProperty('volume').then(vol => {
+            if (vol != null)
+                handleMpvVolumeChanged(vol);
+        }).catch(() => { });
+        ipcClient.getProperty('media-title').then(title => {
+            if (title) {
+                currentTitle = title;
+                titleChangeHandler.forEach(h => h(title));
+            }
+        }).catch(() => { });
+        ipcClient.getProperty('duration').then(dur => {
+            if (dur != null) {
+                currentLength = Math.round(dur);
+                lengthChangeHandler.forEach(h => h(currentLength));
+            }
+        }).catch(() => { });
+    }
     function handleMpvStopped() {
         isLoading = false;
         currentLength = 0;
+        currentPosition = 0;
+        currentPlaybackStatus = 'Stopped';
+        currentTitle = undefined;
         stopPositionTimer();
-        mediaPropsListenerId && mediaProps.disconnectSignal(mediaPropsListenerId);
-        seekListenerId && mediaServerPlayer.disconnectSignal(seekListenerId);
-        mediaPropsListenerId = seekListenerId = currentUrl = null;
+        if (ipcClient) {
+            ipcClient.destroy();
+            ipcClient = null;
+        }
+        if (mprisService) {
+            mprisService.destroy();
+            mprisService = null;
+        }
+        mpvRunning = false;
+        currentUrl = null;
         playbackStatusChangeHandler.forEach(handler => handler('Stopped'));
         settingsObject.lastVolume = lastVolume;
     }
     function deactivateAllListener() {
-        if (nameOwnerSignalId)
-            dbus === null || dbus === void 0 ? void 0 : dbus.disconnectSignal(nameOwnerSignalId);
-        if (mediaPropsListenerId)
-            mediaProps === null || mediaProps === void 0 ? void 0 : mediaProps.disconnectSignal(mediaPropsListenerId);
-        if (seekListenerId)
-            mediaServerPlayer === null || mediaServerPlayer === void 0 ? void 0 : mediaServerPlayer.disconnectSignal(seekListenerId);
-    }
-    function activateMprisPropsListener() {
-        mediaPropsListenerId = mediaProps.connectSignal('PropertiesChanged', (proxy, nameOwner, [interfaceName, props]) => {
-            var _a, _b, _c;
-            const metadata = (_a = props.Metadata) === null || _a === void 0 ? void 0 : _a.recursiveUnpack();
-            const volume = (_b = props.Volume) === null || _b === void 0 ? void 0 : _b.unpack();
-            const playbackStatus = (_c = props.PlaybackStatus) === null || _c === void 0 ? void 0 : _c.unpack();
-            const url = metadata === null || metadata === void 0 ? void 0 : metadata['xesam:url'];
-            let title = metadata === null || metadata === void 0 ? void 0 : metadata['xesam:title'];
-            // repair common mis‑decoding from Latin‑1
-            title = title ? decodeMetadataString(title) : title;
-            const length = metadata === null || metadata === void 0 ? void 0 : metadata["mpris:length"];
-            const newUrlValid = checkUrlValid(url);
-            const relevantEvent = newUrlValid || currentUrl;
-            if (!relevantEvent)
-                return; // happens when mpv is running with a file/stream not managed by the applet
-            if (length != null)
-                handleLengthChanged(length);
-            if (volume != null)
-                handleMprisVolumeChanged(volume);
-            url && newUrlValid && url !== currentUrl && handleUrlChanged(url);
-            playbackStatus && handleMprisPlaybackStatusChanged(playbackStatus);
-            title && titleChangeHandler.forEach(changeHandler => changeHandler(title));
-        });
+        if (ipcConnectTimerId) {
+            MpvHandler_GLib.source_remove(ipcConnectTimerId);
+            ipcConnectTimerId = 0;
+        }
+        if (ipcClient) {
+            ipcClient.destroy();
+            ipcClient = null;
+        }
+        if (mprisService) {
+            mprisService.destroy();
+            mprisService = null;
+        }
     }
     function checkUrlValid(channelUrl) {
         return settingsObject.userStations.some(cnl => cnl.url === channelUrl && cnl.inc);
-    }
-    function activateSeekListener() {
-        seekListenerId = mediaServerPlayer.connectSignal('Seeked', (id, sender, value) => {
-            handlePositionChanged(microSecondsToRoundedSeconds(value));
-        });
     }
     /** @param length in microseconds */
     function handleLengthChanged(length) {
@@ -2813,6 +3285,15 @@ function createMpvHandler() {
         const startLoading = (length === 0);
         const finishedLoading = length !== 0 && currentLength === 0;
         currentLength = lengthInSeconds;
+        // Update MPRIS metadata with new length
+        mprisService === null || mprisService === void 0 ? void 0 : mprisService.updateState({
+            metadata: {
+                'mpris:trackid': currentTrackId,
+                'xesam:title': currentTitle,
+                'xesam:url': currentUrl || undefined,
+                'mpris:length': length,
+            },
+        });
         if (startLoading) {
             isLoading = true;
             playbackStatusChangeHandler.forEach(handler => handler('Loading'));
@@ -2827,6 +3308,7 @@ function createMpvHandler() {
     }
     /**  @param position in seconds! */
     function handlePositionChanged(position) {
+        currentPosition = position;
         stopPositionTimer();
         positionChangeHandler.forEach(handler => handler(position));
         startPositionTimer();
@@ -2837,7 +3319,7 @@ function createMpvHandler() {
         positionTimerId = setInterval(() => {
             const position = Math.min(getPosition(), currentLength);
             positionChangeHandler.forEach(handler => handler(position));
-            if (position === currentLength) {
+            if (position === currentLength && currentLength > 0) {
                 isLoading = true;
                 playbackStatusChangeHandler.forEach(handler => handler('Loading'));
                 bufferExceeded = true;
@@ -2851,13 +3333,6 @@ function createMpvHandler() {
         clearInterval(positionTimerId);
         positionTimerId = null;
     }
-    function handleMprisPlaybackStatusChanged(playbackStatus) {
-        if (currentLength !== 0) {
-            playbackStatusChangeHandler.forEach(handler => handler(playbackStatus));
-            playbackStatus === 'Paused' ? stopPositionTimer()
-                : handlePositionChanged(getPosition());
-        }
-    }
     function handleUrlChanged(newUrl) {
         currentUrl = newUrl;
         settingsObject.lastUrl = newUrl;
@@ -2867,72 +3342,89 @@ function createMpvHandler() {
         positionChangeHandler.forEach(handler => handler(0));
         const currentChannelName = getCurrentChannelName();
         if (!currentChannelName)
-            return; // TODO: this never happens (the stufff in the props change handler should be here)
+            return;
         channelNameChangeHandler.forEach(changeHandler => changeHandler(currentChannelName));
     }
-    function handleMprisVolumeChanged(mprisVolume) {
-        if (mprisVolume * 100 > MAX_VOLUME) {
-            mediaServerPlayer.Volume = MAX_VOLUME / 100;
+    function handleMpvVolumeChanged(mpvVolume) {
+        // mpvVolume is 0-100 from mpv's perspective
+        const normalizedVolume = Math.round(Math.min(mpvVolume, MAX_VOLUME));
+        if (normalizedVolume > MAX_VOLUME) {
+            ipcClient === null || ipcClient === void 0 ? void 0 : ipcClient.setProperty('volume', MAX_VOLUME);
             return;
         }
-        const normalizedVolume = Math.round(mprisVolume * 100);
+        currentVolumeFraction = normalizedVolume / 100;
+        mprisService === null || mprisService === void 0 ? void 0 : mprisService.updateState({ volume: currentVolumeFraction });
         setCvcVolume(normalizedVolume);
         volumeChangeHandler.forEach(changeHandler => changeHandler(normalizedVolume));
         lastVolume = normalizedVolume;
     }
     function handleCvcVolumeChanged() {
         const normalizedVolume = Math.round(cvcStream.volume / control.get_vol_max_norm() * 100);
-        setMprisVolume(normalizedVolume);
+        setVolume(normalizedVolume);
     }
-    /** @returns length in seconds */
     function getLength() {
-        var _a, _b;
-        const lengthMicroSeconds = ((_b = (_a = mediaServerPlayer.Metadata) === null || _a === void 0 ? void 0 : _a["mpris:length"]) === null || _b === void 0 ? void 0 : _b.unpack()) || 0;
-        return microSecondsToRoundedSeconds(lengthMicroSeconds);
+        return currentLength;
     }
-    /** @returns position in seconds */
     function getPosition() {
         if (getPlaybackStatus() === 'Stopped')
             return 0;
-        // for some reason, this only return the right value the first time it is called. When calling this multiple times, it returns always the same value which however is wrong when radio is playing
-        // const positionMicroSeconds = mediaServerPlayer.Position
-        const positionMicroSeconds = mediaProps.GetSync('org.mpris.MediaPlayer2.Player', 'Position')[0].deepUnpack();
-        return microSecondsToRoundedSeconds(positionMicroSeconds);
+        return currentPosition;
     }
     function setUrl(url) {
         if (getPlaybackStatus() === 'Stopped') {
-            let initialVolume = getInitialVolume();
-            if (initialVolume == null) {
-                global.logWarning('initial Volume was null or undefined. Applying 50 as a fallback solution to prevent radio stop working');
-                initialVolume = 50;
+            // Check if mpv is already running (idle mode)
+            if (!mpvRunning) {
+                let initialVolume = getInitialVolume();
+                if (initialVolume == null) {
+                    global.logWarning('initial Volume was null or undefined. Applying 50 as a fallback solution to prevent radio stop working');
+                    initialVolume = 50;
+                }
+                const command = `mpv --config=no --no-video --input-ipc-server=${MPV_IPC_SOCKET_PATH} --scripts-append=${__meta.path}/mpv-reconnect.lua --idle=yes ${url} --volume=${initialVolume}`;
+                spawnCommandLine(command);
+                // Wait for mpv to create the socket, then connect
+                waitForSocket();
+                return;
             }
-            const command = `mpv --config=no --no-video --script=${MPRIS_PLUGIN_PATH} 
-                --scripts-append=${__meta.path}/mpv-reconnect.lua --idle=yes
-                --keep-open --keep-open-pause=no
-                --stream-lavf-o-append=reconnect_streamed=yes
-                --stream-lavf-o-append=reconnect_on_network_error=yes
-                --stream-lavf-o-append=reconnect_delay_max=30
-                ${url} --volume=${initialVolume}`;
-            spawnCommandLine(command);
-            return;
         }
-        mediaServerPlayer.OpenUriRemote(url);
-        mediaServerPlayer.PlaySync();
+        // mpv already running, load new URL via IPC
+        ipcClient === null || ipcClient === void 0 ? void 0 : ipcClient.sendCommand(['loadfile', url, 'replace']);
+        ipcClient === null || ipcClient === void 0 ? void 0 : ipcClient.setProperty('pause', false);
+    }
+    function waitForSocket() {
+        if (ipcConnectTimerId)
+            return;
+        let attempts = 0;
+        ipcConnectTimerId = MpvHandler_GLib.timeout_add(MpvHandler_GLib.PRIORITY_DEFAULT, 200, () => {
+            attempts++;
+            if (MpvHandler_GLib.file_test(MPV_IPC_SOCKET_PATH, MpvHandler_GLib.FileTest.EXISTS)) {
+                try {
+                    tryConnectIpc();
+                    ipcConnectTimerId = 0;
+                    return MpvHandler_GLib.SOURCE_REMOVE;
+                }
+                catch (_a) {
+                    // socket exists but not ready yet
+                }
+            }
+            if (attempts > 25) { // 5 seconds
+                ipcConnectTimerId = 0;
+                return MpvHandler_GLib.SOURCE_REMOVE;
+            }
+            return MpvHandler_GLib.SOURCE_CONTINUE;
+        });
     }
     function increaseDecreaseVolume(volumeChange) {
-        const currentVolulume = getVolume();
-        if (currentVolulume == null)
+        const currentVolume = getVolume();
+        if (currentVolume == null)
             return;
-        // newVolume is the current Volume plus(or minus) volumeChange 
-        // but at least 0 and maximum Max_Volume
-        const newVolume = Math.min(MAX_VOLUME, Math.max(0, currentVolulume + volumeChange));
-        setMprisVolume(newVolume);
+        const newVolume = Math.min(MAX_VOLUME, Math.max(0, currentVolume + volumeChange));
+        setVolume(newVolume);
     }
     /** @param newVolume volume in percent */
-    function setMprisVolume(newVolume) {
+    function setVolume(newVolume) {
         if (getVolume() === newVolume || getPlaybackStatus() === 'Stopped')
             return;
-        mediaServerPlayer.Volume = newVolume / 100;
+        ipcClient === null || ipcClient === void 0 ? void 0 : ipcClient.setProperty('volume', newVolume);
     }
     /** @param newVolume volume in percent */
     function setCvcVolume(newVolume) {
@@ -2948,24 +3440,22 @@ function createMpvHandler() {
     function togglePlayPause() {
         if (getPlaybackStatus() === "Stopped")
             return;
-        mediaServerPlayer.PlayPauseSync();
+        ipcClient === null || ipcClient === void 0 ? void 0 : ipcClient.getProperty('pause').then(paused => {
+            ipcClient === null || ipcClient === void 0 ? void 0 : ipcClient.setProperty('pause', !paused);
+        });
     }
     function stop() {
         if (getPlaybackStatus() === "Stopped")
             return;
-        mediaServerPlayer.StopSync();
+        ipcClient === null || ipcClient === void 0 ? void 0 : ipcClient.sendCommand(['stop']);
     }
     function getCurrentTitle() {
         if (getPlaybackStatus() === "Stopped")
             return;
-        const raw = mediaServerPlayer.Metadata["xesam:title"].unpack();
-        return raw ? decodeMetadataString(raw) : raw;
+        return currentTitle;
     }
-    /**
-     * pauses all MediaPlayers with MPRIS Support except mpv
-     */
     function pauseAllOtherMediaPlayers() {
-        dbus.ListNamesSync()[0].forEach(busName => {
+        dbus.ListNamesSync()[0].forEach((busName) => {
             if (!busName.includes(MEDIA_PLAYER_2_NAME) || busName === MPV_MPRIS_BUS_NAME)
                 return;
             const nonMpvMediaServerPlayer = getDBusProxyWithOwner(MEDIA_PLAYER_2_PLAYER_NAME, busName);
@@ -2973,20 +3463,17 @@ function createMpvHandler() {
         });
     }
     function getPlaybackStatus() {
-        if (!currentUrl)
-            return 'Stopped';
         if (isLoading)
             return 'Loading';
-        // this is necessary because when a user stops mpv and afterwards start vlc (or maybe also an other media player), mediaServerPlayer.PlaybackStatus wrongly returns "Playing"  
-        const mpvRunning = dbus.ListNamesSync()[0].includes(MPV_MPRIS_BUS_NAME);
-        return mpvRunning ? mediaServerPlayer.PlaybackStatus : 'Stopped';
+        if (!mpvRunning)
+            return 'Stopped';
+        return currentPlaybackStatus;
     }
     /** Volume in Percent */
     function getVolume(props) {
         if (getPlaybackStatus() === 'Stopped')
             return null;
-        const volumeFraction = mediaServerPlayer.Volume;
-        return ((props === null || props === void 0 ? void 0 : props.dimension) === 'fraction') ? volumeFraction : Math.round(volumeFraction * 100);
+        return ((props === null || props === void 0 ? void 0 : props.dimension) === 'fraction') ? currentVolumeFraction : Math.round(currentVolumeFraction * 100);
     }
     function microSecondsToRoundedSeconds(microSeconds) {
         const seconds = microSeconds / 1000000;
@@ -2995,9 +3482,8 @@ function createMpvHandler() {
     }
     /** @param newPosition in seconds */
     function setPosition(newPosition) {
-        const positioninMicroSeconds = Math.min(newPosition * 1000000, currentLength * 1000000);
-        const trackId = mediaServerPlayer.Metadata['mpris:trackid'].unpack();
-        mediaServerPlayer === null || mediaServerPlayer === void 0 ? void 0 : mediaServerPlayer.SetPositionRemote(trackId, positioninMicroSeconds);
+        const clampedSeconds = Math.min(newPosition, currentLength);
+        ipcClient === null || ipcClient === void 0 ? void 0 : ipcClient.sendCommand(['seek', clampedSeconds, 'absolute']);
     }
     function getCurrentChannelName() {
         if (getPlaybackStatus() === 'Stopped')
@@ -3014,7 +3500,7 @@ function createMpvHandler() {
     });
     return {
         increaseDecreaseVolume,
-        setVolume: setMprisVolume,
+        setVolume,
         setUrl,
         togglePlayPause,
         stop,
@@ -3044,8 +3530,7 @@ function createMpvHandler() {
         addPositionChangeHandler: (changeHandler) => {
             positionChangeHandler.push(changeHandler);
         },
-        // it is very confusing but dbus must be returned!
-        // Otherwilse all listeners stop working after about 20 seconds which is fucking difficult to debug
+        // The dbus proxy must be kept alive to prevent GC from killing signal listeners
         dbus
     };
 }
@@ -4144,7 +4629,7 @@ const { SystemNotificationSource, Notification } = imports.ui.messageTray;
 const { messageTray } = imports.ui.main;
 const { Icon, IconType } = imports.gi.St;
 const { spawnCommandLine: notify_spawnCommandLine } = imports.misc.util;
-const { get_home_dir: notify_get_home_dir } = imports.gi.GLib;
+const { get_home_dir } = imports.gi.GLib;
 
 const messageSource = new SystemNotificationSource('Radio Applet');
 messageTray.add(messageSource);
@@ -4199,7 +4684,7 @@ function notifyError(notifyMessage, log, options) {
     if (showViewLogBtn) {
         buttons.push({
             text: 'View Logs',
-            onClick: () => notify_spawnCommandLine(`xdg-open ${notify_get_home_dir()}/.xsession-errors`)
+            onClick: () => notify_spawnCommandLine(`xdg-open ${get_home_dir()}/.xsession-errors`)
         });
     }
     if (showInstallationInstructionBtn) {
@@ -4281,7 +4766,7 @@ function downloadWithYtDlp(props) {
 
 const { spawnCommandLine: YoutubeDownloadManager_spawnCommandLine } = imports.misc.util;
 const { get_home_dir: YoutubeDownloadManager_get_home_dir, dir_make_tmp, DateTime } = imports.gi.GLib;
-const { File: YoutubeDownloadManager_File, FileCopyFlags, FileQueryInfoFlags } = imports.gi.Gio;
+const { File, FileCopyFlags, FileQueryInfoFlags } = imports.gi.Gio;
 const notifyYouTubeDownloadFailed = (props) => {
     const { youtubeCli, errorMessage } = props;
     notifyError(`Couldn't download Song from YouTube due to an Error. Make Sure you have the newest version of ${youtubeCli} installed. 
@@ -4381,28 +4866,28 @@ const moveFileFromTmpDir = (props) => {
     var _a, _b;
     const { tmpDirPath, targetDirPath, onFileMoved, onError, onNoFileNameExtracted } = props;
     try {
-        const fileName = (_a = YoutubeDownloadManager_File.new_for_path(tmpDirPath)
+        const fileName = (_a = File.new_for_path(tmpDirPath)
             .enumerate_children("standard::*", FileQueryInfoFlags.NOFOLLOW_SYMLINKS, null)
             .next_file(null)) === null || _a === void 0 ? void 0 : _a.get_name();
         if (!fileName) {
             onNoFileNameExtracted();
             return;
         }
-        const tmpFile = YoutubeDownloadManager_File.new_for_path(`${tmpDirPath}/${fileName}`);
+        const tmpFile = File.new_for_path(`${tmpDirPath}/${fileName}`);
         if ((_b = tmpFile.get_path()) === null || _b === void 0 ? void 0 : _b.endsWith(".webp")) {
             throw new Error("Only the cover image has been downloaded. This seems to be a problem with the used Youtube Download Cli tool.");
         }
-        if (!YoutubeDownloadManager_File.new_for_uri(targetDirPath).query_exists(null) &&
-            !YoutubeDownloadManager_File.new_for_path(targetDirPath).query_exists(null)) {
+        if (!File.new_for_uri(targetDirPath).query_exists(null) &&
+            !File.new_for_path(targetDirPath).query_exists(null)) {
             throw new Error("The Download Directory specified in the settings doesn't exist. Please create it manually or change the settings.");
         }
         const targetFilePath = `${targetDirPath}/${fileName}`;
-        const targetFile = YoutubeDownloadManager_File.parse_name(targetFilePath);
+        const targetFile = File.parse_name(targetFilePath);
         if (targetFile.query_exists(null)) {
             onFileMoved({ targetFilePath, fileAlreadyExist: true });
             return;
         }
-        tmpFile.move(YoutubeDownloadManager_File.parse_name(targetFilePath), FileCopyFlags.BACKUP, null, null);
+        tmpFile.move(File.parse_name(targetFilePath), FileCopyFlags.BACKUP, null, null);
         onFileMoved({ targetFilePath, fileAlreadyExist: false });
     }
     catch (error) {
@@ -5573,23 +6058,15 @@ const spawnCommandLinePromise = function (command) {
 ;// ./src/services/mpv/CheckInstallation.ts
 
 
-
-const { find_program_in_path, file_test, FileTest } = imports.gi.GLib;
+const { find_program_in_path } = imports.gi.GLib;
 async function installMpvWithMpris() {
-    const mprisPluginDownloaded = checkMprisPluginDownloaded();
-    const mpvInstalled = checkMpvInstalled();
-    !mprisPluginDownloaded && await downloadMrisPluginInteractive();
-    if (!mpvInstalled) {
-        const notificationText = `Please ${mprisPluginDownloaded ? '' : 'also'} install the mpv package.`;
-        notify(notificationText);
+    if (!checkMpvInstalled()) {
+        notify('Please install mpv: sudo apt install mpv');
         await installMpvInteractive();
     }
 }
 function checkMpvInstalled() {
     return find_program_in_path('mpv');
-}
-function checkMprisPluginDownloaded() {
-    return file_test(MPRIS_PLUGIN_PATH, FileTest.IS_REGULAR);
 }
 function installMpvInteractive() {
     return new Promise(async (resolve, reject) => {
@@ -5600,23 +6077,6 @@ function installMpvInteractive() {
         const [stderr, stdout, exitCode] = await spawnCommandLinePromise(`
             apturl apt://mpv`);
         // exitCode 0 means sucessfully. See: man apturl
-        return (exitCode === 0) ? resolve() : reject(stderr);
-    });
-}
-function downloadMrisPluginInteractive() {
-    return new Promise(async (resolve, reject) => {
-        if (checkMprisPluginDownloaded()) {
-            return resolve();
-        }
-        let [stderr, stdout, exitCode] = await spawnCommandLinePromise(`python3  ${__meta.path}/download-dialog-mpris.py`);
-        if ((stdout === null || stdout === void 0 ? void 0 : stdout.trim()) !== 'Continue') {
-            return reject();
-        }
-        [stderr, stdout, exitCode] = await spawnCommandLinePromise(`
-            wget ${MPRIS_PLUGIN_URL} -O ${MPRIS_PLUGIN_PATH}`);
-        // Wget always prints to stderr - exitcode 0 means it was sucessfull 
-        // see:  https://stackoverflow.com/questions/13066518/why-does-wget-output-to-stderr-rather-than-stdout
-        // and https://www.gnu.org/software/wget/manual/html_node/Exit-Status.html
         return (exitCode === 0) ? resolve() : reject(stderr);
     });
 }
@@ -5916,7 +6376,7 @@ const createRadioAppletContainer = (props) => {
             radioPopupMenu === null || radioPopupMenu === void 0 ? void 0 : radioPopupMenu.toggle();
         }
         catch (error) {
-            const notificationText = `Couldn't start the applet. Make sure mpv is installed and the mpv mpris plugin is located at ${MPRIS_PLUGIN_PATH} and correctly compiled for your environment. Refer to ${APPLET_SITE} (section Known Issues)`;
+            const notificationText = `Couldn't start the applet. Make sure mpv is installed (sudo apt install mpv). Refer to ${APPLET_SITE} (section Known Issues)`;
             notify(notificationText, { transient: false });
             global.logError(error);
         }

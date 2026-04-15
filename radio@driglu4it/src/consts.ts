@@ -1,22 +1,11 @@
-const { get_home_dir, get_user_config_dir, get_user_cache_dir } = imports.gi.GLib;
-const { File } = imports.gi.Gio;
+const { get_user_cache_dir } = imports.gi.GLib;
 
 export const APPLET_SITE =
   "https://cinnamon-spices.linuxmint.com/applets/view/297";
 
 
 export const APPLET_CACHE_DIR_PATH = `${get_user_cache_dir()}/${__meta.uuid}`
-export const MPRIS_PLUGIN_PATH = (() => {
-
-  const maybePath = [
-    `${get_home_dir()}/.cinnamon/configs/${__meta.uuid}/.mpris.so`, 
-  ].find((path) => File.new_for_path(path).query_exists(null))
-
-  return maybePath || `${APPLET_CACHE_DIR_PATH}/.mpris.so`;
-})();
-
-export const MPRIS_PLUGIN_URL =
-  "https://github.com/hoyon/mpv-mpris/releases/download/0.5/mpris.so";
+export const MPV_IPC_SOCKET_PATH = `${get_user_cache_dir()}/${__meta.uuid}/mpv-ipc.sock`;
 
 export const MEDIA_PLAYER_2_NAME = "org.mpris.MediaPlayer2";
 export const MEDIA_PLAYER_2_PLAYER_NAME = "org.mpris.MediaPlayer2.Player";

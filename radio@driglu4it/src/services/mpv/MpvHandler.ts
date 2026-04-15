@@ -1,35 +1,17 @@
 import { PlayPause, AdvancedPlaybackStatus, ChangeHandler } from '../../types'
-import { MPV_MPRIS_BUS_NAME, MEDIA_PLAYER_2_PATH, MPRIS_PLUGIN_PATH, MAX_VOLUME, MEDIA_PLAYER_2_NAME, MEDIA_PLAYER_2_PLAYER_NAME, MPV_CVC_NAME } from '../../consts'
-import { MprisMediaPlayerDbus, MprisPropsDbus } from '../../types';
+import { MAX_VOLUME, MEDIA_PLAYER_2_NAME, MEDIA_PLAYER_2_PLAYER_NAME, MPV_MPRIS_BUS_NAME, MPV_CVC_NAME, MPV_IPC_SOCKET_PATH } from '../../consts'
+import { MprisMediaPlayerDbus } from '../../types';
 import { configs } from '../Config';
+import { createMpvIpcClient, MpvIpcClient } from './MpvIpcClient';
+import { createMprisService, MprisService, MprisMetadata } from './MprisService';
 
-// some streams send UTF-8 metadata that the MPRIS plugin decodes as
-// ISO‑8859‑1/ASCII, so characters like "ü" show up as "Ã¼".  We try to
-// undo that by running the string through a decoder; if it fails we return the
-// original value untouched.  The function is safe to call on normal strings as
-// well.
-function decodeMetadataString(str: string): string {
-    try {
-        const bytes = new Uint8Array(Array.from(str, (c) => c.charCodeAt(0)));
-        const Decoder = (globalThis as any).TextDecoder;
-        if (Decoder) {
-            return new Decoder('utf-8', { fatal: false }).decode(bytes);
-        }
-        // fallback used in existing code prior to adding TextDecoder
-        return decodeURIComponent(escape(str));
-    } catch {
-        return str;
-    }
-}
-
-const { getDBusProperties, getDBus, getDBusProxyWithOwner } = imports.misc.interfaces
+const { getDBus, getDBusProxyWithOwner } = imports.misc.interfaces
 const { spawnCommandLine } = imports.misc.util;
-// see https://lazka.github.io/pgi-docs/Cvc-1.0/index.html
 const { MixerControl } = imports.gi.Cvc;
+const GLib = imports.gi.GLib;
 
 export type MpvHandler = ReturnType<typeof createMpvHandler>
 
-// TODO: this is not really right as the mpvHandler is initally undefined but it is much easier that way..
 export let mpvHandler: MpvHandler
 
 export const initMpvHandler = () => {
@@ -50,29 +32,28 @@ function createMpvHandler() {
         addStationsListChangeHandler
     } = configs
 
-
-    /** the lastUrl is used to determine if mpv is initially (i.e. on cinnamon restart) running for radio purposes and not for something else. It is not sufficient to get the url from a dbus interface and check if the url is valid because some streams (such as .pls streams) change their url dynamically. This approach in not 100% foolproof but probably the best possible approach */
     const lastUrl = settingsObject.lastUrl
 
-    // this is a workaround for now. Optimally the lastVolume should be saved persistently each time the volume is changed but this lead to significant performance issue on scrolling at the moment. However this shouldn't be the case as it is no problem to log the volume each time the volume changes (so it is a problem in the config implementation). As a workaround the volume is only saved persistently when the radio stops but the volume obviously can't be received anymore from dbus when the player has been already stopped ... 
     let lastVolume: number
 
-
     const dbus = getDBus()
-
-    const mediaServerPlayer = getDBusProxyWithOwner(
-        MEDIA_PLAYER_2_PLAYER_NAME, MPV_MPRIS_BUS_NAME) as MprisMediaPlayerDbus
-
-    const mediaProps = getDBusProperties(
-        MPV_MPRIS_BUS_NAME, MEDIA_PLAYER_2_PATH) as MprisPropsDbus
 
     const control = new MixerControl({ name: __meta.name })
     let cvcStream: imports.gi.Cvc.MixerStream
     let isLoading: boolean = false
 
+    let ipcClient: MpvIpcClient | null = null
+    let mprisService: MprisService | null = null
+    let ipcConnectTimerId: number = 0
+    let mpvRunning = false
+    let currentPlaybackStatus: PlayPause | 'Stopped' = 'Stopped'
+    let currentVolumeFraction: number = 0.5
+    let currentTitle: string | undefined
+    let currentTrackId: string = '/org/mpris/MediaPlayer2/TrackList/NoTrack'
+
     const playbackStatusChangeHandler: ChangeHandler<AdvancedPlaybackStatus>[] = []
     const channelNameChangeHandler: ChangeHandler<string>[] = []
-    const volumeChangeHandler: ChangeHandler<number>[] = [] //
+    const volumeChangeHandler: ChangeHandler<number>[] = []
     const titleChangeHandler: ChangeHandler<string>[] = []
     const lengthChangeHandler: ChangeHandler<number>[] = []
     const positionChangeHandler: ChangeHandler<number>[] = []
@@ -94,101 +75,204 @@ function createMpvHandler() {
 
     let currentUrl: string | null = lastUrl
 
-    // When no last Url is passed and mpv is running, it is assumed that mpv is not used for the radio applet (and therefore the playbackstatus is Stopped)
-    const initialPlaybackStatus = getPlaybackStatus()
-    if (initialPlaybackStatus === 'Stopped') currentUrl = null
-
-    let currentLength: number = getLength() // in seconds
+    let currentLength: number = 0
+    let currentPosition: number = 0
     let positionTimerId: ReturnType<typeof setInterval> | null = null
 
     let bufferExceeded = false
 
-    let mediaPropsListenerId: number | null = null
-    let seekListenerId: number | null = null
-
-    if (initialPlaybackStatus !== "Stopped") {
-        activateMprisPropsListener();
-        activateSeekListener()
-        startPositionTimer()
+    // On startup, try to connect to an already-running mpv instance
+    if (lastUrl) {
+        tryConnectIpc()
     }
 
-    const nameOwnerSignalId = dbus.connectSignal('NameOwnerChanged', (...args) => {
+    function tryConnectIpc(): void {
+        if (ipcClient) return
 
-        const name = args[2][0]
-        const oldOwner = args[2][1]
-        const newOwner = args[2][2]
-
-        if (name !== MPV_MPRIS_BUS_NAME) return
-
-        if (newOwner) {
-            activateMprisPropsListener()
-            activateSeekListener()
-            pauseAllOtherMediaPlayers()
+        if (!GLib.file_test(MPV_IPC_SOCKET_PATH, GLib.FileTest.EXISTS)) {
+            return
         }
 
-        if (oldOwner) {
-            handleMpvStopped()
+        try {
+            ipcClient = createMpvIpcClient(MPV_IPC_SOCKET_PATH)
+        } catch {
+            return
         }
-    })
+
+        mpvRunning = true
+
+        // Start the MPRIS D-Bus service
+        mprisService = createMprisService({
+            onPlay() { ipcClient?.setProperty('pause', false) },
+            onPause() { ipcClient?.setProperty('pause', true) },
+            onPlayPause() {
+                ipcClient?.getProperty<boolean>('pause').then(paused => {
+                    ipcClient?.setProperty('pause', !paused)
+                })
+            },
+            onStop() { ipcClient?.sendCommand(['stop']) },
+            onNext() { /* single-track radio – no-op */ },
+            onPrevious() { /* single-track radio – no-op */ },
+            onSeek(offset) {
+                ipcClient?.sendCommand(['seek', offset / 1_000_000, 'relative'])
+            },
+            onSetPosition(_trackId, position) {
+                ipcClient?.sendCommand(['seek', position / 1_000_000, 'absolute'])
+            },
+            onOpenUri(uri) {
+                ipcClient?.sendCommand(['loadfile', uri, 'replace'])
+            },
+            onQuit() { ipcClient?.sendCommand(['quit']) },
+            onSetVolume(fraction) {
+                ipcClient?.setProperty('volume', fraction * 100)
+            },
+            onSetLoopStatus(status) {
+                const loopFile = status === 'Track' ? 'inf' : 'no'
+                ipcClient?.setProperty('loop-file', loopFile)
+            },
+        })
+
+        // Observe mpv properties via IPC
+        ipcClient.observeProperty(1, 'pause')
+        ipcClient.observeProperty(2, 'media-title')
+        ipcClient.observeProperty(3, 'volume')
+        ipcClient.observeProperty(4, 'duration')
+        ipcClient.observeProperty(5, 'time-pos')
+        ipcClient.observeProperty(6, 'path')
+        ipcClient.observeProperty(7, 'metadata')
+
+        let trackCounter = 0
+
+        ipcClient.onPropertyChange((name, data) => {
+            if (name === 'pause') {
+                const newStatus: PlayPause = data ? 'Paused' : 'Playing'
+                if (newStatus !== currentPlaybackStatus) {
+                    currentPlaybackStatus = newStatus
+                    mprisService?.updateState({ playbackStatus: newStatus })
+
+                    if (!isLoading) {
+                        playbackStatusChangeHandler.forEach(h => h(newStatus))
+                    }
+                    if (newStatus === 'Paused') {
+                        stopPositionTimer()
+                    } else {
+                        startPositionTimer()
+                    }
+                }
+            } else if (name === 'media-title') {
+                const title = data != null ? String(data) : undefined
+                currentTitle = title
+                const metadata: MprisMetadata = {
+                    'mpris:trackid': currentTrackId,
+                    'xesam:title': title,
+                    'xesam:url': currentUrl || undefined,
+                    'mpris:length': currentLength * 1_000_000,
+                }
+                mprisService?.updateState({ metadata })
+                if (title) {
+                    titleChangeHandler.forEach(h => h(title))
+                }
+            } else if (name === 'volume') {
+                if (data != null) {
+                    handleMpvVolumeChanged(Number(data))
+                }
+            } else if (name === 'duration') {
+                const durationSeconds = data != null ? Math.round(Number(data)) : 0
+                handleLengthChanged(durationSeconds * 1_000_000)
+            } else if (name === 'time-pos') {
+                if (data != null) {
+                    currentPosition = Math.round(Number(data))
+                    mprisService?.updateState({ position: currentPosition * 1_000_000 })
+                }
+            } else if (name === 'path') {
+                const url = data != null ? String(data) : null
+                if (url && url !== currentUrl) {
+                    const newUrlValid = checkUrlValid(url)
+                    if (newUrlValid) {
+                        trackCounter++
+                        currentTrackId = `/org/mpris/MediaPlayer2/track/${trackCounter}`
+                        handleUrlChanged(url)
+                    }
+                }
+            }
+        })
+
+        ipcClient.onEvent((event) => {
+            if (event.event === 'end-file' || event.event === 'shutdown') {
+                handleMpvStopped()
+            }
+        })
+
+        pauseAllOtherMediaPlayers()
+
+        // Fetch initial state
+        ipcClient.getProperty<boolean>('pause').then(paused => {
+            currentPlaybackStatus = paused ? 'Paused' : 'Playing'
+            mprisService?.updateState({ playbackStatus: currentPlaybackStatus })
+            if (!paused) startPositionTimer()
+            playbackStatusChangeHandler.forEach(h => h(getPlaybackStatus()))
+        }).catch(() => {})
+
+        ipcClient.getProperty<number>('volume').then(vol => {
+            if (vol != null) handleMpvVolumeChanged(vol)
+        }).catch(() => {})
+
+        ipcClient.getProperty<string>('media-title').then(title => {
+            if (title) {
+                currentTitle = title
+                titleChangeHandler.forEach(h => h(title))
+            }
+        }).catch(() => {})
+
+        ipcClient.getProperty<number>('duration').then(dur => {
+            if (dur != null) {
+                currentLength = Math.round(dur)
+                lengthChangeHandler.forEach(h => h(currentLength))
+            }
+        }).catch(() => {})
+    }
 
     function handleMpvStopped(): void {
         isLoading = false
         currentLength = 0
+        currentPosition = 0
+        currentPlaybackStatus = 'Stopped'
+        currentTitle = undefined
         stopPositionTimer()
-        mediaPropsListenerId && mediaProps.disconnectSignal(mediaPropsListenerId)
-        seekListenerId && mediaServerPlayer.disconnectSignal(seekListenerId)
-        mediaPropsListenerId = seekListenerId = currentUrl = null
+
+        if (ipcClient) {
+            ipcClient.destroy()
+            ipcClient = null
+        }
+        if (mprisService) {
+            mprisService.destroy()
+            mprisService = null
+        }
+
+        mpvRunning = false
+        currentUrl = null
+
         playbackStatusChangeHandler.forEach(handler => handler('Stopped'))
         settingsObject.lastVolume = lastVolume
     }
 
     function deactivateAllListener(): void {
-        if (nameOwnerSignalId) dbus?.disconnectSignal(nameOwnerSignalId)
-        if (mediaPropsListenerId) mediaProps?.disconnectSignal(mediaPropsListenerId)
-        if (seekListenerId) mediaServerPlayer?.disconnectSignal(seekListenerId)
-    }
-
-    function activateMprisPropsListener(): void {
-        mediaPropsListenerId = mediaProps.connectSignal('PropertiesChanged',
-            (proxy, nameOwner, [interfaceName, props]) => {
-
-                const metadata = props.Metadata?.recursiveUnpack()
-                const volume = props.Volume?.unpack()
-
-                const playbackStatus = props.PlaybackStatus?.unpack() as PlayPause
-
-                const url = metadata?.['xesam:url']
-                let title = metadata?.['xesam:title']
-
-                // repair common mis‑decoding from Latin‑1
-                title = title ? decodeMetadataString(title) : title
-
-                const length = metadata?.["mpris:length"]
-                const newUrlValid = checkUrlValid(url)
-                const relevantEvent = newUrlValid || currentUrl
-
-                if (!relevantEvent) return // happens when mpv is running with a file/stream not managed by the applet
-
-                if (length != null) handleLengthChanged(length)
-                if (volume != null) handleMprisVolumeChanged(volume)
-
-                url && newUrlValid && url !== currentUrl && handleUrlChanged(url)
-                playbackStatus && handleMprisPlaybackStatusChanged(playbackStatus)
-
-                title && titleChangeHandler.forEach(changeHandler => changeHandler(title))
-            }
-        )
+        if (ipcConnectTimerId) {
+            GLib.source_remove(ipcConnectTimerId)
+            ipcConnectTimerId = 0
+        }
+        if (ipcClient) {
+            ipcClient.destroy()
+            ipcClient = null
+        }
+        if (mprisService) {
+            mprisService.destroy()
+            mprisService = null
+        }
     }
 
     function checkUrlValid(channelUrl: string): boolean {
         return settingsObject.userStations.some(cnl => cnl.url === channelUrl && cnl.inc)
-
-    }
-
-    function activateSeekListener(): void {
-        seekListenerId = mediaServerPlayer.connectSignal('Seeked', (id, sender, value) => {
-            handlePositionChanged(microSecondsToRoundedSeconds(value))
-        })
     }
 
     /** @param length in microseconds */
@@ -201,6 +285,16 @@ function createMpvHandler() {
         const finishedLoading = length !== 0 && currentLength === 0;
 
         currentLength = lengthInSeconds;
+
+        // Update MPRIS metadata with new length
+        mprisService?.updateState({
+            metadata: {
+                'mpris:trackid': currentTrackId,
+                'xesam:title': currentTitle,
+                'xesam:url': currentUrl || undefined,
+                'mpris:length': length,
+            },
+        })
 
         if (startLoading) {
             isLoading = true
@@ -218,7 +312,7 @@ function createMpvHandler() {
 
     /**  @param position in seconds! */
     function handlePositionChanged(position: number): void {
-
+        currentPosition = position
         stopPositionTimer()
         positionChangeHandler.forEach(handler => handler(position))
         startPositionTimer()
@@ -233,7 +327,7 @@ function createMpvHandler() {
             const position = Math.min(getPosition(), currentLength)
             positionChangeHandler.forEach(handler => handler(position))
 
-            if (position === currentLength) {
+            if (position === currentLength && currentLength > 0) {
                 isLoading = true
                 playbackStatusChangeHandler.forEach(handler => handler('Loading'))
                 bufferExceeded = true
@@ -250,15 +344,6 @@ function createMpvHandler() {
         positionTimerId = null
     }
 
-    function handleMprisPlaybackStatusChanged(playbackStatus: PlayPause): void {
-        if (currentLength !== 0) {
-            playbackStatusChangeHandler.forEach(handler => handler(playbackStatus))
-
-            playbackStatus === 'Paused' ? stopPositionTimer()
-                : handlePositionChanged(getPosition())
-        }
-    }
-
     function handleUrlChanged(newUrl: string): void {
         currentUrl = newUrl
         settingsObject.lastUrl = newUrl
@@ -269,19 +354,22 @@ function createMpvHandler() {
 
         const currentChannelName = getCurrentChannelName()
 
-        if (!currentChannelName) return // TODO: this never happens (the stufff in the props change handler should be here)
+        if (!currentChannelName) return
 
         channelNameChangeHandler.forEach(changeHandler => changeHandler(currentChannelName))
     }
 
-    function handleMprisVolumeChanged(mprisVolume: number): void {
+    function handleMpvVolumeChanged(mpvVolume: number): void {
+        // mpvVolume is 0-100 from mpv's perspective
+        const normalizedVolume = Math.round(Math.min(mpvVolume, MAX_VOLUME))
 
-        if (mprisVolume * 100 > MAX_VOLUME) {
-            mediaServerPlayer.Volume = MAX_VOLUME / 100
+        if (normalizedVolume > MAX_VOLUME) {
+            ipcClient?.setProperty('volume', MAX_VOLUME)
             return
         }
 
-        const normalizedVolume = Math.round(mprisVolume * 100)
+        currentVolumeFraction = normalizedVolume / 100
+        mprisService?.updateState({ volume: currentVolumeFraction })
         setCvcVolume(normalizedVolume)
         volumeChangeHandler.forEach(changeHandler => changeHandler(normalizedVolume))
         lastVolume = normalizedVolume
@@ -289,76 +377,88 @@ function createMpvHandler() {
 
     function handleCvcVolumeChanged(): void {
         const normalizedVolume = Math.round(cvcStream.volume / control.get_vol_max_norm() * 100)
-        setMprisVolume(normalizedVolume)
+        setVolume(normalizedVolume)
     }
 
-    /** @returns length in seconds */
     function getLength(): number {
-        const lengthMicroSeconds = mediaServerPlayer.Metadata?.["mpris:length"]?.unpack() || 0
-        return microSecondsToRoundedSeconds(lengthMicroSeconds)
+        return currentLength
     }
 
-    /** @returns position in seconds */
     function getPosition(): number {
-
         if (getPlaybackStatus() === 'Stopped') return 0
-
-        // for some reason, this only return the right value the first time it is called. When calling this multiple times, it returns always the same value which however is wrong when radio is playing
-        // const positionMicroSeconds = mediaServerPlayer.Position
-        const positionMicroSeconds = mediaProps.GetSync('org.mpris.MediaPlayer2.Player', 'Position')[0].deepUnpack()
-
-        return microSecondsToRoundedSeconds(positionMicroSeconds)
+        return currentPosition
     }
 
     function setUrl(url: string): void {
 
         if (getPlaybackStatus() === 'Stopped') {
 
-            let initialVolume = getInitialVolume()
+            // Check if mpv is already running (idle mode)
+            if (!mpvRunning) {
+                let initialVolume = getInitialVolume()
 
-            if (initialVolume == null) {
-                global.logWarning('initial Volume was null or undefined. Applying 50 as a fallback solution to prevent radio stop working')
-                initialVolume = 50
+                if (initialVolume == null) {
+                    global.logWarning('initial Volume was null or undefined. Applying 50 as a fallback solution to prevent radio stop working')
+                    initialVolume = 50
+                }
+
+                const command = `mpv --config=no --no-video --input-ipc-server=${MPV_IPC_SOCKET_PATH} --scripts-append=${__meta.path}/mpv-reconnect.lua --idle=yes ${url} --volume=${initialVolume}`
+                spawnCommandLine(command)
+
+                // Wait for mpv to create the socket, then connect
+                waitForSocket()
+                return
             }
-
-            const command = `mpv --config=no --no-video --script=${MPRIS_PLUGIN_PATH} 
-                --scripts-append=${__meta.path}/mpv-reconnect.lua --idle=yes
-                --keep-open --keep-open-pause=no
-                --stream-lavf-o-append=reconnect_streamed=yes
-                --stream-lavf-o-append=reconnect_on_network_error=yes
-                --stream-lavf-o-append=reconnect_delay_max=30
-                ${url} --volume=${initialVolume}`
-            spawnCommandLine(command)
-            return
         }
 
-        mediaServerPlayer.OpenUriRemote(url)
-        mediaServerPlayer.PlaySync()
+        // mpv already running, load new URL via IPC
+        ipcClient?.sendCommand(['loadfile', url, 'replace'])
+        ipcClient?.setProperty('pause', false)
+    }
 
+    function waitForSocket(): void {
+        if (ipcConnectTimerId) return
+
+        let attempts = 0
+        ipcConnectTimerId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 200, () => {
+            attempts++
+            if (GLib.file_test(MPV_IPC_SOCKET_PATH, GLib.FileTest.EXISTS)) {
+                try {
+                    tryConnectIpc()
+                    ipcConnectTimerId = 0
+                    return GLib.SOURCE_REMOVE
+                } catch {
+                    // socket exists but not ready yet
+                }
+            }
+            if (attempts > 25) { // 5 seconds
+                ipcConnectTimerId = 0
+                return GLib.SOURCE_REMOVE
+            }
+            return GLib.SOURCE_CONTINUE
+        })
     }
 
     function increaseDecreaseVolume(volumeChange: number): void {
 
-        const currentVolulume = getVolume()
+        const currentVolume = getVolume()
 
-        if (currentVolulume == null) return
+        if (currentVolume == null) return
 
-        // newVolume is the current Volume plus(or minus) volumeChange 
-        // but at least 0 and maximum Max_Volume
         const newVolume = Math.min(
             MAX_VOLUME,
-            Math.max(0, currentVolulume + volumeChange)
+            Math.max(0, currentVolume + volumeChange)
         )
 
-        setMprisVolume(newVolume)
+        setVolume(newVolume)
     }
 
     /** @param newVolume volume in percent */
-    function setMprisVolume(newVolume: number): void {
+    function setVolume(newVolume: number): void {
 
         if (getVolume() === newVolume || getPlaybackStatus() === 'Stopped') return
 
-        mediaServerPlayer.Volume = newVolume / 100
+        ipcClient?.setProperty('volume', newVolume)
     }
 
     /** @param newVolume volume in percent */
@@ -377,28 +477,24 @@ function createMpvHandler() {
     function togglePlayPause(): void {
         if (getPlaybackStatus() === "Stopped") return
 
-        mediaServerPlayer.PlayPauseSync()
+        ipcClient?.getProperty<boolean>('pause').then(paused => {
+            ipcClient?.setProperty('pause', !paused)
+        })
     }
 
     function stop(): void {
         if (getPlaybackStatus() === "Stopped") return
 
-        mediaServerPlayer.StopSync()
+        ipcClient?.sendCommand(['stop'])
     }
 
     function getCurrentTitle(): string | undefined {
         if (getPlaybackStatus() === "Stopped") return
-
-        const raw = mediaServerPlayer.Metadata["xesam:title"].unpack()
-        return raw ? decodeMetadataString(raw) : raw
+        return currentTitle
     }
 
-    /**
-     * pauses all MediaPlayers with MPRIS Support except mpv
-     */
     function pauseAllOtherMediaPlayers(): void {
-
-        dbus.ListNamesSync()[0].forEach(busName => {
+        dbus.ListNamesSync()[0].forEach((busName: string) => {
 
             if (!busName.includes(MEDIA_PLAYER_2_NAME) || busName === MPV_MPRIS_BUS_NAME)
                 return
@@ -410,27 +506,15 @@ function createMpvHandler() {
     }
 
     function getPlaybackStatus(): AdvancedPlaybackStatus {
-
-        if (!currentUrl) return 'Stopped'
-
         if (isLoading) return 'Loading'
-
-        // this is necessary because when a user stops mpv and afterwards start vlc (or maybe also an other media player), mediaServerPlayer.PlaybackStatus wrongly returns "Playing"  
-        const mpvRunning = dbus.ListNamesSync()[0].includes(MPV_MPRIS_BUS_NAME)
-
-        return mpvRunning ? mediaServerPlayer.PlaybackStatus : 'Stopped'
+        if (!mpvRunning) return 'Stopped'
+        return currentPlaybackStatus
     }
 
     /** Volume in Percent */
     function getVolume(props?: { dimension?: 'percent' | 'fraction' }): number | null {
-
-        if (getPlaybackStatus() === 'Stopped')
-            return null
-
-        const volumeFraction = mediaServerPlayer.Volume
-
-        return (props?.dimension === 'fraction') ? volumeFraction : Math.round(volumeFraction * 100)
-
+        if (getPlaybackStatus() === 'Stopped') return null
+        return (props?.dimension === 'fraction') ? currentVolumeFraction : Math.round(currentVolumeFraction * 100)
     }
 
     function microSecondsToRoundedSeconds(microSeconds: number): number {
@@ -441,13 +525,11 @@ function createMpvHandler() {
 
     /** @param newPosition in seconds */
     function setPosition(newPosition: number): void {
-        const positioninMicroSeconds = Math.min(newPosition * 1_000_000, currentLength * 1_000_000)
-        const trackId = mediaServerPlayer.Metadata['mpris:trackid'].unpack()
-        mediaServerPlayer?.SetPositionRemote(trackId, positioninMicroSeconds)
+        const clampedSeconds = Math.min(newPosition, currentLength)
+        ipcClient?.sendCommand(['seek', clampedSeconds, 'absolute'])
     }
 
     function getCurrentChannelName(): string | undefined {
-
         if (getPlaybackStatus() === 'Stopped') return
 
         const currentChannel = currentUrl ? settingsObject.userStations.find(cnl => cnl.url === currentUrl) : undefined
@@ -467,7 +549,7 @@ function createMpvHandler() {
 
     return {
         increaseDecreaseVolume,
-        setVolume: setMprisVolume,
+        setVolume,
         setUrl,
         togglePlayPause,
         stop,
@@ -505,8 +587,7 @@ function createMpvHandler() {
             positionChangeHandler.push(changeHandler)
         },
 
-        // it is very confusing but dbus must be returned!
-        // Otherwilse all listeners stop working after about 20 seconds which is fucking difficult to debug
+        // The dbus proxy must be kept alive to prevent GC from killing signal listeners
         dbus
     }
 }
