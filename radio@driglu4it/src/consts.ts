@@ -10,8 +10,8 @@ export const MPV_IPC_SOCKET_PATH = `${get_user_cache_dir()}/${__meta.uuid}/mpv-i
 export const MEDIA_PLAYER_2_NAME = "org.mpris.MediaPlayer2";
 export const MEDIA_PLAYER_2_PLAYER_NAME = "org.mpris.MediaPlayer2.Player";
 export const MEDIA_PLAYER_2_PATH = "/org/mpris/MediaPlayer2";
-export const MPV_MPRIS_BUS_NAME = `${MEDIA_PLAYER_2_NAME}.mpv`;
-export const MPV_CVC_NAME = "mpv Media Player";
+export const MPV_MPRIS_BUS_NAME = `${MEDIA_PLAYER_2_NAME}.radiopp`;
+export const MPV_CVC_NAME = "Radio++";
 
 export const MAX_STRING_LENGTH = 40;
 

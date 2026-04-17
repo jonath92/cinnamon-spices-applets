@@ -2617,8 +2617,8 @@ const MPV_IPC_SOCKET_PATH = `${get_user_cache_dir()}/${__meta.uuid}/mpv-ipc.sock
 const MEDIA_PLAYER_2_NAME = "org.mpris.MediaPlayer2";
 const MEDIA_PLAYER_2_PLAYER_NAME = "org.mpris.MediaPlayer2.Player";
 const MEDIA_PLAYER_2_PATH = "/org/mpris/MediaPlayer2";
-const MPV_MPRIS_BUS_NAME = `${MEDIA_PLAYER_2_NAME}.mpv`;
-const MPV_CVC_NAME = "mpv Media Player";
+const MPV_MPRIS_BUS_NAME = `${MEDIA_PLAYER_2_NAME}.radiopp`;
+const MPV_CVC_NAME = "Radio++";
 const MAX_STRING_LENGTH = 40;
 /** in percent */
 const MAX_VOLUME = 100; // see https://github.com/linuxmint/cinnamon-spices-applets/issues/3402#issuecomment-756430754 for an explanation of this value
@@ -2822,6 +2822,7 @@ function createMpvIpcClient(socketPath) {
  */
 const MprisService_Gio = imports.gi.Gio;
 const MprisService_GLib = imports.gi.GLib;
+
 // ── D-Bus introspection XML ──────────────────────────────────────────
 // wrapJSObject() only registers the FIRST <interface> in the XML, so we
 // must split root and player into separate XMLs and export each one as
@@ -2921,7 +2922,7 @@ function createMprisService(callbacks) {
         get CanQuit() { return true; },
         get CanRaise() { return false; },
         get HasTrackList() { return false; },
-        get Identity() { return 'mpv Media Player'; },
+        get Identity() { return 'Radio++'; },
         get DesktopEntry() { return 'mpv'; },
         get SupportedUriSchemes() { return ['http', 'https', 'file']; },
         get SupportedMimeTypes() { return ['audio/mpeg', 'audio/ogg', 'audio/flac', 'audio/x-wav', 'application/ogg']; },
@@ -2967,7 +2968,7 @@ function createMprisService(callbacks) {
     rootExported.export(MprisService_Gio.DBus.session, objectPath);
     const playerExported = wrapJSObject(PLAYER_IFACE, playerImpl);
     playerExported.export(MprisService_Gio.DBus.session, objectPath);
-    const busNameId = MprisService_Gio.bus_own_name_on_connection(MprisService_Gio.DBus.session, 'org.mpris.MediaPlayer2.mpv', MprisService_Gio.BusNameOwnerFlags.NONE, null, null);
+    const busNameId = MprisService_Gio.bus_own_name_on_connection(MprisService_Gio.DBus.session, MPV_MPRIS_BUS_NAME, MprisService_Gio.BusNameOwnerFlags.NONE, null, null);
     // ── Emit PropertiesChanged ────────────────────────────────────
     function emitPropertiesChanged(iface, changed, invalidated = []) {
         const changedEntries = Object.keys(changed).map(key => MprisService_GLib.Variant.new_dict_entry(MprisService_GLib.Variant.new_string(key), MprisService_GLib.Variant.new_variant(changed[key])));
@@ -3419,7 +3420,7 @@ function createMpvHandler() {
                     global.logWarning('initial Volume was null or undefined. Applying 50 as a fallback solution to prevent radio stop working');
                     initialVolume = 50;
                 }
-                const command = `mpv --config=no --no-video --input-ipc-server=${MPV_IPC_SOCKET_PATH} --scripts-append=${__meta.path}/mpv-reconnect.lua --idle=yes ${url} --volume=${initialVolume}`;
+                const command = `mpv --config=no --no-video --audio-client-name="Radio++" --input-ipc-server=${MPV_IPC_SOCKET_PATH} --scripts-append=${__meta.path}/mpv-reconnect.lua --idle=yes ${url} --volume=${initialVolume}`;
                 spawnCommandLine(command);
                 // Wait for mpv to create the socket, then connect
                 waitForSocket();

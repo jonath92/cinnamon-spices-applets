@@ -438,7 +438,7 @@ function createMpvHandler() {
                     initialVolume = 50
                 }
 
-                const command = `mpv --config=no --no-video --input-ipc-server=${MPV_IPC_SOCKET_PATH} --scripts-append=${__meta.path}/mpv-reconnect.lua --idle=yes ${url} --volume=${initialVolume}`
+                const command = `mpv --config=no --no-video --audio-client-name="Radio++" --input-ipc-server=${MPV_IPC_SOCKET_PATH} --scripts-append=${__meta.path}/mpv-reconnect.lua --idle=yes ${url} --volume=${initialVolume}`
                 spawnCommandLine(command)
 
                 // Wait for mpv to create the socket, then connect

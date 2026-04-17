@@ -13,6 +13,7 @@
 
 const Gio = imports.gi.Gio;
 const GLib = imports.gi.GLib;
+import { MPV_MPRIS_BUS_NAME } from '../../consts';
 
 // ── D-Bus introspection XML ──────────────────────────────────────────
 // wrapJSObject() only registers the FIRST <interface> in the XML, so we
@@ -183,7 +184,7 @@ export function createMprisService(callbacks: MprisMethodCallbacks): MprisServic
         get CanQuit() { return true; },
         get CanRaise() { return false; },
         get HasTrackList() { return false; },
-        get Identity() { return 'mpv Media Player'; },
+        get Identity() { return 'Radio++'; },
         get DesktopEntry() { return 'mpv'; },
         get SupportedUriSchemes() { return ['http', 'https', 'file']; },
         get SupportedMimeTypes() { return ['audio/mpeg', 'audio/ogg', 'audio/flac', 'audio/x-wav', 'application/ogg']; },
@@ -237,7 +238,7 @@ export function createMprisService(callbacks: MprisMethodCallbacks): MprisServic
 
     const busNameId = Gio.bus_own_name_on_connection(
         Gio.DBus.session,
-        'org.mpris.MediaPlayer2.mpv',
+        MPV_MPRIS_BUS_NAME,
         Gio.BusNameOwnerFlags.NONE,
         null,
         null
