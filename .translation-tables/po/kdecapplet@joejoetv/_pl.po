@@ -1,0 +1,67 @@
+# KDE CONNECT APPLET
+# This file is put in the public domain.
+# JoeJoeTV, 2020
+#
+msgid ""
+msgstr ""
+
+#: js/modules.js:450
+msgid "Module"
+msgstr ""
+
+#: js/modules.js:597
+msgid "Battery Module"
+msgstr ""
+
+#: js/modules.js:682
+msgid "Device-Info Module"
+msgstr ""
+
+#: js/modules.js:750
+msgid "Connectivity Module"
+msgstr ""
+
+#: js/modules.js:866
+msgid "FindMyPhone Module"
+msgstr ""
+
+#: js/modules.js:906
+msgid "Request Photo Module"
+msgstr ""
+
+#: js/modules.js:1008
+msgid "Ping Module"
+msgstr ""
+
+#: js/modules.js:1061
+msgid "Share Module"
+msgstr ""
+
+#: js/modules.js:1243
+msgid "SFTP Module"
+msgstr ""
+
+#: js/modules.js:1463
+msgid "SMS Module"
+msgstr ""
+
+#: py/dialogs.py:271
+#, python-brace-format
+msgid "Open remote directory on '{device_name}'"
+msgstr ""
+
+#: py/dialogs.py:290
+msgid "Open"
+msgstr ""
+
+#: py/dialogs.py:300
+msgid "Directory to open:"
+msgstr ""
+
+#. settings-schema.json->module_battery_description->description
+msgid "Shows the current battery charge and charging status of the device"
+msgstr ""
+
+#. settings-schema.json->module_sftp_selectFirstDirectory->description
+msgid "Select the first directory automatically"
+msgstr ""

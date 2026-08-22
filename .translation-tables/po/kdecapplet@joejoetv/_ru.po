@@ -1,0 +1,142 @@
+# KDE CONNECT APPLET
+# This file is put in the public domain.
+# JoeJoeTV, 2020
+#
+msgid ""
+msgstr ""
+
+#: js/modules.js:450
+msgid "Module"
+msgstr ""
+
+#: js/modules.js:597
+msgid "Battery Module"
+msgstr ""
+
+#: js/modules.js:646
+msgid "Charging"
+msgstr ""
+
+#: js/modules.js:682
+msgid "Device-Info Module"
+msgstr ""
+
+#: js/modules.js:750
+msgid "Connectivity Module"
+msgstr ""
+
+#: js/modules.js:815
+msgid "Low"
+msgstr ""
+
+#: js/modules.js:818
+msgid "Ok"
+msgstr ""
+
+#: js/modules.js:821
+msgid "Good"
+msgstr ""
+
+#: js/modules.js:824
+msgid "Excellent"
+msgstr ""
+
+#: js/modules.js:836
+msgid "Unknown"
+msgstr ""
+
+#: js/modules.js:866
+msgid "FindMyPhone Module"
+msgstr ""
+
+#: js/modules.js:906
+msgid "Request Photo Module"
+msgstr ""
+
+#: js/modules.js:1008
+msgid "Ping Module"
+msgstr ""
+
+#: js/modules.js:1061
+msgid "Share Module"
+msgstr ""
+
+#: js/modules.js:1243
+msgid "SFTP Module"
+msgstr ""
+
+#: js/modules.js:1284
+msgid "Unmount"
+msgstr ""
+
+#: js/modules.js:1286
+msgid "Mount"
+msgstr ""
+
+#: js/modules.js:1463
+msgid "SMS Module"
+msgstr ""
+
+#: py/dialogs.py:60 py/dialogs.py:132 py/dialogs.py:207 py/dialogs.py:285
+msgid "Cancel"
+msgstr ""
+
+#: py/dialogs.py:65 py/dialogs.py:137 py/dialogs.py:212
+msgid "Send"
+msgstr ""
+
+#: py/dialogs.py:271
+#, python-brace-format
+msgid "Open remote directory on '{device_name}'"
+msgstr ""
+
+#: py/dialogs.py:290
+msgid "Open"
+msgstr ""
+
+#: py/dialogs.py:300
+msgid "Directory to open:"
+msgstr ""
+
+#. settings-schema.json->page_general->title
+msgid "General"
+msgstr ""
+
+#. settings-schema.json->page_modules->title
+msgid "Modules"
+msgstr ""
+
+#. settings-schema.json->section_panel->title
+msgid "Panel"
+msgstr ""
+
+#. settings-schema.json->section_devices->title
+msgid "Devices"
+msgstr ""
+
+#. settings-schema.json->combobox_icon-type->options
+msgid "Symbolic"
+msgstr ""
+
+#. settings-schema.json->combobox_icon-type->options
+msgid "Color"
+msgstr ""
+
+#. settings-schema.json->orderlist_device-order->columns->title
+#. settings-schema.json->oderlist_info-modules->columns->title
+#. settings-schema.json->oderlist_action-modules->columns->title
+msgid "Name"
+msgstr ""
+
+#. settings-schema.json->orderlist_device-order->columns->title
+msgid "Expand"
+msgstr ""
+
+#. settings-schema.json->oderlist_info-modules->columns->title
+#. settings-schema.json->oderlist_action-modules->columns->title
+msgid "Enabled"
+msgstr ""
+
+#. settings-schema.json->module_sftp_selectFirstDirectory->description
+msgid "Select the first directory automatically"
+msgstr ""

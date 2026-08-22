@@ -1,0 +1,40 @@
+# Chinese (Traditional) translation for kdecapplet@joejoetv
+# Copyright (C) 2025
+# This file is distributed under the same license as the kdecapplet@joejoetv package.
+# Peter Dave Hello <hsu@peterdavehello.org>, 2025.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: kdecapplet@joejoetv 2025\n"
+"Report-Msgid-Bugs-To: https://github.com/linuxmint/cinnamon-spices-applets/"
+"issues\n"
+"POT-Creation-Date: 2026-08-19 00:45+0200\n"
+"PO-Revision-Date: 2025-08-02 00:57+0800\n"
+"Last-Translator: Peter Dave Hello <hsu@peterdavehello.org>\n"
+"Language-Team: \n"
+"Language: zh_TW\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+
+#: js/modules.js:450
+msgid "Module"
+msgstr ""
+
+#: py/dialogs.py:271
+#, python-brace-format
+msgid "Open remote directory on '{device_name}'"
+msgstr ""
+
+#: py/dialogs.py:290
+msgid "Open"
+msgstr ""
+
+#: py/dialogs.py:300
+msgid "Directory to open:"
+msgstr ""
+
+#. settings-schema.json->module_sftp_selectFirstDirectory->description
+msgid "Select the first directory automatically"
+msgstr ""
